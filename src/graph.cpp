@@ -83,13 +83,13 @@ bool Graph::is_topologically_sorted() const {
     assert(nodes_.size() == sorted_nodes_ids_.size());
 
     std::set<uint32_t> visited_nodes;
-    for (const auto& id: sorted_nodes_ids_) {
-        for (const auto& edge: nodes_[id]->in_edges()) {
+    for (uint32_t node_id: sorted_nodes_ids_) {
+        for (const auto& edge: this->node(node_id)->in_edges()) {
             if (visited_nodes.count(edge->begin_node()->id()) == 0) {
                 return false;
             }
         }
-        visited_nodes.insert(id);
+        visited_nodes.insert(node_id);
     }
 
     return true;

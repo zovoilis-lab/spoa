@@ -1,20 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "alignment.hpp"
 #include "graph.hpp"
 #include "node.hpp"
 #include "edge.hpp"
 
 int main(int argc, char** argv) {
 
-    auto graph = createGraph("huehueheh");
-    printf("%d %zu\n", graph->num_sequences(), graph->nodes().size());
+    GraphSharedPtr graph = createGraph("huehueheh");
     graph->topological_sort();
-    const auto& ids = graph->sorted_nodes_ids();
-    for (const auto& id: ids) {
-        printf("%d ", id);
-    }
-    printf("\n");
+
+    auto alignment = createAlignment("huehuehue", graph,
+        AlignmentParams(1, -1, -1, -1,  AlignmentType::kNW));
+
+    alignment->align_sequence_to_graph();
 
     NodeSharedPtr node1 = createNode(0, 'c');
     NodeSharedPtr node2 = createNode(1, 'c');
@@ -23,14 +23,6 @@ int main(int argc, char** argv) {
     node2->add_in_edge(edge);
     edge->add_sequence_label(1);
     edge->add_sequence_label(2);
-
-    //node1.reset();
-    auto node3 = edge->begin_node();
-    printf("%d\n", node3->id());
-
-    edge.reset();
-    const auto& edges = node1->out_edges();
-    printf("%zu\n", edges[0]->sequence_labels().size());
 
     return 0;
 }
