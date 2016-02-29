@@ -4,7 +4,6 @@
  * @brief Graph class source file
  */
 
-#include <assert.h>
 #include <set>
 
 #include "node.hpp"
@@ -38,17 +37,24 @@ Graph::~Graph() {
 
 void Graph::topological_sort() {
 
+    if (is_sorted_) {
+        return;
+    }
     sorted_nodes_ids_.clear();
 
     // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
     std::vector<uint8_t> marks(nodes_.size(), 0);
 
     while (true) {
-        uint16_t i = 0;
+        uint32_t i = 0;
         for (; i < nodes_.size(); ++i) {
-            if (marks[nodes_[i]->id()] == 0) break;
+            if (marks[nodes_[i]->id()] == 0) {
+                break;
+            }
         }
-        if (i == nodes_.size()) break;
+        if (i == nodes_.size()) {
+            break;
+        }
 
         visit_node(nodes_[i], marks);
     }
@@ -76,7 +82,7 @@ void Graph::visit_node(NodeSharedPtr node, std::vector<uint8_t>& marks) {
 bool Graph::is_topologically_sorted() const {
     assert(nodes_.size() == sorted_nodes_ids_.size());
 
-    std::set<uint16_t> visited_nodes;
+    std::set<uint32_t> visited_nodes;
     for (const auto& id: sorted_nodes_ids_) {
         for (const auto& edge: nodes_[id]->in_edges()) {
             if (visited_nodes.count(edge->begin_node()->id()) == 0) {

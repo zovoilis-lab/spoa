@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <assert.h>
+#include <string>
 #include <vector>
 #include <memory>
 
@@ -24,11 +26,16 @@ public:
         return num_sequences_;
     }
 
+    const NodeSharedPtr node(uint32_t id) const {
+        assert(id < nodes_.size());
+        return nodes_[id];
+    }
+
     const std::vector<NodeSharedPtr>& nodes() const {
         return nodes_;
     }
 
-    const std::vector<uint16_t> sorted_nodes_ids() const {
+    const std::vector<uint32_t> sorted_nodes_ids() const {
         return sorted_nodes_ids_;
     }
 
@@ -38,16 +45,16 @@ public:
 
 private:
 
-    void visit_node(NodeSharedPtr node, std::vector<uint8_t>& marks);
-    bool is_topologically_sorted() const;
-
     Graph(const std::string& sequence);
     Graph(const Graph&) = delete;
     const Graph& operator=(const Graph&) = delete;
+
+    void visit_node(NodeSharedPtr node, std::vector<uint8_t>& marks);
+    bool is_topologically_sorted() const;
 
     uint32_t num_sequences_;
     std::vector<NodeSharedPtr> nodes_;
 
     bool is_sorted_;
-    std::vector<uint16_t> sorted_nodes_ids_;
+    std::vector<uint32_t> sorted_nodes_ids_;
 };
