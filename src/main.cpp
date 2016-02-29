@@ -7,8 +7,14 @@
 
 int main(int argc, char** argv) {
 
-    auto graph = createGraph("huehuehehe");
+    auto graph = createGraph("huehueheh");
     printf("%d %zu\n", graph->num_sequences(), graph->nodes().size());
+    graph->topological_sort();
+    const auto& ids = graph->sorted_nodes_ids();
+    for (const auto& id: ids) {
+        printf("%d ", id);
+    }
+    printf("\n");
 
     NodeSharedPtr node1 = createNode(0, 'c');
     NodeSharedPtr node2 = createNode(1, 'c');
