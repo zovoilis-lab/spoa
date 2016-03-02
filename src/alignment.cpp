@@ -141,10 +141,10 @@ void Alignment::align_sequence_to_graph() {
 
             if (node->in_edges().size() == 0) {
                 // match/mismatch
-                possible_moves.emplace_back(matrix(i, j - 1).score + match_cost,
+                possible_moves.emplace_back(matrix(i - 1, j - 1).score + match_cost,
                     i - 1, j - 1, 0);
                 // insertion to sequence
-                possible_moves.emplace_back(matrix(i, j).score + matrix(i, j).insertion_cost,
+                possible_moves.emplace_back(matrix(i - 1, j).score + matrix(i - 1, j).insertion_cost,
                     i - 1, j, 1);
 
             } else {
@@ -165,11 +165,9 @@ void Alignment::align_sequence_to_graph() {
                 i, j - 1, 2);
 
             // find best move
-            int32_t max_score = possible_moves[0].score;
             int32_t max_idx = 0;
             for (uint32_t idx = 1; idx < possible_moves.size(); ++idx) {
-                if (max_score < possible_moves[idx].score) {
-                    max_score = possible_moves[idx].score;
+                if (possible_moves[max_idx].score < possible_moves[idx].score) {
                     max_idx = idx;
                 }
             }
@@ -193,7 +191,7 @@ void Alignment::align_sequence_to_graph() {
                     matrix(i, j).prev_j = -1;
                 }
 
-                if (max_score_ < matrix(i, j).score) {
+                if (max_score_ <= matrix(i, j).score) {
                     max_score_ = matrix(i, j).score;
                     max_i_ = i;
                     max_j_ = j;
