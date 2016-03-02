@@ -141,11 +141,11 @@ void Alignment::align_sequence_to_graph() {
 
             if (node->in_edges().size() == 0) {
                 // match/mismatch
-                possible_moves.emplace_back(matrix(i - 1, j - 1).score + match_cost,
-                    i - 1, j - 1, 0);
+                possible_moves.emplace_back(matrix(0, j - 1).score + match_cost,
+                    0, j - 1, 0);
                 // insertion to sequence
-                possible_moves.emplace_back(matrix(i - 1, j).score + matrix(i - 1, j).insertion_cost,
-                    i - 1, j, 1);
+                possible_moves.emplace_back(matrix(0, j).score + matrix(0, j).insertion_cost,
+                    0, j, 1);
 
             } else {
                 for (const auto& edge: node->in_edges()) {

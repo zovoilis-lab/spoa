@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 
     for (uint32_t i = 1; i < reads.size(); ++i) {
         auto alignment = createAlignment(reads[i]->data(), graph,
-            AlignmentParams(1, 0, -1, -1, atoi(argv[2]) == 0 ? AlignmentType::kNW : AlignmentType::kSW));
+            AlignmentParams(1, -1, -1, -1, atoi(argv[2]) == 0 ? AlignmentType::kNW : AlignmentType::kSW));
 
         alignment->align_sequence_to_graph();
         alignment->backtrack();
