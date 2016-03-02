@@ -4,6 +4,7 @@
  * @brief Node class source file
  */
 
+#include "edge.hpp"
 #include "node.hpp"
 
 std::unique_ptr<Node> createNode(uint32_t id, char letter) {
