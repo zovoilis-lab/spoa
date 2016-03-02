@@ -231,7 +231,7 @@ void Alignment::backtrack() {
 
     uint32_t i = max_i_;
     uint32_t j = max_j_;
-    fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
+    //fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
 
     while ((params_.type == AlignmentType::kNW || matrix(i, j).score > 0)
         && !(i == 0 && j == 0)) {

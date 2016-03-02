@@ -5,6 +5,7 @@
  */
 
 #include <set>
+#include <algorithm>
 
 #include "node.hpp"
 #include "edge.hpp"
@@ -16,7 +17,7 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence) {
 
 Graph::Graph(const std::string& sequence) :
         num_sequences_(), num_nodes_(), nodes_(), is_sorted_(false),
-        sorted_nodes_ids_(), sequences_start_nodes_ids_() {
+        sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
 
     assert(sequence.size() != 0);
 
@@ -130,11 +131,11 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids,
     int32_t start_node_id = this->add_sequence(sequence, 0, valid_seq_ids.front());
     int32_t head_node_id = tmp == num_nodes_ ? -1 : num_nodes_ - 1;
 
-    fprintf(stderr, "%d %d\n", start_node_id, head_node_id);
+    //fprintf(stderr, "%d %d\n", start_node_id, head_node_id);
 
     int32_t tail_node_id = this->add_sequence(sequence, valid_seq_ids.back() + 1, sequence.size());
 
-    fprintf(stderr, "%d\n", tail_node_id);
+    //fprintf(stderr, "%d\n", tail_node_id);
 
     int32_t new_node_id = -1;
 
@@ -218,6 +219,118 @@ int32_t Graph::add_sequence(const std::string& sequence, uint32_t begin, uint32_
     }
 
     return first_node_id;
+}
+
+void Graph::generate_msa(std::vector<std::string>& dst) {
+
+    this->consensus();
+
+    std::vector<int32_t> msa_node_ids(num_nodes_, -1);
+
+    int32_t base_counter = 0;
+    for (const auto& node_id: sorted_nodes_ids_) {
+
+        if (nodes_[node_id]->aligned_nodes_ids().size() == 0) {
+            msa_node_ids[node_id] = base_counter;
+        } else {
+            int32_t min_id = base_counter;
+            for (const auto& aid: nodes_[node_id]->aligned_nodes_ids()) {
+                if (msa_node_ids[aid] != -1 && min_id > msa_node_ids[aid]) {
+                    min_id = msa_node_ids[aid];
+                }
+            }
+            msa_node_ids[node_id] = min_id;
+        }
+
+        if (msa_node_ids[node_id] == base_counter) {
+            ++base_counter;
+        }
+    }
+
+    for (uint32_t i = 0; i < num_sequences_; ++i) {
+        std::string alignment_str(base_counter, '-');
+        uint32_t curr_node_id = sequences_start_nodes_ids_[i];
+
+        while (true) {
+            alignment_str[msa_node_ids[curr_node_id]] = nodes_[curr_node_id]->letter();
+
+            uint32_t prev_node_id = curr_node_id;
+            for (const auto& edge: nodes_[prev_node_id]->out_edges()) {
+                for (const auto& label: edge->sequence_labels()) {
+                    if (label == i) {
+                        curr_node_id = edge->end_node_id();
+                        break;
+                    }
+                }
+                if (prev_node_id != curr_node_id) {
+                    break;
+                }
+            }
+
+            if (prev_node_id == curr_node_id) {
+                break;
+            }
+        }
+
+        dst.emplace_back(alignment_str);
+    }
+
+    // do the same for consensus sequence
+    std::string alignment_str(base_counter, '-');
+    for (const auto& id: consensus_) {
+        alignment_str[msa_node_ids[id]] = nodes_[id]->letter();
+    }
+    dst.emplace_back(alignment_str);
+}
+
+std::string Graph::generate_consensus() {
+
+    this->consensus();
+    std::string consensus_str = "";
+    for (const auto& node_id: consensus_) {
+        consensus_str += nodes_[node_id]->letter();
+    }
+
+    return consensus_str;
+}
+
+void Graph::consensus() {
+
+    this->topological_sort();
+
+    std::vector<int32_t> predecessors(num_nodes_, -1);
+    std::vector<uint32_t> scores(num_nodes_, 0);
+
+    uint32_t max_score_id = 0;
+    for (const auto& id: sorted_nodes_ids_) {
+        for (const auto& edge: nodes_[id]->in_edges()) {
+
+            if (scores[id] < edge->sequence_labels().size() ||
+                    (scores[id] == edge->sequence_labels().size() &&
+                    scores[predecessors[id]] <= scores[edge->begin_node_id()])) {
+
+                scores[id] = edge->sequence_labels().size();
+                predecessors[id] = edge->begin_node_id();
+            }
+        }
+
+        if (predecessors[id] != -1) {
+            scores[id] += scores[predecessors[id]];
+        }
+
+        if (scores[max_score_id] < scores[id]) {
+            max_score_id = id;
+        }
+    }
+
+    consensus_.clear();
+    while (predecessors[max_score_id] != -1) {
+        consensus_.emplace_back(max_score_id);
+        max_score_id = predecessors[max_score_id];
+    }
+    consensus_.emplace_back(max_score_id);
+
+    std::reverse(consensus_.begin(), consensus_.end());
 }
 
 void Graph::print() const {

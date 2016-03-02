@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 
     for (uint32_t i = 1; i < reads.size(); ++i) {
         auto alignment = createAlignment(reads[i]->data(), graph,
-            AlignmentParams(4, -2, -4, -2,  AlignmentType::kNW));
+            AlignmentParams(1, 0, -1, -1, atoi(argv[2]) == 0 ? AlignmentType::kNW : AlignmentType::kSW));
 
         alignment->align_sequence_to_graph();
         alignment->backtrack();
@@ -27,25 +27,17 @@ int main(int argc, char** argv) {
         const auto& node_ids = alignment->alignment_node_ids();
         const auto& seq_ids = alignment->alignment_seq_ids();
 
-        for (const auto& id: node_ids) {
-            if (id == -1) {
-                fprintf(stderr, "-");
-            } else {
-                fprintf(stderr, "%c", graph->node(id)->letter());
-            }
-        }
-        fprintf(stderr, "\n");
-        for (const auto& id: seq_ids) {
-            if (id == -1) {
-                fprintf(stderr, "-");
-            } else {
-                fprintf(stderr, "%c", reads[i]->data()[id]);
-            }
-        }
-        fprintf(stderr, "\n");
         graph->add_alignment(node_ids, seq_ids, reads[i]->data());
         graph->print();
     }
+
+    std::vector<std::string> msa;
+    graph->generate_msa(msa);
+    for (const auto& alignment_str: msa) {
+        fprintf(stderr, "%s\n", alignment_str.c_str());
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", graph->generate_consensus().c_str());
 
     return 0;
 }

@@ -45,6 +45,10 @@ public:
     void add_alignment(const std::vector<int32_t>& node_ids,
         const std::vector<int32_t>& seq_ids, const std::string& sequence);
 
+    void generate_msa(std::vector<std::string>& dst);
+
+    std::string generate_consensus();
+
     void print() const;
 
     friend std::unique_ptr<Graph> createGraph(const std::string& sequence);
@@ -65,6 +69,8 @@ private:
 
     int32_t add_sequence(const std::string& sequence, uint32_t begin, uint32_t end);
 
+    void consensus();
+
     uint32_t num_sequences_;
     uint32_t num_nodes_;
     std::vector<NodeSharedPtr> nodes_;
@@ -73,4 +79,6 @@ private:
     std::vector<uint32_t> sorted_nodes_ids_;
 
     std::vector<uint32_t> sequences_start_nodes_ids_;
+
+    std::vector<uint32_t> consensus_;
 };
