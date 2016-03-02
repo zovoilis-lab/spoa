@@ -53,9 +53,9 @@ public:
 
     int32_t alignment_score() const;
 
-    const std::vector<int32_t>& alignment_graph_ids() const {
+    const std::vector<int32_t>& alignment_node_ids() const {
         assert(is_backtracked_ == true && "No backtrack done!");
-        return alignment_graph_ids_;
+        return alignment_node_ids_;
     }
 
     const std::vector<int32_t>& alignment_seq_ids() const {
@@ -128,6 +128,6 @@ private:
     std::vector<uint32_t> node_id_to_graph_id_;
 
     bool is_backtracked_;
-    std::vector<int32_t> alignment_graph_ids_;
+    std::vector<int32_t> alignment_node_ids_;
     std::vector<int32_t> alignment_seq_ids_;
 };

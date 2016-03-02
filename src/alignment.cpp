@@ -86,7 +86,7 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
         }
 
         for (uint32_t node_id: sorted_nodes_ids) {
-            auto node = graph_->node(node_id);
+            const auto& node = graph_->node(node_id);
             uint32_t i = node_id_to_graph_id_[node_id] + 1;
 
             if (node->in_edges().size() == 0) {
@@ -96,7 +96,7 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
             } else {
                 matrix(i, 0).score = std::numeric_limits<int32_t>::min();
                 for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i = node_id_to_graph_id_[edge->begin_node()->id()] + 1;
+                    uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
                     if (matrix(i, 0).score < matrix(pred_i, 0).score) {
                         matrix(i, 0).score = matrix(pred_i, 0).score;
                         matrix(i, 0).prev_i = pred_i;
@@ -108,7 +108,7 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
         }
     }
 
-    print_matrix();
+    //print_matrix();
 }
 
 Alignment::~Alignment() {
@@ -130,7 +130,7 @@ void Alignment::align_sequence_to_graph() {
     std::vector<MatrixMove> possible_moves;
 
     for (uint32_t node_id: sorted_nodes_ids) {
-        auto node = graph_->node(node_id);
+        const auto& node = graph_->node(node_id);
         char graph_letter = node->letter();
         uint32_t i = node_id_to_graph_id_[node_id] + 1;
 
@@ -139,27 +139,30 @@ void Alignment::align_sequence_to_graph() {
 
             possible_moves.clear();
 
-            // match/mismatch
-            possible_moves.emplace_back(matrix(i - 1, j - 1).score + match_cost,
-                i - 1, j - 1, 0);
-            // insertion to sequence
-            possible_moves.emplace_back(matrix(i - 1, j).score + matrix(i - 1, j).insertion_cost,
-                i - 1, j, 1);
+            if (node->in_edges().size() == 0) {
+                // match/mismatch
+                possible_moves.emplace_back(matrix(i, j - 1).score + match_cost,
+                    i - 1, j - 1, 0);
+                // insertion to sequence
+                possible_moves.emplace_back(matrix(i, j).score + matrix(i, j).insertion_cost,
+                    i - 1, j, 1);
+
+            } else {
+                for (const auto& edge: node->in_edges()) {
+                    uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
+
+                    // match/mismatch
+                    possible_moves.emplace_back(matrix(pred_i, j - 1).score + match_cost,
+                        pred_i, j - 1, 0);
+                    // insertion to sequence
+                    possible_moves.emplace_back(matrix(pred_i, j).score + matrix(pred_i, j).insertion_cost,
+                        pred_i, j, 1);
+                }
+            }
+
             // deletion from graph
             possible_moves.emplace_back(matrix(i, j - 1).score + matrix(i, j - 1).deletion_cost,
                 i, j - 1, 2);
-
-            // do the same (except deletion) with all predecessors
-            for (const auto& edge: node->in_edges()) {
-                uint32_t pred_i = node_id_to_graph_id_[edge->begin_node()->id()] + 1;
-
-                // match/mismatch
-                possible_moves.emplace_back(matrix(pred_i, j - 1).score + match_cost,
-                    pred_i, j - 1, 0);
-                // insertion to sequence
-                possible_moves.emplace_back(matrix(pred_i, j).score + matrix(pred_i, j).insertion_cost,
-                    pred_i, j, 1);
-            }
 
             // find best move
             int32_t max_score = possible_moves[0].score;
@@ -211,7 +214,7 @@ void Alignment::align_sequence_to_graph() {
 
     is_aligned_ = true;
 
-    print_matrix();
+    //print_matrix();
 }
 
 int32_t Alignment::alignment_score() const {
@@ -230,7 +233,7 @@ void Alignment::backtrack() {
 
     uint32_t i = max_i_;
     uint32_t j = max_j_;
-    printf("%d, %d, %d\n", max_score_, i, j);
+    fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
 
     while ((params_.type == AlignmentType::kNW || matrix(i, j).score > 0)
         && !(i == 0 && j == 0)) {
@@ -238,14 +241,14 @@ void Alignment::backtrack() {
         uint32_t prev_i = matrix(i, j).prev_i;
         uint32_t prev_j = matrix(i, j).prev_j;
 
-        alignment_graph_ids_.emplace_back(i == prev_i ? -1 : graph_id_to_node_id[i - 1]);
+        alignment_node_ids_.emplace_back(i == prev_i ? -1 : graph_id_to_node_id[i - 1]);
         alignment_seq_ids_.emplace_back(j == prev_j ? -1 : j - 1);
 
         i = prev_i;
         j = prev_j;
     }
 
-    std::reverse(alignment_graph_ids_.begin(), alignment_graph_ids_.end());
+    std::reverse(alignment_node_ids_.begin(), alignment_node_ids_.end());
     std::reverse(alignment_seq_ids_.begin(), alignment_seq_ids_.end());
 
     is_backtracked_ = true;
