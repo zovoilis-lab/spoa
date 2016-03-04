@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
     GraphSharedPtr graph = createGraph(reads[0]->data());
     graph->topological_sort();
-    graph->print();
+    //graph->print();
 
     for (uint32_t i = 1; i < reads.size(); ++i) {
         auto alignment = createAlignment(reads[i]->data(), graph,
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
         const auto& seq_ids = alignment->alignment_seq_ids();
 
         graph->add_alignment(node_ids, seq_ids, reads[i]->data());
-        graph->print();
+        //graph->print();
     }
 
     std::vector<std::string> msa;
@@ -37,7 +37,9 @@ int main(int argc, char** argv) {
         fprintf(stderr, "%s\n", alignment_str.c_str());
     }
     fprintf(stderr, "\n");
-    fprintf(stderr, "%s\n", graph->generate_consensus().c_str());
+    std::string consensus = graph->generate_consensus();
+    fprintf(stderr, "Consensus (%zu)\n", consensus.size());
+    fprintf(stderr, "%s\n", consensus.c_str());
 
     return 0;
 }

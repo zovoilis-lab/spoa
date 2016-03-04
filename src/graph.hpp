@@ -69,7 +69,10 @@ private:
 
     int32_t add_sequence(const std::string& sequence, uint32_t begin, uint32_t end);
 
-    void consensus();
+    void traverse_heaviest_bundle();
+
+    uint32_t branch_completion(std::vector<int32_t>& scores, std::vector<int32_t>& predecessors,
+        uint32_t rank);
 
     uint32_t num_sequences_;
     uint32_t num_nodes_;
