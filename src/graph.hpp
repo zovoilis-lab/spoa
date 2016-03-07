@@ -15,8 +15,7 @@ class Node;
 using NodeSharedPtr = std::shared_ptr<Node>;
 
 class Graph;
-std::unique_ptr<Graph> createGraph(const std::string& sequence);
-std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight);
+std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight = 1.0);
 std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::string& quality);
 std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vector<float>& weights);
 
@@ -46,9 +45,7 @@ public:
     void topological_sort();
 
     void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
-        const std::string& sequence);
-    void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
-        const std::string& sequence, float weight);
+        const std::string& sequence, float weight = 1.0);
     void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
         const std::string& sequence, const std::string& quality);
     void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,

@@ -6,15 +6,11 @@
 
 #include <set>
 #include <algorithm>
+#include <math.h>
 
 #include "node.hpp"
 #include "edge.hpp"
 #include "graph.hpp"
-
-std::unique_ptr<Graph> createGraph(const std::string& sequence) {
-    std::vector<float> weights(sequence.size(), 1.0);
-    return createGraph(sequence, weights);
-}
 
 std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
     std::vector<float> weights(sequence.size(), weight);
@@ -22,7 +18,10 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
 }
 
 std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::string& quality) {
-    std::vector<float> weights(quality.begin(), quality.end());
+    std::vector<float> weights;
+    for (const auto& q: quality) {
+        weights.emplace_back(1. - pow(10., (float) (q - 33) / (-10.)));
+    }
     return createGraph(sequence, weights);
 }
 
@@ -128,13 +127,6 @@ bool Graph::is_topologically_sorted() const {
 }
 
 void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
-    const std::string& sequence) {
-
-    std::vector<float> weights(sequence.size(), 1.0);
-    this->add_alignment(node_ids, seq_ids, sequence, weights);
-}
-
-void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
     const std::string& sequence, float weight) {
 
     std::vector<float> weights(sequence.size(), weight);
@@ -144,7 +136,10 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vecto
 void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
     const std::string& sequence, const std::string& quality) {
 
-    std::vector<float> weights(quality.begin(), quality.end());
+    std::vector<float> weights;
+    for (const auto& q: quality) {
+        weights.emplace_back(1. - pow(10., (float) (q - 33) / (-10.)));
+    }
     this->add_alignment(node_ids, seq_ids, sequence, weights);
 }
 
@@ -174,6 +169,7 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vecto
     //fprintf(stderr, "%d\n", tail_node_id);
 
     int32_t new_node_id = -1;
+    float prev_weight = -1;
 
     for (uint32_t i = 0; i < seq_ids.size(); ++i) {
         //fprintf(stderr, "%d| %d %d %d\n", seq_ids[i], start_node_id, head_node_id, new_node_id);
@@ -220,15 +216,18 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vecto
         if (start_node_id == -1) {
             start_node_id = new_node_id;
         }
+
         if (head_node_id != -1) {
-            this->add_edge(head_node_id, new_node_id, weights[seq_ids[i]]);
+            this->add_edge(head_node_id, new_node_id, prev_weight);
         }
+
         head_node_id = new_node_id;
+        prev_weight = weights[seq_ids[i]];
     }
     //fprintf(stderr, "%d %d %d\n", start_node_id, head_node_id, new_node_id);
 
     if (tail_node_id != -1) {
-        this->add_edge(head_node_id, tail_node_id, weights[valid_seq_ids.back() + 1]);
+        this->add_edge(head_node_id, tail_node_id, prev_weight);
     }
 
     ++num_sequences_;
@@ -252,7 +251,7 @@ int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float
     uint32_t node_id;
     for (uint32_t i = begin + 1; i < end; ++i) {
         node_id = this->add_node(sequence[i]);
-        this->add_edge(node_id - 1, node_id, weights[i]);
+        this->add_edge(node_id - 1, node_id, weights[i - 1]);
     }
 
     return first_node_id;
@@ -397,12 +396,12 @@ uint32_t Graph::branch_completion(std::vector<float>& scores,
         }
     }
 
+    float max_score = 0;
     uint32_t max_score_id = 0;
     for (uint32_t i = rank + 1; i < sorted_nodes_ids_.size(); ++i) {
+
         uint32_t id = sorted_nodes_ids_[i];
-        if (scores[id] != -1) {
-            scores[id] = 0;
-        }
+        scores[id] = -1;
         predecessors[id] = -1;
 
         for (const auto& edge: nodes_[id]->in_edges()) {
@@ -423,7 +422,8 @@ uint32_t Graph::branch_completion(std::vector<float>& scores,
             scores[id] += scores[predecessors[id]];
         }
 
-        if (scores[max_score_id] < scores[id]) {
+        if (max_score < scores[id]) {
+            max_score = scores[id];
             max_score_id = id;
         }
     }
