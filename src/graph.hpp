@@ -16,6 +16,9 @@ using NodeSharedPtr = std::shared_ptr<Node>;
 
 class Graph;
 std::unique_ptr<Graph> createGraph(const std::string& sequence);
+std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight);
+std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::string& quality);
+std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vector<float>& weights);
 
 class Graph {
 public:
@@ -42,8 +45,14 @@ public:
 
     void topological_sort();
 
-    void add_alignment(const std::vector<int32_t>& node_ids,
-        const std::vector<int32_t>& seq_ids, const std::string& sequence);
+    void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+        const std::string& sequence);
+    void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+        const std::string& sequence, float weight);
+    void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+        const std::string& sequence, const std::string& quality);
+    void add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+        const std::string& sequence, const std::vector<float>& weights);
 
     void generate_msa(std::vector<std::string>& dst);
 
@@ -51,27 +60,29 @@ public:
 
     void print() const;
 
-    friend std::unique_ptr<Graph> createGraph(const std::string& sequence);
+    friend std::unique_ptr<Graph> createGraph(const std::string& sequence,
+        const std::vector<float>& weights);
 
 private:
 
-    Graph(const std::string& sequence);
+    Graph(const std::string& sequence, const std::vector<float>& weights);
     Graph(const Graph&) = delete;
     const Graph& operator=(const Graph&) = delete;
 
     uint32_t add_node(char letter);
 
-    void add_edge(uint32_t begin_node_id, uint32_t end_node_id);
+    void add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight);
 
     void visit_node(uint32_t node_id, std::vector<uint8_t>& marks);
 
     bool is_topologically_sorted() const;
 
-    int32_t add_sequence(const std::string& sequence, uint32_t begin, uint32_t end);
+    int32_t add_sequence(const std::string& sequence, const std::vector<float>& weights,
+        uint32_t begin, uint32_t end);
 
     void traverse_heaviest_bundle();
 
-    uint32_t branch_completion(std::vector<int32_t>& scores, std::vector<int32_t>& predecessors,
+    uint32_t branch_completion(std::vector<float>& scores, std::vector<int32_t>& predecessors,
         uint32_t rank);
 
     uint32_t num_sequences_;

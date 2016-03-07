@@ -12,16 +12,33 @@
 #include "graph.hpp"
 
 std::unique_ptr<Graph> createGraph(const std::string& sequence) {
-    return std::unique_ptr<Graph>(new Graph(sequence));
+    std::vector<float> weights(sequence.size(), 1.0);
+    return createGraph(sequence, weights);
 }
 
-Graph::Graph(const std::string& sequence) :
+std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
+    std::vector<float> weights(sequence.size(), weight);
+    return createGraph(sequence, weights);
+}
+
+std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::string& quality) {
+    std::vector<float> weights(quality.begin(), quality.end());
+    return createGraph(sequence, weights);
+}
+
+std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vector<float>& weights) {
+    assert(sequence.size() == weights.size());
+    return std::unique_ptr<Graph>(new Graph(sequence, weights));
+}
+
+
+Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
         num_sequences_(), num_nodes_(), nodes_(), is_sorted_(false),
         sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
 
     assert(sequence.size() != 0);
 
-    int32_t start_node_id = this->add_sequence(sequence, 0, sequence.size());
+    int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
 
     sequences_start_nodes_ids_.emplace_back(start_node_id);
     ++num_sequences_;
@@ -35,17 +52,17 @@ uint32_t Graph::add_node(char letter) {
     return num_nodes_++;
 }
 
-void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id) {
+void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight) {
     assert(begin_node_id < num_nodes_ && end_node_id < num_nodes_);
 
     for (const auto& edge: nodes_[begin_node_id]->out_edges()) {
         if (edge->end_node_id() == end_node_id) {
-            edge->add_sequence(num_sequences_);
+            edge->add_sequence(num_sequences_, weight);
             return;
         }
     }
 
-    EdgeSharedPtr edge = createEdge(begin_node_id, end_node_id, num_sequences_);
+    EdgeSharedPtr edge = createEdge(begin_node_id, end_node_id, num_sequences_, weight);
     nodes_[begin_node_id]->add_out_edge(edge);
     nodes_[end_node_id]->add_in_edge(edge);
 }
@@ -110,11 +127,33 @@ bool Graph::is_topologically_sorted() const {
     return true;
 }
 
-void Graph::add_alignment(const std::vector<int32_t>& node_ids,
-    const std::vector<int32_t>& seq_ids, const std::string& sequence) {
+void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+    const std::string& sequence) {
 
-    assert(sequence.size() != 0);
+    std::vector<float> weights(sequence.size(), 1.0);
+    this->add_alignment(node_ids, seq_ids, sequence, weights);
+}
+
+void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+    const std::string& sequence, float weight) {
+
+    std::vector<float> weights(sequence.size(), weight);
+    this->add_alignment(node_ids, seq_ids, sequence, weights);
+}
+
+void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+    const std::string& sequence, const std::string& quality) {
+
+    std::vector<float> weights(quality.begin(), quality.end());
+    this->add_alignment(node_ids, seq_ids, sequence, weights);
+}
+
+void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
+    const std::string& sequence, const std::vector<float>& weights) {
+
     assert(node_ids.size() == seq_ids.size());
+    assert(sequence.size() != 0);
+    assert(sequence.size() == weights.size());
 
     std::vector<uint32_t> valid_seq_ids;
     for (const auto& id: seq_ids) {
@@ -125,12 +164,12 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids,
     assert(valid_seq_ids.size() != 0);
 
     uint32_t tmp = num_nodes_;
-    int32_t start_node_id = this->add_sequence(sequence, 0, valid_seq_ids.front());
+    int32_t start_node_id = this->add_sequence(sequence, weights, 0, valid_seq_ids.front());
     int32_t head_node_id = tmp == num_nodes_ ? -1 : num_nodes_ - 1;
 
     //fprintf(stderr, "%d %d\n", start_node_id, head_node_id);
 
-    int32_t tail_node_id = this->add_sequence(sequence, valid_seq_ids.back() + 1, sequence.size());
+    int32_t tail_node_id = this->add_sequence(sequence, weights, valid_seq_ids.back() + 1, sequence.size());
 
     //fprintf(stderr, "%d\n", tail_node_id);
 
@@ -182,14 +221,14 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids,
             start_node_id = new_node_id;
         }
         if (head_node_id != -1) {
-            this->add_edge(head_node_id, new_node_id);
+            this->add_edge(head_node_id, new_node_id, weights[seq_ids[i]]);
         }
         head_node_id = new_node_id;
     }
     //fprintf(stderr, "%d %d %d\n", start_node_id, head_node_id, new_node_id);
 
     if (tail_node_id != -1) {
-        this->add_edge(head_node_id, tail_node_id);
+        this->add_edge(head_node_id, tail_node_id, weights[valid_seq_ids.back() + 1]);
     }
 
     ++num_sequences_;
@@ -199,7 +238,8 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids,
     this->topological_sort();
 }
 
-int32_t Graph::add_sequence(const std::string& sequence, uint32_t begin, uint32_t end) {
+int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float>& weights,
+    uint32_t begin, uint32_t end) {
 
     if (begin == end) {
         return -1;
@@ -212,7 +252,7 @@ int32_t Graph::add_sequence(const std::string& sequence, uint32_t begin, uint32_
     uint32_t node_id;
     for (uint32_t i = begin + 1; i < end; ++i) {
         node_id = this->add_node(sequence[i]);
-        this->add_edge(node_id - 1, node_id);
+        this->add_edge(node_id - 1, node_id, weights[i]);
     }
 
     return first_node_id;
@@ -296,7 +336,7 @@ void Graph::traverse_heaviest_bundle() {
     this->topological_sort();
 
     std::vector<int32_t> predecessors(num_nodes_, -1);
-    std::vector<int32_t> scores(num_nodes_, 0);
+    std::vector<float> scores(num_nodes_, 0);
 
     uint32_t max_score_id = 0;
     for (const auto& id: sorted_nodes_ids_) {
@@ -345,7 +385,7 @@ void Graph::traverse_heaviest_bundle() {
     std::reverse(consensus_.begin(), consensus_.end());
 }
 
-uint32_t Graph::branch_completion(std::vector<int32_t>& scores,
+uint32_t Graph::branch_completion(std::vector<float>& scores,
     std::vector<int32_t>& predecessors, uint32_t rank) {
 
     uint32_t node_id = sorted_nodes_ids_[rank];
@@ -397,7 +437,7 @@ void Graph::print() const {
     for (uint32_t i = 0; i < num_nodes_; ++i) {
         printf("    %d [label = \"%d|%c\"]\n", i, i, nodes_[i]->letter());
         for (const auto& edge: nodes_[i]->out_edges()) {
-            printf("    %d -> %d [label = \"%d\"]\n", i, edge->end_node_id(),
+            printf("    %d -> %d [label = \"%.3f\"]\n", i, edge->end_node_id(),
                 edge->total_weight());
         }
         for (const auto& aid: nodes_[i]->aligned_nodes_ids()) {
