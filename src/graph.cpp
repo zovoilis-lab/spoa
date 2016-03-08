@@ -169,7 +169,7 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vecto
     //fprintf(stderr, "%d\n", tail_node_id);
 
     int32_t new_node_id = -1;
-    float prev_weight = -1;
+    float prev_weight = head_node_id == -1 ? -1 : weights[valid_seq_ids.front() - 1];
 
     for (uint32_t i = 0; i < seq_ids.size(); ++i) {
         //fprintf(stderr, "%d| %d %d %d\n", seq_ids[i], start_node_id, head_node_id, new_node_id);
