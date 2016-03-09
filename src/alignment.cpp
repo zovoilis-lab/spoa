@@ -65,7 +65,7 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
     is_aligned_ = false;
     max_i_ = -1;
     max_j_ = -1;
-    max_score_ = std::numeric_limits<int32_t>::min();
+    max_score_ = params.type == AlignmentType::kNW ? std::numeric_limits<int32_t>::min() : 0;
 
     graph_->topological_sort();
     const auto& sorted_nodes_ids = graph_->sorted_nodes_ids();
@@ -120,10 +120,6 @@ void Alignment::align_sequence_to_graph() {
         return;
     }
 
-    auto pair_score = [&](char lhs, char rhs) {
-        return lhs == rhs ? params_.match : params_.mismatch;
-    };
-
     graph_->topological_sort();
     const auto& sorted_nodes_ids = graph_->sorted_nodes_ids();
 
@@ -135,7 +131,7 @@ void Alignment::align_sequence_to_graph() {
         uint32_t i = node_id_to_graph_id_[node_id] + 1;
 
         for (uint32_t j = 1; j < matrix_width_; ++j) {
-            int32_t match_cost = pair_score(graph_letter, sequence_[j - 1]);
+            int32_t match_cost = graph_letter == sequence_[j - 1] ? params_.match : params_.mismatch;
 
             possible_moves.clear();
 
@@ -191,7 +187,7 @@ void Alignment::align_sequence_to_graph() {
                     matrix(i, j).prev_j = -1;
                 }
 
-                if (max_score_ <= matrix(i, j).score) {
+                if (max_score_ < matrix(i, j).score) {
                     max_score_ = matrix(i, j).score;
                     max_i_ = i;
                     max_j_ = j;
@@ -200,6 +196,16 @@ void Alignment::align_sequence_to_graph() {
             } else if (params_.type == AlignmentType::kNW) {
 
                 if (j == matrix_width_ - 1 && node->out_edges().size() == 0) {
+                    if (max_score_ < matrix(i, j).score) {
+                        max_score_ = matrix(i, j).score;
+                        max_i_ = i;
+                        max_j_ = j;
+                    }
+                }
+
+            } else if (params_.type == AlignmentType::kOV) {
+
+                if (j == matrix_width_ - 1 || node->out_edges().size() == 0) {
                     if (max_score_ < matrix(i, j).score) {
                         max_score_ = matrix(i, j).score;
                         max_i_ = i;
@@ -227,14 +233,26 @@ void Alignment::backtrack() {
     }
     assert(is_aligned_  == true && "No alignment done!");
 
-    const auto& graph_id_to_node_id = graph_->sorted_nodes_ids();
+    if (max_i_ == -1 && max_j_ == -1) { // no alignment found
+        is_backtracked_ = true;
+        return;
+    }
 
     uint32_t i = max_i_;
     uint32_t j = max_j_;
-    //fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
+    // fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
 
-    while ((params_.type == AlignmentType::kNW || matrix(i, j).score > 0)
-        && !(i == 0 && j == 0)) {
+    auto sw_condition = [&]() { return (matrix(i, j).score == 0) ? false : true; };
+    auto nw_condition = [&]() { return (i == 0 && j == 0) ? false : true; };
+    auto ov_condition = [&]() { return (i == 0 || j == 0) ? false : true; };
+
+    const auto& graph_id_to_node_id = graph_->sorted_nodes_ids();
+
+    //while ((params_.type != AlignmentType::kSW || matrix(i, j).score > 0)
+    //    && !(i == 0 && j == 0)) {
+    while ((params_.type == AlignmentType::kSW && sw_condition()) ||
+        (params_.type == AlignmentType::kNW && nw_condition()) ||
+        (params_.type == AlignmentType::kOV && ov_condition())) {
 
         uint32_t prev_i = matrix(i, j).prev_i;
         uint32_t prev_j = matrix(i, j).prev_j;

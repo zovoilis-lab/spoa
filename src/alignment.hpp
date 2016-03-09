@@ -12,8 +12,9 @@
 #include <vector>
 
 enum class AlignmentType {
-    kSW,
-    kNW
+    kSW, // Smith Waterman
+    kNW, // Needleman Wunsch
+    kOV // Overlap
 };
 
 class AlignmentParams {

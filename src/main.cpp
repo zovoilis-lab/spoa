@@ -17,9 +17,12 @@ int main(int argc, char** argv) {
     graph->topological_sort();
     //graph->print();
 
+    AlignmentType type = atoi(argv[2]) == 0 ? AlignmentType::kNW :
+        (atoi(argv[2]) == 1 ? AlignmentType::kSW : AlignmentType::kOV);
+
     for (uint32_t i = 1; i < reads.size(); ++i) {
         auto alignment = createAlignment(reads[i]->data(), graph,
-            AlignmentParams(1, -1, -1, -1, atoi(argv[2]) == 0 ? AlignmentType::kNW : AlignmentType::kSW));
+            AlignmentParams(1, -1, -1, -1, type));
 
         alignment->align_sequence_to_graph();
         alignment->backtrack();
