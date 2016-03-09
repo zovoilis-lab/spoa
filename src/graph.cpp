@@ -150,13 +150,22 @@ void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vecto
     assert(sequence.size() != 0);
     assert(sequence.size() == weights.size());
 
+    if (seq_ids.size() == 0) { // no local alignment!
+        int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
+        ++num_sequences_;
+        sequences_start_nodes_ids_.emplace_back(start_node_id);
+
+        is_sorted_ = false;
+        this->topological_sort();
+        return;
+    }
+
     std::vector<uint32_t> valid_seq_ids;
     for (const auto& id: seq_ids) {
         if (id != -1) {
             valid_seq_ids.emplace_back(id);
         }
     }
-    assert(valid_seq_ids.size() != 0);
 
     uint32_t tmp = num_nodes_;
     int32_t start_node_id = this->add_sequence(sequence, weights, 0, valid_seq_ids.front());
