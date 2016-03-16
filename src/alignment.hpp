@@ -100,17 +100,7 @@ private:
         int32_t type; // 0 - diagonal, 1 - insertion, 2 - deletion
     };
 
-    inline MatrixElement& matrix(uint32_t i, uint32_t j) {
-        assert(i < matrix_height_);
-        assert(j < matrix_width_);
-        return matrix_[i * matrix_width_ + j];
-    }
-
-    inline const MatrixElement& matrix(uint32_t i, uint32_t j) const {
-        assert(i < matrix_height_);
-        assert(j < matrix_width_);
-        return matrix_[i * matrix_width_ + j];
-    }
+    inline void update_max_score(int32_t* S_row, uint32_t i, uint32_t j);
 
     void print_matrix();
 
@@ -120,7 +110,10 @@ private:
 
     uint32_t matrix_width_;
     uint32_t matrix_height_;
-    std::vector<MatrixElement> matrix_;
+
+    std::vector<int32_t> H_;
+    std::vector<int32_t> F_;
+    std::vector<int32_t> E_;
 
     bool is_aligned_;
     int32_t max_i_;
