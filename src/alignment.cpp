@@ -211,9 +211,7 @@ void Alignment::backtrack() {
 
     uint32_t i = max_i_;
     uint32_t j = max_j_;
-    fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
-    //is_backtracked_ = true;
-    //return;
+    // fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
 
     auto sw_condition = [&]() { return (H_[i * matrix_width_ + j] == 0) ? false : true; };
     auto nw_condition = [&]() { return (i == 0 && j == 0) ? false : true; };
@@ -230,18 +228,6 @@ void Alignment::backtrack() {
         // bloody backtrack
         const auto& node = graph_->node(graph_id_to_node_id[i - 1]);
 
-        /*if (H_[i * matrix_width_ + j] == E_[i * matrix_width_ + j]) {
-            prev_i = i;
-            prev_j = j - 1;
-        } else if (H_[i * matrix_width_ + j] == F_[i * matrix_width_ + j]) {
-            prev_i = i - 1;
-            prev_j = j;
-        } else {
-            assert(H_[i * matrix_width_ + j] == H_[(i - 1) * matrix_width_ + (j - 1)] + match_cost);
-            prev_i = i - 1;
-            prev_j = j - 1;
-        }*/
-
         auto H_ij = H_[i * matrix_width_ + j];
 
         if (H_ij == E_[i * matrix_width_ + j]) {
@@ -254,6 +240,8 @@ void Alignment::backtrack() {
             prev_i = pred_i;
             if (H_ij != F_[i * matrix_width_ + j]) {
                 prev_j = j - 1;
+            } else {
+                prev_j = j;
             }
         } else {
             if (H_ij != F_[i * matrix_width_ + j]) {
@@ -280,8 +268,6 @@ void Alignment::backtrack() {
                 }
             }
         }
-
-        // fprintf(stderr, "%d %d\n", prev_i, prev_j);
 
         alignment_node_ids_.emplace_back(i == prev_i ? -1 : graph_id_to_node_id[i - 1]);
         alignment_seq_ids_.emplace_back(j == prev_j ? -1 : j - 1);
