@@ -226,44 +226,46 @@ void Alignment::backtrack() {
         (params_.type == AlignmentType::kOV && ov_condition())) {
 
         // bloody backtrack
-        const auto& node = graph_->node(graph_id_to_node_id[i - 1]);
-
         auto H_ij = H_[i * matrix_width_ + j];
 
         if (H_ij == E_[i * matrix_width_ + j]) {
             prev_i = i;
             prev_j = j - 1;
-        } else if (node->in_edges().size() < 2) {
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
-                node_id_to_graph_id_[node->in_edges()[0]->begin_node_id()] + 1;
-
-            prev_i = pred_i;
-            if (H_ij != F_[i * matrix_width_ + j]) {
-                prev_j = j - 1;
-            } else {
-                prev_j = j;
-            }
         } else {
-            if (H_ij != F_[i * matrix_width_ + j]) {
-                int32_t match_cost = sequence_[j - 1] == node->letter() ?
-                    params_.match : params_.mismatch;
+            const auto& node = graph_->node(graph_id_to_node_id[i - 1]);
 
-                for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
-                    if (H_ij == H_[pred_i * matrix_width_ + (j - 1)] + match_cost) {
-                        prev_i = pred_i;
-                        prev_j = j - 1;
-                        break;
-                    }
+            if (node->in_edges().size() < 2) {
+                uint32_t pred_i = node->in_edges().empty() ? 0 :
+                    node_id_to_graph_id_[node->in_edges()[0]->begin_node_id()] + 1;
+
+                prev_i = pred_i;
+                if (H_ij != F_[i * matrix_width_ + j]) {
+                    prev_j = j - 1;
+                } else {
+                    prev_j = j;
                 }
             } else {
-                for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
-                    if ((F_[i * matrix_width_ + j] == F_[pred_i * matrix_width_ + j] + params_.insertion_extend) ||
-                        (H_ij == H_[pred_i * matrix_width_ + j] + params_.insertion_open)){
-                        prev_i = pred_i;
-                        prev_j = j;
-                        break;
+                if (H_ij != F_[i * matrix_width_ + j]) {
+                    int32_t match_cost = sequence_[j - 1] == node->letter() ?
+                        params_.match : params_.mismatch;
+
+                    for (const auto& edge: node->in_edges()) {
+                        uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
+                        if (H_ij == H_[pred_i * matrix_width_ + (j - 1)] + match_cost) {
+                            prev_i = pred_i;
+                            prev_j = j - 1;
+                            break;
+                        }
+                    }
+                } else {
+                    for (const auto& edge: node->in_edges()) {
+                        uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
+                        if ((F_[i * matrix_width_ + j] == F_[pred_i * matrix_width_ + j] + params_.insertion_extend) ||
+                            (H_ij == H_[pred_i * matrix_width_ + j] + params_.insertion_open)){
+                            prev_i = pred_i;
+                            prev_j = j;
+                            break;
+                        }
                     }
                 }
             }
