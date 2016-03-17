@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "alignment.hpp"
-#include "graph.hpp"
-#include "node.hpp"
-#include "edge.hpp"
-
+#include "poa.hpp"
 #include "chain.hpp"
 
 int main(int argc, char** argv) {
@@ -13,39 +9,17 @@ int main(int argc, char** argv) {
     ChainSet reads;
     createChainSet(reads, argv[1]);
 
-    GraphSharedPtr graph = createGraph(reads[0]->data());
-    graph->topological_sort();
-    //graph->print();
-
-    AlignmentType type = atoi(argv[2]) == 0 ? AlignmentType::kNW :
-        (atoi(argv[2]) == 1 ? AlignmentType::kSW : AlignmentType::kOV);
-
-    for (uint32_t i = 1; i < reads.size(); ++i) {
-        auto alignment = createAlignment(reads[i]->data(), graph,
-            AlignmentParams(1, -1, atoi(argv[3]), atoi(argv[4]), type));
-
-        alignment->align_sequence_to_graph();
-        alignment->backtrack();
-
-        const auto& node_ids = alignment->alignment_node_ids();
-        const auto& seq_ids = alignment->alignment_seq_ids();
-
-        graph->add_alignment(node_ids, seq_ids, reads[i]->data());
-        //graph->print();
+    std::vector<std::string> sequences;
+    for (const auto& it: reads) {
+        sequences.emplace_back(it->data());
     }
 
-    /*std::vector<std::string> msa;
-    graph->generate_msa(msa);
-    for (const auto& alignment_str: msa) {
-        fprintf(stderr, "%s\n", alignment_str.c_str());
-    }
-    fprintf(stderr, "\n");*/
-    std::string consensus = graph->generate_consensus();
+    std::string consensus = SPOA::generate_consensus(sequences, AlignmentParams(
+        atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]),
+        (AlignmentType) atoi(argv[6])), true);
+
     fprintf(stderr, "Consensus (%zu)\n", consensus.size());
-    for (const auto& c: consensus) {
-        fprintf(stderr, "%c", c);
-    }
-    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", consensus.c_str());
 
     return 0;
 }
