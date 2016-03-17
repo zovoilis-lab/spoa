@@ -73,8 +73,7 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
     is_aligned_ = false;
     max_i_ = -1;
     max_j_ = -1;
-    //max_score_ = params.type == AlignmentType::kNW ? big_negative_value : 0;
-    max_score_ = 0;
+    max_score_ = params.type == AlignmentType::kNW ? big_negative_value : 0;
 
     graph_->topological_sort();
     const auto& sorted_nodes_ids = graph_->sorted_nodes_ids();
