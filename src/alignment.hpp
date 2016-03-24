@@ -74,33 +74,7 @@ private:
     Alignment(const Alignment&) = delete;
     const Alignment& operator=(const Alignment&) = delete;
 
-    class MatrixElement {
-    public:
-
-        MatrixElement(int32_t score, int32_t prev_i, int32_t prev_j,
-            int16_t insertion_cost, int16_t deletion_cost);
-        ~MatrixElement();
-
-        int32_t score;
-        int32_t prev_i;
-        int32_t prev_j;
-        int16_t deletion_cost;
-        int16_t insertion_cost;
-    };
-
-    class MatrixMove {
-    public:
-
-        MatrixMove(int32_t score, int32_t i, int32_t j, int32_t type);
-        ~MatrixMove();
-
-        int32_t score;
-        int32_t i;
-        int32_t j;
-        int32_t type; // 0 - diagonal, 1 - insertion, 2 - deletion
-    };
-
-    inline void update_max_score(int32_t* S_row, uint32_t i, uint32_t j);
+    inline void update_max_score(int32_t* H_row, uint32_t i, uint32_t j);
 
     void print_matrix();
 

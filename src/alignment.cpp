@@ -31,21 +31,6 @@ AlignmentParams::AlignmentParams(int16_t m, int16_t mm, int16_t ins_opn,
 AlignmentParams::~AlignmentParams() {
 }
 
-Alignment::MatrixElement::MatrixElement(int32_t s, int32_t p_i, int32_t p_j,
-    int16_t del, int16_t ins) :
-        score(s), prev_i(p_i), prev_j(p_j), deletion_cost(del), insertion_cost(ins) {
-}
-
-Alignment::MatrixElement::~MatrixElement() {
-}
-
-Alignment::MatrixMove::MatrixMove(int32_t s, int32_t k, int32_t l, int32_t t) :
-        score(s), i(k), j(l), type(t) {
-}
-
-Alignment::MatrixMove::~MatrixMove() {
-}
-
 std::unique_ptr<Alignment> createAlignment(const std::string& sequence,
     GraphSharedPtr graph, AlignmentParams params) {
 
