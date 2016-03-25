@@ -37,11 +37,10 @@ public:
 };
 
 class Graph;
-using GraphSharedPtr = std::shared_ptr<Graph>;
 
 class Alignment;
 std::unique_ptr<Alignment> createAlignment(const std::string& sequence,
-    GraphSharedPtr graph, AlignmentParams params);
+    std::shared_ptr<Graph> graph, AlignmentParams params);
 
 class Alignment {
 public:
@@ -52,24 +51,24 @@ public:
 
     void backtrack();
 
-    int32_t alignment_score() const;
+    int32_t score() const;
 
-    const std::vector<int32_t>& alignment_node_ids() const {
+    const std::vector<int32_t>& node_ids() const {
         assert(is_backtracked_ == true && "No backtrack done!");
         return alignment_node_ids_;
     }
 
-    const std::vector<int32_t>& alignment_seq_ids() const {
+    const std::vector<int32_t>& seq_ids() const {
         assert(is_backtracked_ == true && "No backtrack done!");
         return alignment_seq_ids_;
     }
 
     friend std::unique_ptr<Alignment> createAlignment(const std::string& sequence,
-        GraphSharedPtr graph, AlignmentParams params);
+        std::shared_ptr<Graph> graph, AlignmentParams params);
 
 private:
 
-    Alignment(const std::string& sequence, GraphSharedPtr graph,
+    Alignment(const std::string& sequence, std::shared_ptr<Graph> graph,
         AlignmentParams params);
     Alignment(const Alignment&) = delete;
     const Alignment& operator=(const Alignment&) = delete;
@@ -78,8 +77,9 @@ private:
 
     void print_matrix();
 
-    std::string sequence_;
-    GraphSharedPtr graph_;
+    //std::string sequence_;
+    std::vector<std::vector<int32_t>> sequence_profile_;
+    std::shared_ptr<Graph> graph_;
     AlignmentParams params_;
 
     uint32_t matrix_width_;

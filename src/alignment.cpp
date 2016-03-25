@@ -32,24 +32,35 @@ AlignmentParams::~AlignmentParams() {
 }
 
 std::unique_ptr<Alignment> createAlignment(const std::string& sequence,
-    GraphSharedPtr graph, AlignmentParams params) {
+    std::shared_ptr<Graph> graph, AlignmentParams params) {
+
+    assert(sequence.size() != 0);
 
     return std::unique_ptr<Alignment>(new Alignment(sequence, graph,
         std::move(params)));
 }
 
-Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
+Alignment::Alignment(const std::string& sequence, std::shared_ptr<Graph> graph,
     AlignmentParams params) :
-        sequence_(sequence), graph_(graph), params_(std::move(params)) {
+        sequence_profile_(256), graph_(graph), params_(std::move(params)),
+        matrix_width_(sequence.size() + 1),
+        matrix_height_(graph->nodes().size() + 1),
+        H_(matrix_width_ * matrix_height_, 0),
+        F_(matrix_width_ * matrix_height_, 0),
+        E_(matrix_width_ * matrix_height_, 0),
+        is_aligned_(false),
+        max_i_(-1), max_j_(-1), max_score_(0),
+        node_id_to_graph_id_(),
+        is_backtracked_(false),
+        alignment_node_ids_(),
+        alignment_seq_ids_() {
 
-    assert(sequence_.size() != 0);
-
-    matrix_width_ = sequence_.size() + 1;
-    matrix_height_ = graph_->nodes().size() + 1;
-
-    H_.resize(matrix_width_ * matrix_height_, 0);
-    F_.resize(matrix_width_ * matrix_height_, 0);
-    E_.resize(matrix_width_ * matrix_height_, 0);
+    for (const auto& c: graph->alphabet()) {
+        sequence_profile_[c].reserve(sequence.size());
+        for (const auto& s: sequence) {
+            sequence_profile_[c].push_back(c == s ? params_.match : params_.mismatch);
+        }
+    }
 
     int32_t big_negative_value = std::numeric_limits<int32_t>::min() + 1000;
     for (uint32_t j = 1; j < matrix_width_; ++j) {
@@ -59,11 +70,6 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
         E_[i * matrix_width_] = big_negative_value;
     }
 
-    is_aligned_ = false;
-    max_i_ = -1;
-    max_j_ = -1;
-    max_score_ = params.type == AlignmentType::kNW ? big_negative_value : 0;
-
     graph_->topological_sort();
     const auto& sorted_nodes_ids = graph_->sorted_nodes_ids();
 
@@ -72,9 +78,8 @@ Alignment::Alignment(const std::string& sequence, GraphSharedPtr graph,
         node_id_to_graph_id_[sorted_nodes_ids[i]] = i;
     }
 
-    is_backtracked_ = false;
-
     if (params_.type == AlignmentType::kNW) {
+        max_score_ = big_negative_value;
 
         for (uint32_t j = 1; j < matrix_width_; ++j) {
             H_[j] = params_.insertion_open + (j - 1) * params_.insertion_extend;
@@ -116,7 +121,7 @@ void Alignment::align_sequence_to_graph() {
 
     for (uint32_t node_id: sorted_nodes_ids) {
         const auto& node = graph_->node(node_id);
-        char graph_letter = node->letter();
+        const auto& char_profile = sequence_profile_[node->letter()];
         uint32_t i = node_id_to_graph_id_[node_id] + 1;
 
         int32_t* H_row = &H_[i * matrix_width_];
@@ -129,11 +134,10 @@ void Alignment::align_sequence_to_graph() {
         int32_t* F_pred_row = &F_[pred_i * matrix_width_];
 
         for (uint32_t j = 1; j < matrix_width_; ++j) {
-            int32_t match_cost = graph_letter == sequence_[j - 1] ? params_.match : params_.mismatch;
             // update F
             F_row[j] = std::max(H_pred_row[j] + params_.insertion_open, F_pred_row[j] + params_.insertion_extend);
             // update H
-            H_row[j] = std::max(H_pred_row[j - 1] + match_cost, F_row[j]);
+            H_row[j] = std::max(H_pred_row[j - 1] + char_profile[j - 1], F_row[j]);
         }
 
         // check other predeccessors
@@ -144,11 +148,10 @@ void Alignment::align_sequence_to_graph() {
             F_pred_row = &F_[pred_i * matrix_width_];
 
             for (uint32_t j = 1; j < matrix_width_; ++j) {
-                int32_t match_cost = graph_letter == sequence_[j - 1] ? params_.match : params_.mismatch;
                 // update F
                 F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + params_.insertion_open, F_pred_row[j] + params_.insertion_extend));
                 // update H
-                H_row[j] = std::max(H_row[j], std::max(H_pred_row[j - 1] + match_cost, F_row[j]));
+                H_row[j] = std::max(H_row[j], std::max(H_pred_row[j - 1] + char_profile[j - 1], F_row[j]));
             }
         }
 
@@ -180,7 +183,7 @@ void Alignment::align_sequence_to_graph() {
     // print_matrix();
 }
 
-int32_t Alignment::alignment_score() const {
+int32_t Alignment::score() const {
     assert(is_aligned_ == true && "No alignment done!");
     return max_score_;
 }
@@ -215,48 +218,50 @@ void Alignment::backtrack() {
 
         // bloody backtrack
         auto H_ij = H_[i * matrix_width_ + j];
+        bool predecessor_found = false;
 
-        if (H_ij == E_[i * matrix_width_ + j]) {
-            prev_i = i;
-            prev_j = j - 1;
-        } else {
+        if (i != 0) {
             const auto& node = graph_->node(graph_id_to_node_id[i - 1]);
+            int32_t match_cost = j != 0 ? sequence_profile_[node->letter()][j - 1] : 0;
 
-            if (node->in_edges().size() < 2) {
-                uint32_t pred_i = node->in_edges().empty() ? 0 :
-                    node_id_to_graph_id_[node->in_edges()[0]->begin_node_id()] + 1;
+            uint32_t pred_i = node->in_edges().empty() ? 0 :
+                node_id_to_graph_id_[node->in_edges().front()->begin_node_id()] + 1;
 
+            if (j != 0 && H_ij == H_[pred_i * matrix_width_ + (j - 1)] + match_cost) {
                 prev_i = pred_i;
-                if (H_ij != F_[i * matrix_width_ + j]) {
-                    prev_j = j - 1;
-                } else {
-                    prev_j = j;
-                }
-            } else {
-                if (H_ij != F_[i * matrix_width_ + j]) {
-                    int32_t match_cost = sequence_[j - 1] == node->letter() ?
-                        params_.match : params_.mismatch;
+                prev_j = j - 1;
+                predecessor_found = true;
+            } else if ((H_ij == F_[pred_i * matrix_width_ + j] + params_.insertion_extend) ||
+                (H_ij == H_[pred_i * matrix_width_ + j] + params_.insertion_open)) {
+                prev_i = pred_i;
+                prev_j = j;
+                predecessor_found = true;
+            }
 
-                    for (const auto& edge: node->in_edges()) {
-                        uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
-                        if (H_ij == H_[pred_i * matrix_width_ + (j - 1)] + match_cost) {
-                            prev_i = pred_i;
-                            prev_j = j - 1;
-                            break;
-                        }
+            if (!predecessor_found) {
+                const auto& edges = node->in_edges();
+                for (uint32_t p = 1; p < edges.size(); ++p) {
+                    uint32_t pred_i = node_id_to_graph_id_[edges[p]->begin_node_id()] + 1;
+                    if (j != 0 && H_ij == H_[pred_i * matrix_width_ + (j - 1)] + match_cost) {
+                        prev_i = pred_i;
+                        prev_j = j - 1;
+                        predecessor_found = true;
+                        break;
                     }
-                } else {
-                    for (const auto& edge: node->in_edges()) {
-                        uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
-                        if ((F_[i * matrix_width_ + j] == F_[pred_i * matrix_width_ + j] + params_.insertion_extend) ||
-                            (H_ij == H_[pred_i * matrix_width_ + j] + params_.insertion_open)){
-                            prev_i = pred_i;
-                            prev_j = j;
-                            break;
-                        }
+                    if ((H_ij == F_[pred_i * matrix_width_ + j] + params_.insertion_extend) ||
+                        (H_ij == H_[pred_i * matrix_width_ + j] + params_.insertion_open)){
+                        prev_i = pred_i;
+                        prev_j = j;
+                        predecessor_found = true;
+                        break;
                     }
                 }
             }
+        }
+
+        if (!predecessor_found && H_ij == E_[i * matrix_width_ + j]) {
+            prev_i = i;
+            prev_j = j - 1;
         }
 
         alignment_node_ids_.emplace_back(i == prev_i ? -1 : graph_id_to_node_id[i - 1]);

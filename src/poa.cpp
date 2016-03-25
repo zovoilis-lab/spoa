@@ -32,15 +32,14 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
     std::vector<uint32_t> indices;
     prepare_indices(indices, sequences, sorted);
 
-    GraphSharedPtr graph = createGraph(sequences[indices.front()]);
+    std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()]);
     graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
         alignment->align_sequence_to_graph();
         alignment->backtrack();
-        graph->add_alignment(alignment->alignment_node_ids(), alignment->alignment_seq_ids(),
-            sequences[indices[i]]);
+        graph->add_alignment(std::move(alignment), sequences[indices[i]]);
     }
 
     return graph->generate_consensus();
@@ -52,15 +51,14 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
     std::vector<uint32_t> indices;
     prepare_indices(indices, sequences, sorted);
 
-    GraphSharedPtr graph = createGraph(sequences[indices.front()], qualities[indices.front()]);
+    std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()], qualities[indices.front()]);
     graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
         alignment->align_sequence_to_graph();
         alignment->backtrack();
-        graph->add_alignment(alignment->alignment_node_ids(), alignment->alignment_seq_ids(),
-            sequences[indices[i]], qualities[indices[i]]);
+        graph->add_alignment(std::move(alignment), sequences[indices[i]], qualities[indices[i]]);
     }
 
     return graph->generate_consensus();

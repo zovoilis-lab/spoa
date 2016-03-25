@@ -10,6 +10,7 @@
 
 #include "node.hpp"
 #include "edge.hpp"
+#include "alignment.hpp"
 #include "graph.hpp"
 
 std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
@@ -26,16 +27,19 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::strin
 }
 
 std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vector<float>& weights) {
+    assert(sequence.size() != 0);
     assert(sequence.size() == weights.size());
     return std::unique_ptr<Graph>(new Graph(sequence, weights));
 }
 
 
 Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
-        num_sequences_(), num_nodes_(), nodes_(), is_sorted_(false),
+        num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
         sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
 
-    assert(sequence.size() != 0);
+    for (const auto& c: sequence) {
+        alphabet_.insert(c);
+    }
 
     int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
 
@@ -61,7 +65,7 @@ void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight)
         }
     }
 
-    EdgeSharedPtr edge = createEdge(begin_node_id, end_node_id, num_sequences_, weight);
+    std::shared_ptr<Edge> edge = createEdge(begin_node_id, end_node_id, num_sequences_, weight);
     nodes_[begin_node_id]->add_out_edge(edge);
     nodes_[end_node_id]->add_in_edge(edge);
 }
@@ -126,29 +130,37 @@ bool Graph::is_topologically_sorted() const {
     return true;
 }
 
-void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
-    const std::string& sequence, float weight) {
+void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
+    float weight) {
 
     std::vector<float> weights(sequence.size(), weight);
-    this->add_alignment(node_ids, seq_ids, sequence, weights);
+    this->add_alignment(alignment, sequence, weights);
 }
 
-void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
-    const std::string& sequence, const std::string& quality) {
+void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
+    const std::string& quality) {
 
     std::vector<float> weights;
     for (const auto& q: quality) {
         weights.emplace_back(1. - pow(10., (float) (q - 33) / (-10.)));
     }
-    this->add_alignment(node_ids, seq_ids, sequence, weights);
+    this->add_alignment(alignment, sequence, weights);
 }
 
-void Graph::add_alignment(const std::vector<int32_t>& node_ids, const std::vector<int32_t>& seq_ids,
-    const std::string& sequence, const std::vector<float>& weights) {
+void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
+    const std::vector<float>& weights) {
 
-    assert(node_ids.size() == seq_ids.size());
     assert(sequence.size() != 0);
     assert(sequence.size() == weights.size());
+
+    const auto& node_ids = alignment->node_ids();
+    const auto& seq_ids = alignment->seq_ids();
+
+    assert(node_ids.size() == seq_ids.size());
+
+    for (const auto& c: sequence) {
+        alphabet_.insert(c);
+    }
 
     if (seq_ids.size() == 0) { // no local alignment!
         int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
