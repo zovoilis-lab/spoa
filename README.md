@@ -28,7 +28,7 @@ Spoa must be run as following:
 
     ./spoa <sequences.fasta> <match> <missmatch> <gap_open> <gap_extend> <algorithm>
 
-Gap open and extend must be negative values. Supported algorithms are: 0 (local), 1 (global) and 2 (semi-global).
+Missmatch, gap open and gap extend must be negative values. Supported algorithms are: 0 (local), 1 (global) and 2 (semi-global).
 
 To remove spoa executable, run:
 
