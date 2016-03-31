@@ -9,7 +9,7 @@
 #include <algorithm>
 
 #include "graph.hpp"
-#include "poa.hpp"
+#include "spoa.hpp"
 
 void prepare_indices(std::vector<uint32_t>& dst, const std::vector<std::string>& sequences, bool sort) {
     dst.resize(sequences.size());

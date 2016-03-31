@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "poa.hpp"
+#include "spoa.hpp"
 #include "chain.hpp"
 
 int main(int argc, char** argv) {
