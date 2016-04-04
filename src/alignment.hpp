@@ -11,6 +11,8 @@
 #include <memory>
 #include <vector>
 
+namespace SPOA {
+
 enum class AlignmentType {
     kSW, // Smith Waterman
     kNW, // Needleman Wunsch
@@ -99,3 +101,5 @@ private:
     std::vector<int32_t> alignment_node_ids_;
     std::vector<int32_t> alignment_seq_ids_;
 };
+
+}

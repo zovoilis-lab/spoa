@@ -13,6 +13,8 @@
 #include "alignment.hpp"
 #include "graph.hpp"
 
+namespace SPOA {
+
 std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
     std::vector<float> weights(sequence.size(), weight);
     return createGraph(sequence, weights);
@@ -269,7 +271,7 @@ int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float
     return first_node_id;
 }
 
-void Graph::generate_msa(std::vector<std::string>& dst) {
+void Graph::generate_msa(std::vector<std::string>& dst, bool include_consensus) {
 
     std::vector<int32_t> msa_node_ids(num_nodes_, -1);
 
@@ -321,14 +323,16 @@ void Graph::generate_msa(std::vector<std::string>& dst) {
         dst.emplace_back(alignment_str);
     }
 
-    // do the same for consensus sequence
-    this->traverse_heaviest_bundle();
+    if (include_consensus) {
+        // do the same for consensus sequence
+        this->traverse_heaviest_bundle();
 
-    std::string alignment_str(base_counter, '-');
-    for (const auto& id: consensus_) {
-        alignment_str[msa_node_ids[id]] = nodes_[id]->letter();
+        std::string alignment_str(base_counter, '-');
+        for (const auto& id: consensus_) {
+            alignment_str[msa_node_ids[id]] = nodes_[id]->letter();
+        }
+        dst.emplace_back(alignment_str);
     }
-    dst.emplace_back(alignment_str);
 }
 
 std::string Graph::generate_consensus() {
@@ -457,4 +461,6 @@ void Graph::print() const {
         }
     }
     printf("}\n");
+}
+
 }

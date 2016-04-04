@@ -11,6 +11,8 @@
 #include <vector>
 #include <string>
 
+namespace SPOA {
+
 class Chain;
 class Reader;
 
@@ -37,3 +39,5 @@ private:
     std::vector<char> buffer_;
     uint32_t num_chains_read_;
 };
+
+}

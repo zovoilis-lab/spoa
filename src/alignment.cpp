@@ -12,6 +12,8 @@
 #include "graph.hpp"
 #include "alignment.hpp"
 
+namespace SPOA {
+
 AlignmentParams::AlignmentParams(int16_t m, int16_t mm, int16_t gap_opn,
     int16_t gap_ext, AlignmentType t) :
         match(m), mismatch(mm), insertion_open(gap_opn), insertion_extend(gap_ext),
@@ -293,4 +295,6 @@ void Alignment::print_matrix() {
         printf("\n");
     }
     printf("\n");
+}
+
 }

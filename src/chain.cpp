@@ -9,6 +9,8 @@
 #include "reader.hpp"
 #include "chain.hpp"
 
+namespace SPOA {
+
 std::vector<char> kCoder = {
     -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
     -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
@@ -87,4 +89,6 @@ bool createChainSetPart(ChainSet& dst, std::shared_ptr<Reader> reader, size_t ma
 
 Chain::Chain(uint32_t id, std::string&& name, std::string&& data)
         : id_(id), name_(name), data_(data) {
+}
+
 }

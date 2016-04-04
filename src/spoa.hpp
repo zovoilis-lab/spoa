@@ -15,7 +15,14 @@ namespace SPOA {
 
 std::string generate_consensus(const std::vector<std::string>& sequences,
     AlignmentParams params, bool sorted = false);
+
 std::string generate_consensus(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities, AlignmentParams params, bool sorted = false);
+
+void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>& sequences,
+    AlignmentParams params, bool sorted = false);
+
+void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>& sequences,
     const std::vector<std::string>& qualities, AlignmentParams params, bool sorted = false);
 
 }

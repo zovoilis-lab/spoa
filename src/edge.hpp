@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 
+namespace SPOA {
 
 class Edge;
 std::unique_ptr<Edge> createEdge(uint32_t begin_node_id, uint32_t end_node_id,
@@ -58,3 +59,5 @@ private:
     std::vector<float> sequence_weights_;
     float total_weight_;
 };
+
+}

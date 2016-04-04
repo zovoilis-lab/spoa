@@ -1,8 +1,12 @@
+#ifdef SPOA_MAIN_
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "spoa.hpp"
 #include "chain.hpp"
+
+using namespace SPOA;
 
 int main(int argc, char** argv) {
 
@@ -14,12 +18,23 @@ int main(int argc, char** argv) {
         sequences.emplace_back(it->data());
     }
 
-    std::string consensus = SPOA::generate_consensus(sequences, AlignmentParams(
-        atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]),
-        (AlignmentType) atoi(argv[6])), true);
+    auto params = AlignmentParams(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]),
+        atoi(argv[5]), (AlignmentType) atoi(argv[6]));
+
+    std::string consensus = generate_consensus(sequences, params, true);
 
     fprintf(stderr, "Consensus (%zu)\n", consensus.size());
     fprintf(stderr, "%s\n", consensus.c_str());
 
+    std::vector<std::string> msa;
+    generate_msa(msa, sequences, params, true);
+
+    fprintf(stderr, "Multiple sequence alignment\n");
+    for (const auto& it: msa) {
+        fprintf(stderr, "%s\n", it.c_str());
+    }
+
     return 0;
 }
+
+#endif

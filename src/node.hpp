@@ -9,6 +9,8 @@
 #include <vector>
 #include <memory>
 
+namespace SPOA {
+
 class Edge;
 
 class Node;
@@ -67,3 +69,5 @@ private:
 
     std::vector<uint32_t> aligned_nodes_ids_;
 };
+
+}

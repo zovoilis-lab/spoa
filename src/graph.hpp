@@ -12,6 +12,8 @@
 #include <vector>
 #include <unordered_set>
 
+namespace SPOA {
+
 class Node;
 class Alignment;
 
@@ -56,7 +58,7 @@ public:
     void add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
         const std::vector<float>& weights);
 
-    void generate_msa(std::vector<std::string>& dst);
+    void generate_msa(std::vector<std::string>& dst, bool include_consensus = false);
 
     std::string generate_consensus();
 
@@ -100,3 +102,5 @@ private:
 
     std::vector<uint32_t> consensus_;
 };
+
+}

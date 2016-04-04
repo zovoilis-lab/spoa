@@ -6,6 +6,8 @@
 
 #include "edge.hpp"
 
+namespace SPOA {
+
 std::unique_ptr<Edge> createEdge(uint32_t begin_node_id, uint32_t end_node_id,
     uint32_t label, float weight) {
     return std::unique_ptr<Edge>(new Edge(begin_node_id, end_node_id, label, weight));
@@ -24,4 +26,6 @@ void Edge::add_sequence(uint32_t label, float weight) {
     sequence_labels_.emplace_back(label);
     sequence_weights_.emplace_back(weight);
     total_weight_ += weight;
+}
+
 }

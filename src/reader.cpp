@@ -12,6 +12,8 @@
 constexpr uint32_t kBufferSize = 1024 * 1024;
 constexpr uint32_t kArraySize = 65000;
 
+namespace SPOA {
+
 std::unique_ptr<Reader> createReader(const std::string& path) {
 
     auto input_file = fopen(path.c_str(), "r");
@@ -91,4 +93,6 @@ bool Reader::read_chains(ChainSet& dst, size_t max_bytes) {
     }
 
     return status;
+}
+
 }

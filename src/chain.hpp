@@ -12,6 +12,8 @@
 #include <vector>
 #include <string>
 
+namespace SPOA {
+
 class Reader;
 class Chain;
 
@@ -64,3 +66,5 @@ private:
     std::string name_;
     std::string data_;
 };
+
+}

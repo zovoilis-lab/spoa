@@ -33,15 +33,3 @@ Missmatch, gap open and gap extend must be negative values. Supported algorithms
 To remove spoa executable, run:
 
     make clean
-
-### LIBRARY
-
-To include spoa in your code first run:
-
-    make install
-
-When compiling add -I<path_to_spoa>/spoa/include and when linking add -L<path_to_spoa>/spoa/lib -lspoa. To use the functions implemented in spoa include spoa.hpp in your source code.
-
-To remove what has been crated with make install run:
-
-    make remove
