@@ -202,7 +202,6 @@ void Alignment::backtrack() {
 
     uint32_t i = max_i_;
     uint32_t j = max_j_;
-    // fprintf(stderr, "Score, i, j = %d, %d, %d\n", max_score_, i, j);
 
     auto sw_condition = [&]() { return (H_[i * matrix_width_ + j] == 0) ? false : true; };
     auto nw_condition = [&]() { return (i == 0 && j == 0) ? false : true; };

@@ -371,7 +371,6 @@ void Graph::traverse_heaviest_bundle() {
     }
 
     if (nodes_[max_score_id]->out_edges().size() != 0) {
-        fprintf(stderr, "MAX SCORE HAS OUT EDGES (%d)!\n", max_score_id);
 
         std::vector<uint32_t> node_id_to_rank(num_nodes_, 0);
         for (uint32_t i = 0; i < num_nodes_; ++i) {
@@ -381,7 +380,6 @@ void Graph::traverse_heaviest_bundle() {
         while (nodes_[max_score_id]->out_edges().size() != 0) {
             max_score_id = this->branch_completion(scores, predecessors,
                 node_id_to_rank[max_score_id]);
-            fprintf(stderr, "Max score id = %d\n", max_score_id);
         }
     }
 
