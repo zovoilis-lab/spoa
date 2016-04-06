@@ -188,6 +188,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
     int32_t tail_node_id = this->add_sequence(sequence, weights, valid_seq_ids.back() + 1, sequence.size());
 
     int32_t new_node_id = -1;
+    float prev_weight = head_node_id == -1 ? 0 : weights[valid_seq_ids.front() - 1];
 
     for (uint32_t i = 0; i < seq_ids.size(); ++i) {
         if (seq_ids[i] == -1) {
@@ -234,14 +235,15 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
         }
 
         if (head_node_id != -1) {
-            this->add_edge(head_node_id, new_node_id, weights[seq_ids[i]]);
+            this->add_edge(head_node_id, new_node_id, prev_weight);
         }
 
         head_node_id = new_node_id;
+        prev_weight = weights[seq_ids[i]];
     }
 
     if (tail_node_id != -1) {
-        this->add_edge(head_node_id, tail_node_id, weights[valid_seq_ids.back()+1]);
+        this->add_edge(head_node_id, tail_node_id, prev_weight);
     }
 
     ++num_sequences_;
@@ -265,7 +267,7 @@ int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float
     uint32_t node_id;
     for (uint32_t i = begin + 1; i < end; ++i) {
         node_id = this->add_node(sequence[i]);
-        this->add_edge(node_id - 1, node_id, weights[i]);
+        this->add_edge(node_id - 1, node_id, weights[i - 1]);
     }
 
     return first_node_id;
