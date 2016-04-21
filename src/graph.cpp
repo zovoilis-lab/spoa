@@ -23,7 +23,7 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
 std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::string& quality) {
     std::vector<float> weights;
     for (const auto& q: quality) {
-        weights.emplace_back(1. - pow(10., (float) (q - 33) / (-10.)));
+        weights.emplace_back((float) (q - 33)); // PHRED quality
     }
     return createGraph(sequence, weights);
 }
@@ -144,7 +144,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
 
     std::vector<float> weights;
     for (const auto& q: quality) {
-        weights.emplace_back(1. - pow(10., (float) (q - 33) / (-10.)));
+        weights.emplace_back((float) (q - 33)); // PHRED quality
     }
     this->add_alignment(alignment, sequence, weights);
 }
