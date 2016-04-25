@@ -235,7 +235,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
         }
 
         if (head_node_id != -1) {
-            this->add_edge(head_node_id, new_node_id, prev_weight);
+            this->add_edge(head_node_id, new_node_id, prev_weight + weights[seq_ids[i]]); // both nodes contribute to edge weight
         }
 
         head_node_id = new_node_id;
@@ -243,7 +243,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
     }
 
     if (tail_node_id != -1) {
-        this->add_edge(head_node_id, tail_node_id, prev_weight);
+        this->add_edge(head_node_id, tail_node_id, prev_weight + weights[valid_seq_ids.back() + 1]); // both nodes contribute to edge weight
     }
 
     ++num_sequences_;
@@ -267,7 +267,7 @@ int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float
     uint32_t node_id;
     for (uint32_t i = begin + 1; i < end; ++i) {
         node_id = this->add_node(sequence[i]);
-        this->add_edge(node_id - 1, node_id, weights[i - 1]);
+        this->add_edge(node_id - 1, node_id, weights[i - 1] + weights[i]); // both nodes contribute to edge weight
     }
 
     return first_node_id;
