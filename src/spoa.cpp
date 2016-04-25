@@ -76,6 +76,31 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
     return graph->generate_consensus();
 }
 
+std::string generate_consensus(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities,
+    const std::vector<uint32_t>& begin_positions,
+    const std::vector<uint32_t>& end_positions,
+    AlignmentParams params) {
+
+    std::shared_ptr<Graph> graph = createGraph(sequences.front(), qualities.front());
+    graph->topological_sort();
+
+    for (uint32_t i = 1; i < sequences.size(); ++i) {
+        std::vector<int32_t> mapping;
+        std::shared_ptr<Graph> subgraph = graph->subgraph(begin_positions[i], end_positions[i], mapping);
+
+        auto alignment = createAlignment(sequences[i], subgraph, params);
+        alignment->align_sequence_to_graph();
+        alignment->backtrack();
+
+        alignment->update_node_ids(mapping);
+
+        graph->add_alignment(std::move(alignment), sequences[i], qualities[i]);
+    }
+
+    return graph->generate_consensus();
+}
+
 void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>& sequences,
     AlignmentParams params, bool sorted) {
 

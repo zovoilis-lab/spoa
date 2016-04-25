@@ -26,6 +26,12 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
 std::string generate_consensus(const std::vector<std::string>& sequences,
     const std::vector<std::string>& qualities, AlignmentParams params, bool sorted = false);
 
+std::string generate_consensus(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities,
+    const std::vector<uint32_t>& begin_positions,
+    const std::vector<uint32_t>& end_positions,
+    AlignmentParams params);
+
 void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>& sequences,
     AlignmentParams params, bool sorted = false);
 

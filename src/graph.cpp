@@ -33,6 +33,10 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vecto
     return std::unique_ptr<Graph>(new Graph(sequence, weights));
 }
 
+Graph::Graph() :
+        num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
+        sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
+}
 Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
         num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
         sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
@@ -152,6 +156,64 @@ bool Graph::is_topologically_sorted() const {
     }
 
     return true;
+}
+
+void Graph::backtrace_path(std::unordered_set<uint32_t>& dst, uint32_t current_node_id,
+    uint32_t end_node_id) const {
+
+    if (dst.find(current_node_id) != dst.end()) return;
+    if (current_node_id < end_node_id) return;
+
+    dst.insert(current_node_id);
+
+    // recursively backtrace path
+    const auto& node = nodes_[current_node_id];
+    for (const auto& edge: node->in_edges()) {
+        backtrace_path(dst, edge->begin_node_id(), end_node_id);
+    }
+    for (const auto& aid: node->aligned_nodes_ids()) {
+        backtrace_path(dst, aid, end_node_id);
+    }
+}
+
+std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id, uint32_t end_node_id,
+    std::vector<int32_t>& subgraph_to_graph_mapping) {
+
+    std::unordered_set<uint32_t> subgraph_node_ids;
+    backtrace_path(subgraph_node_ids, end_node_id, begin_node_id);
+
+    // init subgraph
+    auto subgraph = std::unique_ptr<Graph>(new Graph());
+    subgraph->alphabet_ = std::unordered_set<uint8_t>(this->alphabet_);
+
+    // create mapping from subgraph to graph and vice versa
+    // and add nodes to subgraph
+    subgraph_to_graph_mapping.resize(this->num_nodes_, -1);
+    std::vector<int32_t> graph_to_subgraph_mapping(this->num_nodes_, -1);
+
+    for (const auto& id: subgraph_node_ids) {
+        uint32_t subgraph_id = subgraph->add_node(nodes_[id]->letter());
+        graph_to_subgraph_mapping[id] = subgraph_id;
+        subgraph_to_graph_mapping[subgraph_id] = id;
+    }
+
+    // add edges and aligned nodes
+    for (const auto& id: subgraph_node_ids) {
+        const auto& node = nodes_[id];
+        uint32_t subgraph_id = graph_to_subgraph_mapping[id];
+        const auto& subgraph_node = subgraph->node(subgraph_id);
+
+        for (const auto& edge: node->in_edges()) {
+            if (graph_to_subgraph_mapping[edge->begin_node_id()] == -1) continue;
+            subgraph->add_edge(graph_to_subgraph_mapping[edge->begin_node_id()], subgraph_id, edge->total_weight());
+        }
+        for (const auto& aid: node->aligned_nodes_ids()) {
+            if (graph_to_subgraph_mapping[aid] == -1) continue;
+            subgraph_node->add_aligned_node_id(graph_to_subgraph_mapping[aid]);
+        }
+    }
+
+    return subgraph;
 }
 
 void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,

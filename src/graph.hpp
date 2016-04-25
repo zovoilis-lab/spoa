@@ -51,6 +51,9 @@ public:
         return sorted_nodes_ids_;
     }
 
+    std::unique_ptr<Graph> subgraph(uint32_t begin_node_id, uint32_t end_node_id,
+        std::vector<int32_t>& subgraph_to_graph_mapping);
+
     void add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
         float weight = 1.0);
     void add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
@@ -72,6 +75,7 @@ public:
 
 private:
 
+    Graph();
     Graph(const std::string& sequence, const std::vector<float>& weights);
     Graph(const Graph&) = delete;
     const Graph& operator=(const Graph&) = delete;
@@ -81,6 +85,9 @@ private:
     void add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight);
 
     bool is_topologically_sorted() const;
+
+    void backtrace_path(std::unordered_set<uint32_t>& dst, uint32_t current_node_id,
+        uint32_t end_node_id) const;
 
     int32_t add_sequence(const std::string& sequence, const std::vector<float>& weights,
         uint32_t begin, uint32_t end);

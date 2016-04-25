@@ -274,6 +274,16 @@ void Alignment::backtrack() {
     is_backtracked_ = true;
 }
 
+void Alignment::update_node_ids(const std::vector<int32_t>& mapping) {
+
+    assert(is_backtracked_  == true && "No backtrack done!");
+    for (uint32_t i = 0; i < alignment_node_ids_.size(); ++i) {
+        if (alignment_node_ids_[i] != -1) {
+            alignment_node_ids_[i] = mapping[alignment_node_ids_[i]];
+        }
+    }
+}
+
 inline void Alignment::update_max_score(int32_t* H_row, uint32_t i, uint32_t j) {
     if (max_score_ < H_row[j]) {
         max_score_ = H_row[j];

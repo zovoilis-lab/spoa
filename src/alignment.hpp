@@ -55,6 +55,8 @@ public:
 
     int32_t score() const;
 
+    void update_node_ids(const std::vector<int32_t>& mapping);
+
     const std::vector<int32_t>& node_ids() const {
         assert(is_backtracked_ == true && "No backtrack done!");
         return alignment_node_ids_;
