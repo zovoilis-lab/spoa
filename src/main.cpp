@@ -21,13 +21,13 @@ int main(int argc, char** argv) {
     auto params = AlignmentParams(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]),
         atoi(argv[5]), (AlignmentType) atoi(argv[6]));
 
-    std::string consensus = generate_consensus(sequences, params, true);
+    std::string consensus = generate_consensus(sequences, params);
 
     fprintf(stderr, "Consensus (%zu)\n", consensus.size());
     fprintf(stderr, "%s\n", consensus.c_str());
 
     std::vector<std::string> msa;
-    generate_msa(msa, sequences, params, true);
+    generate_msa(msa, sequences, params);
 
     fprintf(stderr, "Multiple sequence alignment\n");
     for (const auto& it: msa) {
