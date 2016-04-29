@@ -378,16 +378,16 @@ void Graph::generate_msa(std::vector<std::string>& dst, bool include_consensus) 
     }
 }
 
-void Graph::check_msa(const std::vector<std::string>& msa,
-    const std::vector<std::string>& sequences) const {
+void Graph::check_msa(const std::vector<std::string>& msa, const std::vector<std::string>& sequences,
+    const std::vector<uint32_t>& indices) const {
 
     for (uint32_t i = 0; i < sequences.size(); ++i) {
         std::string temp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') temp += c;
         }
-        assert(temp.size() == sequences[i].size() && "different lenghts");
-        assert(temp.compare(sequences[i]) == 0 && "different sequence");
+        assert(temp.size() == sequences[indices[i]].size() && "different lenghts");
+        assert(temp.compare(sequences[indices[i]]) == 0 && "different sequence");
     }
 }
 

@@ -58,7 +58,8 @@ public:
 
     void generate_msa(std::vector<std::string>& dst, bool include_consensus = false);
 
-    void check_msa(const std::vector<std::string>& msa, const std::vector<std::string>& sequences) const;
+    void check_msa(const std::vector<std::string>& msa, const std::vector<std::string>& sequences,
+        const std::vector<uint32_t>& indices) const;
 
     std::string generate_consensus();
 

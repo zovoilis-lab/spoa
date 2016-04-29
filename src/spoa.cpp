@@ -78,7 +78,7 @@ void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>&
     }
 
     graph->generate_msa(dst);
-    graph->check_msa(dst, sequences);
+    graph->check_msa(dst, sequences, indices);
 }
 
 void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>& sequences,
@@ -97,7 +97,7 @@ void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>&
     }
 
     graph->generate_msa(dst);
-    graph->check_msa(dst, sequences);
+    graph->check_msa(dst, sequences, indices);
 }
 
 }
