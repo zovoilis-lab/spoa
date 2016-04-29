@@ -14,7 +14,7 @@ namespace SPOA {
 class Edge;
 
 class Node;
-std::unique_ptr<Node> createNode(uint32_t id, char letter);
+std::unique_ptr<Node> createNode(uint32_t id, char letter, char type);
 
 class Node {
 public:
@@ -27,6 +27,10 @@ public:
 
     char letter() const {
         return letter_;
+    }
+
+    char type() const {
+        return type_;
     }
 
     const std::vector<std::shared_ptr<Edge>>& in_edges() const {
@@ -53,16 +57,17 @@ public:
         aligned_nodes_ids_.emplace_back(id);
     }
 
-    friend std::unique_ptr<Node> createNode(uint32_t id, char letter);
+    friend std::unique_ptr<Node> createNode(uint32_t id, char letter, char type);
 
 private:
 
-    Node(uint32_t id, char letter);
+    Node(uint32_t id, char letter, char type);
     Node(const Node&) = delete;
     const Node& operator=(const Node&) = delete;
 
     uint32_t id_;
     char letter_;
+    char type_; // 0 - normal, 1 - aligned
 
     std::vector<std::shared_ptr<Edge>> in_edges_;
     std::vector<std::shared_ptr<Edge>> out_edges_;

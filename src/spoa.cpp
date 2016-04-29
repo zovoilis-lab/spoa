@@ -33,7 +33,6 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
     prepare_indices(indices, sequences, sorted);
 
     std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()]);
-    graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
@@ -52,7 +51,6 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
     prepare_indices(indices, sequences, sorted);
 
     std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()], qualities[indices.front()]);
-    graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
@@ -71,7 +69,6 @@ void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>&
     prepare_indices(indices, sequences, sorted);
 
     std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()]);
-    graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
@@ -80,7 +77,8 @@ void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>&
         graph->add_alignment(std::move(alignment), sequences[indices[i]]);
     }
 
-    return graph->generate_msa(dst);
+    graph->generate_msa(dst);
+    graph->check_msa(dst, sequences);
 }
 
 void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>& sequences,
@@ -90,7 +88,6 @@ void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>&
     prepare_indices(indices, sequences, sorted);
 
     std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()], qualities[indices.front()]);
-    graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
@@ -99,7 +96,8 @@ void generate_msa(std::vector<std::string>& dst, const std::vector<std::string>&
         graph->add_alignment(std::move(alignment), sequences[indices[i]], qualities[indices[i]]);
     }
 
-    return graph->generate_msa(dst);
+    graph->generate_msa(dst);
+    graph->check_msa(dst, sequences);
 }
 
 }

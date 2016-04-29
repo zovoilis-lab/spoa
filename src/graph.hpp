@@ -49,8 +49,6 @@ public:
         return alphabet_;
     }
 
-    void topological_sort();
-
     void add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
         float weight = 1.0);
     void add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
@@ -59,6 +57,8 @@ public:
         const std::vector<float>& weights);
 
     void generate_msa(std::vector<std::string>& dst, bool include_consensus = false);
+
+    void check_msa(const std::vector<std::string>& msa, const std::vector<std::string>& sequences) const;
 
     std::string generate_consensus();
 
@@ -73,11 +73,15 @@ private:
     Graph(const Graph&) = delete;
     const Graph& operator=(const Graph&) = delete;
 
-    uint32_t add_node(char letter);
+    uint32_t add_node(char letter, char type = 0);
 
     void add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight);
 
-    void visit_node(uint32_t node_id, std::vector<uint8_t>& marks);
+    void topological_sort();
+
+    void visit_node(std::vector<uint32_t>& dst, std::vector<uint8_t>& marks, uint32_t node_id);
+
+    void visit_node_rigorously(std::vector<uint32_t>& dst, std::vector<uint8_t>& marks, uint32_t node_id);
 
     bool is_topologically_sorted() const;
 
