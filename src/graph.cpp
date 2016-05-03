@@ -213,6 +213,9 @@ std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id, uint32_t end_node
         }
     }
 
+    subgraph->topological_sort();
+    assert(subgraph->is_topologically_sorted());
+
     return subgraph;
 }
 

@@ -83,7 +83,6 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
     AlignmentParams params) {
 
     std::shared_ptr<Graph> graph = createGraph(sequences.front(), qualities.front());
-    graph->topological_sort();
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
         std::vector<int32_t> mapping;
