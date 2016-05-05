@@ -5,7 +5,7 @@
  */
 
 #include <algorithm>
-#include <math.h>
+#include <stack>
 
 #include "node.hpp"
 #include "edge.hpp"
@@ -45,8 +45,6 @@ Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
 
     sequences_start_nodes_ids_.emplace_back(start_node_id);
     ++num_sequences_;
-
-    this->topological_sort();
 }
 
 Graph::~Graph() {
@@ -72,7 +70,7 @@ void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight)
     nodes_[end_node_id]->add_in_edge(edge);
 }
 
-void Graph::topological_sort() {
+void Graph::topological_sort(bool rigorous) {
 
     if (is_sorted_) {
         return;
@@ -81,85 +79,73 @@ void Graph::topological_sort() {
 
     // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
     std::vector<uint8_t> marks(num_nodes_, 0);
+    std::stack<uint32_t> nodes_to_visit;
 
-    uint32_t i = 0;
-    while (true) {
-        for (; i < num_nodes_; ++i) {
-            if (marks[nodes_[i]->id()] == 0) {
-                break;
+    for (uint32_t i = 0; i < num_nodes_; ++i) {
+        if (marks[i] != 0) {
+            continue;
+        }
+
+        nodes_to_visit.push(i);
+        while (nodes_to_visit.size() != 0) {
+            uint32_t node_id = nodes_to_visit.top();
+            const auto& node = nodes_[node_id];
+            bool valid = true;
+
+            if (marks[node_id] != 2) {
+                for (const auto& edge: node->in_edges()) {
+                    if (marks[edge->begin_node_id()] != 2) {
+                        nodes_to_visit.push(edge->begin_node_id());
+                        valid = false;
+                    }
+                }
+
+                if (rigorous && node->type() == 0) {
+                    for (const auto& aid: node->aligned_nodes_ids()) {
+                        if (marks[aid] != 2) {
+                            nodes_to_visit.push(aid);
+                            valid = false;
+                        }
+                    }
+                }
+
+                assert((valid || marks[node_id] != 1) && "Graph is not a DAG!");
+                if (valid) {
+                    marks[node_id] = 2;
+                    if (!rigorous) {
+                        sorted_nodes_ids_.push_back(node_id);
+                    } else if (node->type() == 0) {
+                        sorted_nodes_ids_.push_back(node_id);
+                        for (const auto& aid: node->aligned_nodes_ids()) {
+                            sorted_nodes_ids_.emplace_back(aid);
+                        }
+                    }
+                } else {
+                    marks[node_id] = 1;
+                }
+            }
+
+            if (valid) {
+                nodes_to_visit.pop();
             }
         }
-        if (i == nodes_.size()) {
-            break;
-        }
-
-        this->visit_node(sorted_nodes_ids_, marks, i);
     }
 
     assert(this->is_topologically_sorted() == true);
     is_sorted_ = true;
 }
 
-void Graph::visit_node(std::vector<uint32_t>& dst, std::vector<uint8_t>& marks,
-    uint32_t node_id) {
-
-    assert(marks[node_id] != 1 && "Graph is not a DAG!");
-
-    if (marks[node_id] == 0) {
-        marks[node_id] = 1;
-
-        for (const auto& edge: nodes_[node_id]->in_edges()) {
-            this->visit_node(dst, marks, edge->begin_node_id());
-        }
-
-        marks[node_id] = 2;
-        dst.emplace_back(node_id);
-    }
-}
-
-void Graph::visit_node_rigorously(std::vector<uint32_t>& dst, std::vector<uint8_t>& marks,
-    uint32_t node_id) {
-
-    assert(marks[node_id] != 1 && "Graph is not a DAG!");
-
-    if (marks[node_id] == 0) {
-        marks[node_id] = 1;
-
-        const auto& node = nodes_[node_id];
-
-        for (const auto& edge: node->in_edges()) {
-            this->visit_node_rigorously(dst, marks, edge->begin_node_id());
-        }
-
-        if (node->type() == 0) {
-            for (const auto& aid: node->aligned_nodes_ids()) {
-                this->visit_node_rigorously(dst, marks, aid);
-            }
-        }
-
-        if (node->type() == 0) {
-            marks[node_id] = 2;
-            dst.emplace_back(node_id);
-
-            for (const auto& aid: node->aligned_nodes_ids()) {
-                marks[aid] = 2;
-                dst.emplace_back(aid);
-            }
-        }
-    }
-}
-
 bool Graph::is_topologically_sorted() const {
     assert(nodes_.size() == sorted_nodes_ids_.size());
 
-    std::unordered_set<uint32_t> visited_nodes;
+    std::vector<bool> visited_nodes(num_nodes_, false);
     for (uint32_t node_id: sorted_nodes_ids_) {
         for (const auto& edge: nodes_[node_id]->in_edges()) {
-            if (visited_nodes.find(edge->begin_node_id()) == visited_nodes.end()) {
+            if (visited_nodes[edge->begin_node_id()] == false) {
                 return false;
             }
         }
-        visited_nodes.insert(node_id);
+        visited_nodes[node_id] = true;
     }
 
     return true;
@@ -203,7 +189,6 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
         sequences_start_nodes_ids_.emplace_back(start_node_id);
 
         is_sorted_ = false;
-        this->topological_sort();
         return;
     }
 
@@ -283,7 +268,6 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
     sequences_start_nodes_ids_.emplace_back(start_node_id);
 
     is_sorted_ = false;
-    this->topological_sort();
 }
 
 int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float>& weights,
@@ -308,17 +292,9 @@ int32_t Graph::add_sequence(const std::string& sequence, const std::vector<float
 
 void Graph::generate_msa(std::vector<std::string>& dst, bool include_consensus) {
 
-    // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
-    std::vector<uint8_t> marks(num_nodes_, 0);
-    std::vector<uint32_t> rigorously_sorted_node_ids;
-
-    // rigorous topological sort
-    for (const auto& node_id: sorted_nodes_ids_) {
-        this->visit_node_rigorously(rigorously_sorted_node_ids, marks, node_id);
-    }
-
-    sorted_nodes_ids_.swap(rigorously_sorted_node_ids);
-    this->is_topologically_sorted();
+    // force rigorous topological sort
+    is_sorted_ = false;
+    this->topological_sort(true);
 
     // assign msa id to each node
     std::vector<int32_t> msa_node_ids(num_nodes_, -1);
@@ -334,8 +310,6 @@ void Graph::generate_msa(std::vector<std::string>& dst, bool include_consensus) 
             ++base_counter;
         }
     }
-
-    sorted_nodes_ids_.swap(rigorously_sorted_node_ids);
 
     // extract sequences from graph and create msa strings (add indels(-) where necessary)
     for (uint32_t i = 0; i < num_sequences_; ++i) {
@@ -403,6 +377,8 @@ std::string Graph::generate_consensus() {
 }
 
 void Graph::traverse_heaviest_bundle() {
+
+    this->topological_sort();
 
     std::vector<int32_t> predecessors(num_nodes_, -1);
     std::vector<float> scores(num_nodes_, 0);
@@ -500,13 +476,29 @@ uint32_t Graph::branch_completion(std::vector<float>& scores,
 }
 
 void Graph::print() const {
+
+    std::vector<int32_t> in_consensus(num_nodes_, -1);
+    int32_t rank = 0;
+    for (const auto& id: consensus_) {
+        in_consensus[id] = rank++;
+    }
+
     printf("digraph %d {\n", num_sequences_);
     printf("    graph [rankdir=LR]\n");
     for (uint32_t i = 0; i < num_nodes_; ++i) {
-        printf("    %d [label = \"%d|%c\"]\n", i, i, nodes_[i]->letter());
+        printf("    %d [label = \"%d|%c\"", i, i, nodes_[i]->letter());
+        if (in_consensus[i] != -1) {
+            printf(", style=filled, fillcolor=goldenrod1");
+        }
+        printf("]\n");
+
         for (const auto& edge: nodes_[i]->out_edges()) {
-            printf("    %d -> %d [label = \"%.3f\"]\n", i, edge->end_node_id(),
+            printf("    %d -> %d [label = \"%.3f\"", i, edge->end_node_id(),
                 edge->total_weight());
+            if (in_consensus[i] + 1 == in_consensus[edge->end_node_id()]) {
+                printf(", color=goldenrod1");
+            }
+            printf("]\n");
         }
         for (const auto& aid: nodes_[i]->aligned_nodes_ids()) {
             if (aid > i) {

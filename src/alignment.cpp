@@ -72,6 +72,7 @@ Alignment::Alignment(const std::string& sequence, std::shared_ptr<Graph> graph,
         E_[i * matrix_width_] = big_negative_value;
     }
 
+    graph_->topological_sort();
     const auto& sorted_nodes_ids = graph_->sorted_nodes_ids();
 
     node_id_to_graph_id_.resize(sorted_nodes_ids.size());
@@ -117,6 +118,7 @@ void Alignment::align_sequence_to_graph() {
         return;
     }
 
+    graph_->topological_sort();
     const auto& sorted_nodes_ids = graph_->sorted_nodes_ids();
 
     for (uint32_t node_id: sorted_nodes_ids) {
@@ -166,14 +168,10 @@ void Alignment::align_sequence_to_graph() {
             if (params_.type == AlignmentType::kSW) {
                 H_row[j] = std::max(H_row[j], 0);
                 update_max_score(H_row, i, j);
-            } else if (params_.type == AlignmentType::kNW) {
-                if (j == matrix_width_ - 1 && node->out_edges().size() == 0) {
-                    update_max_score(H_row, i, j);
-                }
-            } else if (params_.type == AlignmentType::kOV) {
-                if (j == matrix_width_ - 1 || node->out_edges().size() == 0) {
-                    update_max_score(H_row, i, j);
-                }
+            } else if (params_.type == AlignmentType::kNW && (j == matrix_width_ - 1 && node->out_edges().size() == 0)) {
+                update_max_score(H_row, i, j);
+            } else if (params_.type == AlignmentType::kOV && (j == matrix_width_ - 1 || node->out_edges().size() == 0)) {
+                update_max_score(H_row, i, j);
             }
         }
     }

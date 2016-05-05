@@ -40,13 +40,15 @@ public:
         return nodes_;
     }
 
+    const std::unordered_set<uint8_t>& alphabet() const {
+        return alphabet_;
+    }
+
+    void topological_sort(bool rigorous = false);
+
     const std::vector<uint32_t>& sorted_nodes_ids() const {
         assert(is_sorted_ == true);
         return sorted_nodes_ids_;
-    }
-
-    const std::unordered_set<uint8_t>& alphabet() const {
-        return alphabet_;
     }
 
     void add_alignment(std::shared_ptr<Alignment> alignment, const std::string& sequence,
@@ -77,12 +79,6 @@ private:
     uint32_t add_node(char letter, char type = 0);
 
     void add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight);
-
-    void topological_sort();
-
-    void visit_node(std::vector<uint32_t>& dst, std::vector<uint8_t>& marks, uint32_t node_id);
-
-    void visit_node_rigorously(std::vector<uint32_t>& dst, std::vector<uint8_t>& marks, uint32_t node_id);
 
     bool is_topologically_sorted() const;
 
