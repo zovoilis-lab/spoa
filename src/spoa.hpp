@@ -10,8 +10,15 @@
 #include <vector>
 
 #include "alignment.hpp"
+#include "graph.hpp"
 
 namespace SPOA {
+
+std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::string>& sequences,
+    AlignmentParams params, bool sorted = false);
+
+std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities, AlignmentParams params, bool sorted = false);
 
 std::string generate_consensus(const std::vector<std::string>& sequences,
     AlignmentParams params, bool sorted = false);
