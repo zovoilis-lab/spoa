@@ -158,29 +158,37 @@ bool Graph::is_topologically_sorted() const {
     return true;
 }
 
-void Graph::backtrace_path(std::unordered_set<uint32_t>& dst, uint32_t current_node_id,
+// backtracing from right to left!
+void Graph::extract_subgraph_nodes(std::vector<bool>& dst, uint32_t start_node_id,
     uint32_t end_node_id) const {
 
-    if (dst.find(current_node_id) != dst.end()) return;
-    if (current_node_id < end_node_id) return;
+    dst.resize(num_nodes_, false);
 
-    dst.insert(current_node_id);
+    std::stack<uint32_t> nodes_to_visit;
+    nodes_to_visit.push(start_node_id);
 
-    // recursively backtrace path
-    const auto& node = nodes_[current_node_id];
-    for (const auto& edge: node->in_edges()) {
-        backtrace_path(dst, edge->begin_node_id(), end_node_id);
-    }
-    for (const auto& aid: node->aligned_nodes_ids()) {
-        backtrace_path(dst, aid, end_node_id);
+    while (nodes_to_visit.size() != 0) {
+        uint32_t node_id = nodes_to_visit.top();
+        nodes_to_visit.pop();
+
+        if (dst[node_id] == false && node_id >= end_node_id) {
+            for (const auto& edge: nodes_[node_id]->in_edges()) {
+                nodes_to_visit.push(edge->begin_node_id());
+            }
+            for (const auto& aid: nodes_[node_id]->aligned_nodes_ids()) {
+                nodes_to_visit.push(aid);
+            }
+
+            dst[node_id] = true;
+        }
     }
 }
 
 std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id, uint32_t end_node_id,
     std::vector<int32_t>& subgraph_to_graph_mapping) {
 
-    std::unordered_set<uint32_t> subgraph_node_ids;
-    backtrace_path(subgraph_node_ids, end_node_id, begin_node_id);
+    std::vector<bool> is_subgraph_node;
+    extract_subgraph_nodes(is_subgraph_node, end_node_id, begin_node_id);
 
     // init subgraph
     auto subgraph = std::unique_ptr<Graph>(new Graph());
@@ -191,16 +199,23 @@ std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id, uint32_t end_node
     subgraph_to_graph_mapping.resize(this->num_nodes_, -1);
     std::vector<int32_t> graph_to_subgraph_mapping(this->num_nodes_, -1);
 
-    for (const auto& id: subgraph_node_ids) {
-        uint32_t subgraph_id = subgraph->add_node(nodes_[id]->letter());
-        graph_to_subgraph_mapping[id] = subgraph_id;
-        subgraph_to_graph_mapping[subgraph_id] = id;
+    for (uint32_t i = 0; i < is_subgraph_node.size(); ++i) {
+        if (is_subgraph_node[i] == false) {
+            continue;
+        }
+
+        uint32_t subgraph_id = subgraph->add_node(nodes_[i]->letter());
+        graph_to_subgraph_mapping[i] = subgraph_id;
+        subgraph_to_graph_mapping[subgraph_id] = i;
     }
 
     // add edges and aligned nodes
-    for (const auto& id: subgraph_node_ids) {
-        const auto& node = nodes_[id];
-        uint32_t subgraph_id = graph_to_subgraph_mapping[id];
+    for (uint32_t i = 0; i < is_subgraph_node.size(); ++i) {
+        if (is_subgraph_node[i] == false) {
+            continue;
+        }
+        const auto& node = nodes_[i];
+        uint32_t subgraph_id = graph_to_subgraph_mapping[i];
         const auto& subgraph_node = subgraph->node(subgraph_id);
 
         for (const auto& edge: node->in_edges()) {
@@ -212,9 +227,6 @@ std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id, uint32_t end_node
             subgraph_node->add_aligned_node_id(graph_to_subgraph_mapping[aid]);
         }
     }
-
-    subgraph->topological_sort();
-    assert(subgraph->is_topologically_sorted());
 
     return subgraph;
 }

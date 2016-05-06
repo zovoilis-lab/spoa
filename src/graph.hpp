@@ -86,7 +86,7 @@ private:
 
     bool is_topologically_sorted() const;
 
-    void backtrace_path(std::unordered_set<uint32_t>& dst, uint32_t current_node_id,
+    void extract_subgraph_nodes(std::vector<bool>& dst, uint32_t current_node_id,
         uint32_t end_node_id) const;
 
     int32_t add_sequence(const std::string& sequence, const std::vector<float>& weights,
