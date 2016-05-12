@@ -62,25 +62,9 @@ std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::stri
     return graph;
 }
 
-std::string generate_consensus(const std::vector<std::string>& sequences,
-    AlignmentParams params, bool sorted) {
-
-    auto graph = construct_partial_order_graph(sequences, params, sorted);
-    return graph->generate_consensus();
-}
-
-std::string generate_consensus(const std::vector<std::string>& sequences,
-    const std::vector<std::string>& qualities, AlignmentParams params, bool sorted) {
-
-    auto graph = construct_partial_order_graph(sequences, qualities, params, sorted);
-    return graph->generate_consensus();
-}
-
-std::string generate_consensus(const std::vector<std::string>& sequences,
-    const std::vector<std::string>& qualities,
-    const std::vector<uint32_t>& begin_positions,
-    const std::vector<uint32_t>& end_positions,
-    AlignmentParams params) {
+std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities, const std::vector<uint32_t>& begin_positions,
+    const std::vector<uint32_t>& end_positions, AlignmentParams params) {
 
     std::shared_ptr<Graph> graph = createGraph(sequences.front(), qualities.front());
 
@@ -97,6 +81,29 @@ std::string generate_consensus(const std::vector<std::string>& sequences,
         graph->add_alignment(std::move(alignment), sequences[i], qualities[i]);
     }
 
+    return graph;
+}
+
+std::string generate_consensus(const std::vector<std::string>& sequences,
+    AlignmentParams params, bool sorted) {
+
+    auto graph = construct_partial_order_graph(sequences, params, sorted);
+    return graph->generate_consensus();
+}
+
+std::string generate_consensus(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities, AlignmentParams params, bool sorted) {
+
+    auto graph = construct_partial_order_graph(sequences, qualities, params, sorted);
+    return graph->generate_consensus();
+}
+
+std::string generate_consensus(const std::vector<std::string>& sequences,
+    const std::vector<std::string>& qualities, const std::vector<uint32_t>& begin_positions,
+    const std::vector<uint32_t>& end_positions, AlignmentParams params) {
+
+    auto graph = construct_partial_order_graph(sequences, qualities, begin_positions,
+        end_positions, params);
     return graph->generate_consensus();
 }
 
