@@ -76,7 +76,7 @@ private:
     Graph(const Graph&) = delete;
     const Graph& operator=(const Graph&) = delete;
 
-    uint32_t add_node(char letter, char type = 0);
+    uint32_t add_node(char letter);
 
     void add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight);
 

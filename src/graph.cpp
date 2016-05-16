@@ -50,8 +50,8 @@ Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
 Graph::~Graph() {
 }
 
-uint32_t Graph::add_node(char letter, char type) {
-    nodes_.emplace_back(createNode(num_nodes_, letter, type));
+uint32_t Graph::add_node(char letter) {
+    nodes_.emplace_back(createNode(num_nodes_, letter));
     return num_nodes_++;
 }
 
@@ -79,6 +79,8 @@ void Graph::topological_sort(bool rigorous) {
 
     // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
     std::vector<uint8_t> marks(num_nodes_, 0);
+    // false - do not check aligned nodes, true - do it
+    std::vector<bool> check(num_nodes_, true);
     std::stack<uint32_t> nodes_to_visit;
 
     for (uint32_t i = 0; i < num_nodes_; ++i) {
@@ -100,10 +102,11 @@ void Graph::topological_sort(bool rigorous) {
                     }
                 }
 
-                if (rigorous && node->type() == 0) {
+                if (rigorous && check[node_id]) {
                     for (const auto& aid: node->aligned_nodes_ids()) {
                         if (marks[aid] != 2) {
                             nodes_to_visit.push(aid);
+                            check[aid] = false;
                             valid = false;
                         }
                     }
@@ -114,7 +117,7 @@ void Graph::topological_sort(bool rigorous) {
                     marks[node_id] = 2;
                     if (!rigorous) {
                         sorted_nodes_ids_.push_back(node_id);
-                    } else if (node->type() == 0) {
+                    } else if (check[node_id]) {
                         sorted_nodes_ids_.push_back(node_id);
                         for (const auto& aid: node->aligned_nodes_ids()) {
                             sorted_nodes_ids_.emplace_back(aid);
@@ -232,7 +235,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
                 }
 
                 if (aligned_to_node_id == -1) {
-                    new_node_id = this->add_node(letter, 1);
+                    new_node_id = this->add_node(letter);
 
                     for (const auto& aid: node->aligned_nodes_ids()) {
                         nodes_[new_node_id]->add_aligned_node_id(aid);
@@ -302,13 +305,11 @@ void Graph::generate_msa(std::vector<std::string>& dst, bool include_consensus) 
     for (uint32_t i = 0; i < num_nodes_; ++i) {
         uint32_t node_id = sorted_nodes_ids_[i];
 
-        if (nodes_[node_id]->type() == 0) {
-            msa_node_ids[node_id] = base_counter;
-            for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids().size(); ++j) {
-                msa_node_ids[sorted_nodes_ids_[++i]] = base_counter;
-            }
-            ++base_counter;
+        msa_node_ids[node_id] = base_counter;
+        for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids().size(); ++j) {
+            msa_node_ids[sorted_nodes_ids_[++i]] = base_counter;
         }
+        ++base_counter;
     }
 
     // extract sequences from graph and create msa strings (add indels(-) where necessary)
