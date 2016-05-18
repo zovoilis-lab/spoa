@@ -67,6 +67,8 @@ public:
         const std::vector<uint32_t>& indices) const;
 
     std::string generate_consensus();
+    // returns coverages
+    std::string generate_consensus(std::vector<uint32_t>& dst);
 
     void print() const;
 

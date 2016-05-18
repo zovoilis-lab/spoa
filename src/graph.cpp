@@ -454,6 +454,37 @@ std::string Graph::generate_consensus() {
     return consensus_str;
 }
 
+std::string Graph::generate_consensus(std::vector<uint32_t>& dst) {
+
+    auto consensus_str = this->generate_consensus();
+
+    auto calculate_coverage = [&](uint32_t node_id) -> uint32_t {
+        std::unordered_set<uint32_t> label_set;
+        const auto& node = nodes_[node_id];
+        for (const auto& edge: node->in_edges()) {
+            for (const auto& label: edge->sequence_labels()) {
+                label_set.insert(label);
+            }
+        }
+        for (const auto& edge: node->out_edges()) {
+            for (const auto& label: edge->sequence_labels()) {
+                label_set.insert(label);
+            }
+        }
+        return label_set.size();
+    };
+
+    for (const auto& node_id: consensus_) {
+        uint32_t total_coverage = calculate_coverage(node_id);
+        for (const auto& aid: nodes_[node_id]->aligned_nodes_ids()) {
+            total_coverage += calculate_coverage(aid);
+        }
+        dst.emplace_back(total_coverage);
+    }
+
+    return consensus_str;
+}
+
 void Graph::traverse_heaviest_bundle() {
 
     this->topological_sort();
