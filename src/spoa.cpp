@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include "graph.hpp"
+#include "simd_alignment.hpp"
 #include "spoa.hpp"
 
 void prepare_indices(std::vector<uint32_t>& dst, const std::vector<std::string>& sequences, bool sorted) {
@@ -38,6 +39,7 @@ std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::stri
         auto alignment = createAlignment(sequences[indices[i]], graph, params);
         alignment->align_sequence_to_graph();
         alignment->backtrack();
+        simd_align_sequence_to_graph(sequences[indices[i]], graph, params);
         graph->add_alignment(std::move(alignment), sequences[indices[i]]);
     }
 

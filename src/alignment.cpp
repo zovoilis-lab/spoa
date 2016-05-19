@@ -178,6 +178,8 @@ void Alignment::align_sequence_to_graph() {
 
     is_aligned_ = true;
 
+    printf("Normal: %d| %d %d\n", max_score_, max_i_, max_j_);
+
     // print_matrix();
 }
 
@@ -270,7 +272,7 @@ void Alignment::backtrack() {
 
     std::reverse(alignment_node_ids_.begin(), alignment_node_ids_.end());
     std::reverse(alignment_seq_ids_.begin(), alignment_seq_ids_.end());
-
+    printf("%zu\n", alignment_node_ids_.size());
     is_backtracked_ = true;
 }
 
