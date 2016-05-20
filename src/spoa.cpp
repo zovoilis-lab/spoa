@@ -9,7 +9,6 @@
 #include <algorithm>
 
 #include "graph.hpp"
-#include "simd_alignment.hpp"
 #include "spoa.hpp"
 
 void prepare_indices(std::vector<uint32_t>& dst, const std::vector<std::string>& sequences, bool sorted) {
@@ -36,10 +35,8 @@ std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::stri
     std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()]);
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
-        auto alignment = createAlignment(sequences[indices[i]], graph, params);
+        auto alignment = Alignment::createAlignment(sequences[indices[i]], graph, params);
         alignment->align_sequence_to_graph();
-        alignment->backtrack();
-        simd_align_sequence_to_graph(sequences[indices[i]], graph, params);
         graph->add_alignment(std::move(alignment), sequences[indices[i]]);
     }
 
@@ -55,9 +52,8 @@ std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::stri
     std::shared_ptr<Graph> graph = createGraph(sequences[indices.front()], qualities[indices.front()]);
 
     for (uint32_t i = 1; i < sequences.size(); ++i) {
-        auto alignment = createAlignment(sequences[indices[i]], graph, params);
+        auto alignment = Alignment::createAlignment(sequences[indices[i]], graph, params);
         alignment->align_sequence_to_graph();
-        alignment->backtrack();
         graph->add_alignment(std::move(alignment), sequences[indices[i]], qualities[indices[i]]);
     }
 
@@ -74,11 +70,9 @@ std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::stri
         std::vector<int32_t> mapping;
         std::shared_ptr<Graph> subgraph = graph->subgraph(begin_positions[i], end_positions[i], mapping);
 
-        auto alignment = createAlignment(sequences[i], subgraph, params);
+        auto alignment = Alignment::createAlignment(sequences[i], subgraph, params);
         alignment->align_sequence_to_graph();
-        alignment->backtrack();
-
-        alignment->update_node_ids(mapping);
+        alignment->adjust_node_ids(mapping);
 
         graph->add_alignment(std::move(alignment), sequences[i], qualities[i]);
     }

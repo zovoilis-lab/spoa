@@ -1,7 +1,7 @@
 /*!
- * @file simd_alignment.hpp
+ * @file sisd_alignment.hpp
  *
- * @brief SimdAlignment class header file
+ * @brief SisdAlignment class header file
  */
 
 #pragma once
@@ -16,15 +16,19 @@
 namespace SPOA {
 
 class Graph;
-class SimdAlignment;
+class SisdAlignment;
 
-std::unique_ptr<Alignment> createSimdAlignment(const std::string& sequence,
+std::unique_ptr<Alignment> createSisdAlignment(const std::string& sequence,
     std::shared_ptr<Graph> graph, AlignmentParams params);
 
-class SimdAlignment: public Alignment {
+class SisdAlignment: public Alignment {
 public:
 
-    ~SimdAlignment();
+    ~SisdAlignment();
+
+    int32_t score() const {
+        return max_score_;
+    }
 
     const std::vector<int32_t>& node_ids() const {
         assert(is_aligned_ == true && "No alignment done!");
@@ -39,15 +43,20 @@ public:
     void align_sequence_to_graph();
     void adjust_node_ids(const std::vector<int32_t>& mapping);
 
-    friend std::unique_ptr<Alignment> createSimdAlignment(const std::string& sequence,
+    friend std::unique_ptr<Alignment> createSisdAlignment(const std::string& sequence,
         std::shared_ptr<Graph> graph, AlignmentParams params);
 
 private:
 
-    SimdAlignment(const std::string& sequence, std::shared_ptr<Graph> graph,
+    SisdAlignment(const std::string& sequence, std::shared_ptr<Graph> graph,
         AlignmentParams params);
-    SimdAlignment(const SimdAlignment&) = delete;
-    const SimdAlignment& operator=(const SimdAlignment&) = delete;
+    SisdAlignment(const SisdAlignment&) = delete;
+    const SisdAlignment& operator=(const SisdAlignment&) = delete;
+
+    inline void update_max_score(int32_t* H_row, uint32_t i, uint32_t j);
+
+    void backtrack();
+    void print_matrix();
 
     std::shared_ptr<Graph> graph_;
     AlignmentParams params_;
@@ -56,13 +65,18 @@ private:
     uint32_t matrix_height_;
 
     std::vector<std::vector<int32_t>> sequence_profile_;
+    std::vector<int32_t> H_;
+    std::vector<int32_t> F_;
+    std::vector<int32_t> E_;
+    std::vector<uint32_t> node_id_to_graph_id_;
 
     bool is_aligned_;
+    int32_t max_i_;
+    int32_t max_j_;
+    int32_t max_score_;
+
     std::vector<int32_t> alignment_node_ids_;
     std::vector<int32_t> alignment_seq_ids_;
 };
-
-void simd_align_sequence_to_graph(const std::string& sequence, std::shared_ptr<Graph> graph,
-    AlignmentParams params);
 
 }
