@@ -65,14 +65,21 @@ std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::stri
     const std::vector<uint32_t>& end_positions, AlignmentParams params) {
 
     std::shared_ptr<Graph> graph = createGraph(sequences.front(), qualities.front());
-
+    uint32_t offset = 0.01 * sequences.front().size();
     for (uint32_t i = 1; i < sequences.size(); ++i) {
+        bool adjust = false;
         std::vector<int32_t> mapping;
-        std::shared_ptr<Graph> subgraph = graph->subgraph(begin_positions[i], end_positions[i], mapping);
+        std::shared_ptr<Graph> subgraph = nullptr;
+        if (begin_positions[i] < offset && end_positions[i] > sequences.front().size() - offset) {
+            subgraph = graph;
+        } else {
+            subgraph = graph->subgraph(begin_positions[i], end_positions[i], mapping);
+            adjust = true;
+        }
 
         auto alignment = Alignment::createAlignment(sequences[i], subgraph, params);
         alignment->align_sequence_to_graph();
-        alignment->adjust_node_ids(mapping);
+        if (adjust) alignment->adjust_node_ids(mapping);
 
         graph->add_alignment(std::move(alignment), sequences[i], qualities[i]);
     }
