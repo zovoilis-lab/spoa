@@ -346,7 +346,7 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
     }
 
     if (max_i == -1 && max_j == -1) { // no alignment found
-        printf("Simd  : %d| %d %d\n", max_score, max_i, max_j);
+        // printf("Simd  : %d| %d %d\n", max_score, max_i, max_j);
         delete[] _masks_storage;
         delete[] _matrix_storage;
         delete[] _P_storage;
@@ -365,7 +365,7 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
         max_j = actual_matrix_width - 1;
     }
 
-    printf("Simd  : %d| %d %d\n", max_score, max_i, max_j + 1);
+    // printf("Simd  : %d| %d %d\n", max_score, max_i, max_j + 1);
 
     params.deletion_open += params.deletion_extend;
     params.insertion_open += params.insertion_extend;
@@ -513,7 +513,7 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
 
     std::reverse(alignment_node_ids.begin(), alignment_node_ids.end());
     std::reverse(alignment_seq_ids.begin(), alignment_seq_ids.end());
-    printf("%zu\n", alignment_node_ids.size());
+
     // free stuff
     delete[] _masks_storage;
     delete[] _matrix_storage;

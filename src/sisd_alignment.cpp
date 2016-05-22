@@ -159,7 +159,7 @@ void SisdAlignment::align_sequence_to_graph() {
         }
     }
 
-    printf("Normal: %d| %d %d\n", max_score_, max_i_, max_j_);
+    // printf("Normal: %d| %d %d\n", max_score_, max_i_, max_j_);
 
     // print_matrix();
     this->backtrack();
@@ -244,7 +244,7 @@ void SisdAlignment::backtrack() {
 
     std::reverse(alignment_node_ids_.begin(), alignment_node_ids_.end());
     std::reverse(alignment_seq_ids_.begin(), alignment_seq_ids_.end());
-    printf("%zu\n", alignment_node_ids_.size());
+
     is_aligned_ = true;
 }
 
