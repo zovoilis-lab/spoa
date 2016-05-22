@@ -1,6 +1,6 @@
 # spoa
 
-**Work in progress!!** Spoa is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alighment modes: local (Smith-Waterman), global (Needleman-Wunsh) and semi-global alignment (overlap).
+Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alignment modes: local (Smith-Waterman), global (Needleman-Wunsh) and semi-global alignment (overlap). It supports Intel SSE4.1+ vectorization for all alignment modes.
 
 ## DEPENDENCIES
 
@@ -33,3 +33,11 @@ Missmatch, gap open and gap extend must be negative values. Supported algorithms
 To remove spoa executable, run:
 
     make clean
+
+## Contact information
+
+For additional information, help and bug reports please send an email to: robert.vaser@fer.hr.
+
+## Acknowledgment
+
+This work has been supported in part by Croatian Science Foundation under the project UIP-11-2013-7353.
