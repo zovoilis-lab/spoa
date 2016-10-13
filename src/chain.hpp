@@ -12,21 +12,17 @@
 #include <vector>
 #include <string>
 
+#include "bioparser/src/bioparser.hpp"
+
 namespace SPOA {
 
-class Reader;
 class Chain;
 
-using ChainSet = std::vector<std::unique_ptr<Chain>>;
+std::unique_ptr<Chain> createChain(uint32_t id, const char* name, uint32_t name_length,
+    const char* data, uint32_t data_length);
 
-std::unique_ptr<Chain> createChain(uint32_t id, char* name, uint32_t name_length,
-    char* data, uint32_t data_length);
-
-void createChainSet(ChainSet& dst, const std::string& path);
-
-std::unique_ptr<Reader> createChainSetPartInitialize(const std::string& path);
-
-bool createChainSetPart(ChainSet& dst, std::shared_ptr<Reader> reader, size_t max_bytes);
+std::unique_ptr<Chain> createChain(uint32_t id, const char* name, uint32_t name_length,
+    const char* data, uint32_t data_length, const char* quality, uint32_t quality_length);
 
 class Chain {
 public:
@@ -41,30 +37,35 @@ public:
         return name_;
     }
 
-    const size_t name_length() const {
-        return name_.size();
-    }
-
     const std::string& data() const {
         return data_;
     }
 
-    const uint32_t length() const {
-        return data_.size();
+    const std::string& quality() const {
+        return quality_;
     }
 
-    friend std::unique_ptr<Chain> createChain(uint32_t id, char* name,
-        uint32_t name_length, char* data, uint32_t data_length);
+    friend std::unique_ptr<Chain> createChain(uint32_t id, const char* name,
+        uint32_t name_length, const char* data, uint32_t data_length);
+    friend std::unique_ptr<Chain> createChain(uint32_t id, const char* name,
+        uint32_t name_length, const char* data, uint32_t data_length,
+        const char* quality, uint32_t quality_length);
+
+    friend BIOPARSER::FastaReader<Chain>;
+    friend BIOPARSER::FastqReader<Chain>;
 
 private:
 
-    Chain(uint32_t id, std::string&& name, std::string&& data);
+    Chain(uint32_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length);
+    Chain(uint32_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length,
+        const char* quality, uint32_t quality_length);
     Chain(const Chain&) = delete;
     const Chain& operator=(const Chain&) = delete;
 
     uint32_t id_;
     std::string name_;
     std::string data_;
+    std::string quality_;
 };
 
 }

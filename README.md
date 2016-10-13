@@ -8,7 +8,7 @@ Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) alg
 
 Application uses following software:
 
-1. gcc 4.*
+1. gcc 4.8+
 
 ## INSTALLATION
 
@@ -20,19 +20,103 @@ Makefile is provided in the project root folder. Inside spoa root, run:
 
 After running make, an executable named spoa will appear in the current directory.
 
+If you would like to add spoa to your project, run:
+
+    make install
+
+and add -Iinclude/ -Llib/ -lspoa while compiling your project. Please look usage for a
+detailed example.
+
 ## USAGE
+
+## Executables
 
 All examples assume that make has been run and that spoa was successfully compiled.
 
-Spoa must be run as following:
+Usage of spoa is as following:
 
-    ./spoa <sequences.fasta> <match> <missmatch> <gap_open> <gap_extend> <algorithm>
+    spoa -a <FASTA file> (or -q <FASTQ file>) [arguments ...]
 
-Missmatch, gap open and gap extend must be negative values. Supported algorithms are: 0 (local), 1 (global) and 2 (semi-global).
+    arguments:
+    -a, --fasta-sequences <file>
+        (required)
+        input FASTA file
+    -q, --fastq-sequences <file>
+        (required/alternative of -a)
+        input FASTQ file
+    -m, --match <int>
+        default: 5
+        score for matching bases (must be positive integer)
+    -x, --mismatch <int>
+        default: -4
+        score for mismatching bases (must be negative integer)
+    -o, --gap-open <int>
+        default: -8
+        gap opening penalty (must be negative integer)
+    -e, --gap-extend <int>
+        default: -6
+        gap extension penalty (must be negative integer)
+    -l, --algorithm <int>
+        default: 0
+        alignment mode: 0 - local, 1 - global, 2 - semi-global
+    -r, --result <int>
+        default: 0
+        result mode: 0 - consensus, 1 - multiple sequence alignment, 2 - 0 + 1
+    -h, -help
+        prints out the help
 
 To remove spoa executable, run:
 
     make clean
+
+###Library
+
+Simple library usage can be seen in the following example.c file. This code shows
+how to get consensus and multiple sequence alignment for a set of sequences.
+
+    #include "spoa/spoa.hpp"
+
+    int main(int argc, char** argv) {
+
+        std::vector<std::string> sequences = {
+            "CATAAAAGAACGTAGGTCGCCCGTCCGTAACCTGTCGGATCACCGGAAAGGACCCGTAAAGTGATAATGAT",
+            "ATAAAGGCAGTCGCTCTGTAAGCTGTCGATTCACCGGAAAGATGGCGTTACCACGTAAAGTGATAATGATTAT",
+            "ATCAAAGAACGTGTAGCCTGTCCGTAATCTAGCGCATTTCACACGAGACCCGCGTAATGGG",
+            "CGTAAATAGGTAATGATTATCATTACATATCACAACTAGGGCCGTATTAATCATGATATCATCA",
+            "GTCGCTAGAGGCATCGTGAGTCGCTTCCGTACCGCAAGGATGACGAGTCACTTAAAGTGATAAT",
+            "CCGTAACCTTCATCGGATCACCGGAAAGGACCCGTAAATAGACCTGATTATCATCTACAT"
+        };
+
+        auto params = SPOA::AlignmentParams(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]),
+            atoi(argv[4]), (SPOA::AlignmentType) atoi(argv[5]));
+
+        std::string consensus = SPOA::generate_consensus(sequences, params, true);
+
+        fprintf(stderr, "Consensus (%zu)\n", consensus.size());
+        fprintf(stderr, "%s\n", consensus.c_str());
+
+        std::vector<std::string> msa;
+        SPOA::generate_msa(msa, sequences, params, true);
+
+        fprintf(stderr, "Multiple sequence alignment\n");
+        for (const auto& it: msa) {
+            fprintf(stderr, "%s\n", it.c_str());
+        }
+
+        return 0;
+    }
+
+This code can be compiled with:
+
+    g++ example.cpp -std=c++11 -Iinclude/ -Llib/ -lspoa -o example
+
+And the executable can be run with:
+
+    ./example 5 -4 -8 -6 0
+
+To remove include/ and lib/ directories created for the library, run:
+
+    make remove
 
 ## Contact information
 
