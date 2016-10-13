@@ -20,12 +20,15 @@ Makefile is provided in the project root folder. Inside spoa root, run:
 
 After running make, an executable named spoa will appear in the current directory.
 
-If you would like to add spoa to your project, run:
+If you would like to add spoa to your project as a static library, run:
 
     make install
 
 and add -Iinclude/ -Llib/ -lspoa while compiling your project. Please look usage for a
 detailed example.
+
+If you would like to add spoa source files to you project, just include the src/ directory.
+Unnecessary files (chain.* and main.cpp) have a macro which excludes them from compiling in other projects).
 
 ## USAGE
 
