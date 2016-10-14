@@ -2,17 +2,17 @@
 
 Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alignment modes: local (Smith-Waterman), global (Needleman-Wunsh) and semi-global alignment (overlap). It supports Intel SSE4.1+ vectorization for all alignment modes.
 
-## DEPENDENCIES
+## Dependencies
 
-### LINUX
+### Linux
 
 Application uses following software:
 
 1. gcc 4.8+
 
-## INSTALLATION
+## Installation
 
-### LINUX
+### Linux
 
 Makefile is provided in the project root folder. Inside spoa root, run:
 
@@ -30,7 +30,7 @@ detailed example.
 If you would like to add spoa source files to you project, just include the src/ directory.
 Unnecessary files (chain.* and main.cpp) have a macro which excludes them from compiling in other projects).
 
-## USAGE
+## Usage
 
 ## Executables
 
@@ -41,12 +41,6 @@ Usage of spoa is as following:
     spoa -a <FASTA file> (or -q <FASTQ file>) [arguments ...]
 
     arguments:
-    -a, --fasta-sequences <file>
-        (required)
-        input FASTA file
-    -q, --fastq-sequences <file>
-        (required/alternative of -a)
-        input FASTQ file
     -m, --match <int>
         default: 5
         score for matching bases (must be positive integer)
