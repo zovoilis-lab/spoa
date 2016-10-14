@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <algorithm>
+#include <numeric>
 
 #include "graph.hpp"
 #include "spoa.hpp"
