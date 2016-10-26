@@ -20,10 +20,10 @@ namespace SPOA {
 
 class Chain;
 
-std::unique_ptr<Chain> createChain(uint32_t id, const char* name, uint32_t name_length,
+std::unique_ptr<Chain> createChain(uint64_t id, const char* name, uint32_t name_length,
     const char* data, uint32_t data_length);
 
-std::unique_ptr<Chain> createChain(uint32_t id, const char* name, uint32_t name_length,
+std::unique_ptr<Chain> createChain(uint64_t id, const char* name, uint32_t name_length,
     const char* data, uint32_t data_length, const char* quality, uint32_t quality_length);
 
 class Chain {
@@ -31,7 +31,7 @@ public:
 
     ~Chain() = default;
 
-    uint32_t id() const {
+    uint64_t id() const {
         return id_;
     }
 
@@ -47,9 +47,9 @@ public:
         return quality_;
     }
 
-    friend std::unique_ptr<Chain> createChain(uint32_t id, const char* name,
+    friend std::unique_ptr<Chain> createChain(uint64_t id, const char* name,
         uint32_t name_length, const char* data, uint32_t data_length);
-    friend std::unique_ptr<Chain> createChain(uint32_t id, const char* name,
+    friend std::unique_ptr<Chain> createChain(uint64_t id, const char* name,
         uint32_t name_length, const char* data, uint32_t data_length,
         const char* quality, uint32_t quality_length);
 
@@ -58,13 +58,13 @@ public:
 
 private:
 
-    Chain(uint32_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length);
-    Chain(uint32_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length,
+    Chain(uint64_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length);
+    Chain(uint64_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length,
         const char* quality, uint32_t quality_length);
     Chain(const Chain&) = delete;
     const Chain& operator=(const Chain&) = delete;
 
-    uint32_t id_;
+    uint64_t id_;
     std::string name_;
     std::string data_;
     std::string quality_;
