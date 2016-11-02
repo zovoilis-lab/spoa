@@ -67,10 +67,11 @@ public:
         const std::vector<uint32_t>& indices) const;
 
     std::string generate_consensus();
-    // returns coverages
-    std::string generate_consensus(std::vector<uint32_t>& coverages);
-    // returns coverages and qualities by formula (qualities_i = -10 log (1 - p_i); p_i = (supporting_bases_at_i + 1) / (coverages_i + alphabet_size))
-    std::string generate_consensus(std::vector<uint32_t>& coverages, std::vector<uint32_t>& qualities);
+    // returns base coverage
+    std::string generate_consensus(std::vector<uint32_t>& coverage);
+    // returns base coverage and approx. base quality
+    //     (quality_i = -10 log (1 - p_i) + 33; p_i = (bases_equal_to_consensus_at_i + 1) / (coverage_i + indels_i + (alphabet_size + 1)))
+    std::string generate_consensus(std::vector<uint32_t>& coverage, std::string& quality);
 
     void print() const;
 
@@ -110,7 +111,7 @@ private:
     bool is_sorted_;
     std::vector<uint32_t> sorted_nodes_ids_;
 
-    std::vector<uint32_t> sequences_start_nodes_ids_;
+    std::vector<uint32_t> sequence_begin_node_id_;
 
     std::vector<uint32_t> consensus_;
 };

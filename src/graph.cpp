@@ -35,19 +35,19 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vecto
 
 Graph::Graph()
         : num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
-        sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
+        sorted_nodes_ids_(), sequence_begin_node_id_(), consensus_() {
 }
 Graph::Graph(const std::string& sequence, const std::vector<float>& weights)
         : num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
-        sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
+        sorted_nodes_ids_(), sequence_begin_node_id_(), consensus_() {
 
     for (const auto& c: sequence) {
         alphabet_.insert(c);
     }
 
-    int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
+    int32_t begin_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
 
-    sequences_start_nodes_ids_.emplace_back(start_node_id);
+    sequence_begin_node_id_.emplace_back(begin_node_id);
     ++num_sequences_;
 }
 
@@ -159,13 +159,13 @@ bool Graph::is_topologically_sorted() const {
 }
 
 // backtracing from right to left!
-void Graph::extract_subgraph_nodes(std::vector<bool>& dst, uint32_t start_node_id,
+void Graph::extract_subgraph_nodes(std::vector<bool>& dst, uint32_t begin_node_id,
     uint32_t end_node_id) const {
 
     dst.resize(num_nodes_, false);
 
     std::stack<uint32_t> nodes_to_visit;
-    nodes_to_visit.push(start_node_id);
+    nodes_to_visit.push(begin_node_id);
 
     while (nodes_to_visit.size() != 0) {
         uint32_t node_id = nodes_to_visit.top();
@@ -264,9 +264,9 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
     }
 
     if (seq_ids.size() == 0) { // no local alignment!
-        int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
+        int32_t begin_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
         ++num_sequences_;
-        sequences_start_nodes_ids_.emplace_back(start_node_id);
+        sequence_begin_node_id_.emplace_back(begin_node_id);
 
         is_sorted_ = false;
         return;
@@ -280,7 +280,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
     }
 
     uint32_t tmp = num_nodes_;
-    int32_t start_node_id = this->add_sequence(sequence, weights, 0, valid_seq_ids.front());
+    int32_t begin_node_id = this->add_sequence(sequence, weights, 0, valid_seq_ids.front());
     int32_t head_node_id = tmp == num_nodes_ ? -1 : num_nodes_ - 1;
 
     int32_t tail_node_id = this->add_sequence(sequence, weights, valid_seq_ids.back() + 1, sequence.size());
@@ -328,8 +328,8 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
             }
         }
 
-        if (start_node_id == -1) {
-            start_node_id = new_node_id;
+        if (begin_node_id == -1) {
+            begin_node_id = new_node_id;
         }
 
         if (head_node_id != -1) {
@@ -345,7 +345,7 @@ void Graph::add_alignment(std::shared_ptr<Alignment> alignment, const std::strin
     }
 
     ++num_sequences_;
-    sequences_start_nodes_ids_.emplace_back(start_node_id);
+    sequence_begin_node_id_.emplace_back(begin_node_id);
 
     is_sorted_ = false;
 }
@@ -392,7 +392,7 @@ void Graph::generate_msa(std::vector<std::string>& dst, bool include_consensus) 
     // extract sequences from graph and create msa strings (add indels(-) where necessary)
     for (uint32_t i = 0; i < num_sequences_; ++i) {
         std::string alignment_str(base_counter, '-');
-        uint32_t curr_node_id = sequences_start_nodes_ids_[i];
+        uint32_t curr_node_id = sequence_begin_node_id_[i];
 
         while (true) {
             alignment_str[msa_node_ids[curr_node_id]] = nodes_[curr_node_id]->letter();
@@ -454,7 +454,7 @@ std::string Graph::generate_consensus() {
     return consensus_str;
 }
 
-std::string Graph::generate_consensus(std::vector<uint32_t>& coverages) {
+std::string Graph::generate_consensus(std::vector<uint32_t>& coverage) {
 
     auto consensus_str = this->generate_consensus();
 
@@ -463,19 +463,50 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& coverages) {
         for (const auto& aid: nodes_[node_id]->aligned_nodes_ids()) {
             total_coverage += nodes_[aid]->coverage();
         }
-        coverages.emplace_back(total_coverage);
+        coverage.emplace_back(total_coverage);
     }
 
     return consensus_str;
 }
 
-std::string Graph::generate_consensus(std::vector<uint32_t>& coverages, std::vector<uint32_t>& qualities) {
+std::string Graph::generate_consensus(std::vector<uint32_t>& coverage, std::string& quality) {
 
-    auto consensus_str = this->generate_consensus(coverages);
+    std::vector<std::string> msa;
+    this->generate_msa(msa, true);
 
-    for (uint32_t i = 0; i < coverages.size(); ++i) {
-        double quality = -10 * log(1 - ((nodes_[consensus_[i]]->coverage() + 1) / ((double) coverages[i] + alphabet_.size())));
-        qualities.emplace_back((uint32_t) (quality + 0.499));
+    std::string consensus_str = "";
+    for (const auto& it: msa.back()) {
+        if (it != '-') consensus_str += it;
+    }
+
+    coverage.resize(consensus_str.size(), 0);
+    std::vector<uint32_t> coverage_with_indels(consensus_str.size(), 0);
+
+    for (uint32_t i = 0; i < msa.size() - 1; ++i) {
+        uint32_t begin = 0, end = msa[i].size() - 1;
+        for (; msa[i][begin] == '-' && begin < msa[i].size(); ++begin);
+        for (; msa[i][end] == '-' && end != 0; --end);
+
+        uint32_t consensus_it = 0;
+        for (uint32_t j = 0; j <= msa[i].size(); ++j) {
+            if (msa.back()[j] == '-') continue;
+            if (j >= begin && j <= end) {
+                if (msa[i][j] != '-') ++coverage[consensus_it];
+                ++coverage_with_indels[consensus_it];
+            }
+            ++consensus_it;
+        }
+    }
+
+    quality.clear();
+    for (uint32_t i = 0; i < coverage.size(); ++i) {
+        /*uint32_t node_coverage = nodes_[consensus_[i]]->coverage();
+        for (const auto& aid: nodes_[consensus_[i]]->aligned_nodes_ids()) {
+            node_coverage += nodes_[aid]->coverage();
+        }
+        assert(coverage[i] == node_coverage);*/
+        double err_probability = 1 - ((coverage[i] + 1) / ((double) coverage_with_indels[i] + alphabet_.size() + 1));
+        quality += (char) (((uint32_t) (-10 * log(err_probability) + 0.499)) + 33);
     }
 
     return consensus_str;
