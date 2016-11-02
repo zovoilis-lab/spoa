@@ -23,8 +23,8 @@ std::unique_ptr<Alignment> createSisdAlignment(const std::string& sequence,
 }
 
 SisdAlignment::SisdAlignment(const std::string& sequence, std::shared_ptr<Graph> graph,
-    AlignmentParams params) :
-        graph_(graph),
+    AlignmentParams params)
+        : graph_(graph),
         params_(std::move(params)),
         matrix_width_(sequence.size() + 1),
         matrix_height_(graph->nodes().size() + 1),

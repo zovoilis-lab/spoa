@@ -68,7 +68,9 @@ public:
 
     std::string generate_consensus();
     // returns coverages
-    std::string generate_consensus(std::vector<uint32_t>& dst);
+    std::string generate_consensus(std::vector<uint32_t>& coverages);
+    // returns coverages and qualities by formula (qualities_i = -10 log (1 - p_i); p_i = (supporting_bases_at_i + 1) / (coverages_i + alphabet_size))
+    std::string generate_consensus(std::vector<uint32_t>& coverages, std::vector<uint32_t>& qualities);
 
     void print() const;
 

@@ -33,12 +33,12 @@ std::unique_ptr<Graph> createGraph(const std::string& sequence, const std::vecto
     return std::unique_ptr<Graph>(new Graph(sequence, weights));
 }
 
-Graph::Graph() :
-        num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
+Graph::Graph()
+        : num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
         sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
 }
-Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
-        num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
+Graph::Graph(const std::string& sequence, const std::vector<float>& weights)
+        : num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
         sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
 
     for (const auto& c: sequence) {
@@ -454,32 +454,28 @@ std::string Graph::generate_consensus() {
     return consensus_str;
 }
 
-std::string Graph::generate_consensus(std::vector<uint32_t>& dst) {
+std::string Graph::generate_consensus(std::vector<uint32_t>& coverages) {
 
     auto consensus_str = this->generate_consensus();
 
-    auto calculate_coverage = [&](uint32_t node_id) -> uint32_t {
-        std::unordered_set<uint32_t> label_set;
-        const auto& node = nodes_[node_id];
-        for (const auto& edge: node->in_edges()) {
-            for (const auto& label: edge->sequence_labels()) {
-                label_set.insert(label);
-            }
-        }
-        for (const auto& edge: node->out_edges()) {
-            for (const auto& label: edge->sequence_labels()) {
-                label_set.insert(label);
-            }
-        }
-        return label_set.size();
-    };
-
     for (const auto& node_id: consensus_) {
-        uint32_t total_coverage = calculate_coverage(node_id);
+        uint32_t total_coverage = nodes_[node_id]->coverage();
         for (const auto& aid: nodes_[node_id]->aligned_nodes_ids()) {
-            total_coverage += calculate_coverage(aid);
+            total_coverage += nodes_[aid]->coverage();
         }
-        dst.emplace_back(total_coverage);
+        coverages.emplace_back(total_coverage);
+    }
+
+    return consensus_str;
+}
+
+std::string Graph::generate_consensus(std::vector<uint32_t>& coverages, std::vector<uint32_t>& qualities) {
+
+    auto consensus_str = this->generate_consensus(coverages);
+
+    for (uint32_t i = 0; i < coverages.size(); ++i) {
+        double quality = -10 * log(1 - ((nodes_[consensus_[i]]->coverage() + 1) / ((double) coverages[i] + alphabet_.size())));
+        qualities.emplace_back((uint32_t) (quality + 0.499));
     }
 
     return consensus_str;

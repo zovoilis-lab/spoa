@@ -535,8 +535,8 @@ std::unique_ptr<Alignment> createSimdAlignment(const std::string& sequence,
 }
 
 SimdAlignment::SimdAlignment(const std::string& sequence, std::shared_ptr<Graph> graph,
-    AlignmentParams params) :
-        graph_(graph),
+    AlignmentParams params)
+        : graph_(graph),
         params_(std::move(params)),
         matrix_width_(sequence.size()),
         matrix_height_(graph->nodes().size() + 1),

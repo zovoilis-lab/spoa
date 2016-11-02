@@ -53,6 +53,8 @@ public:
         aligned_nodes_ids_.emplace_back(id);
     }
 
+    uint32_t coverage() const;
+
     friend std::unique_ptr<Node> createNode(uint32_t id, char letter);
 
 private:
