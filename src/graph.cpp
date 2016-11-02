@@ -479,8 +479,10 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& coverage, std::stri
         if (it != '-') consensus_str += it;
     }
 
+
+    std::vector<uint32_t> matches(consensus_str.size(), 0);
+    std::vector<uint32_t> indels(consensus_str.size(), 0);
     coverage.resize(consensus_str.size(), 0);
-    std::vector<uint32_t> coverage_with_indels(consensus_str.size(), 0);
 
     for (uint32_t i = 0; i < msa.size() - 1; ++i) {
         uint32_t begin = 0, end = msa[i].size() - 1;
@@ -491,8 +493,14 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& coverage, std::stri
         for (uint32_t j = 0; j <= msa[i].size(); ++j) {
             if (msa.back()[j] == '-') continue;
             if (j >= begin && j <= end) {
-                if (msa[i][j] != '-') ++coverage[consensus_it];
-                ++coverage_with_indels[consensus_it];
+                if (msa[i][j] == '-') {
+                    ++indels[consensus_it];
+                } else if (msa[i][j] == msa.back()[j]) {
+                    ++matches[consensus_it];
+                    ++coverage[consensus_it];
+                } else {
+                    ++coverage[consensus_it];
+                }
             }
             ++consensus_it;
         }
@@ -505,7 +513,7 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& coverage, std::stri
             node_coverage += nodes_[aid]->coverage();
         }
         assert(coverage[i] == node_coverage);*/
-        double err_probability = 1 - ((coverage[i] + 1) / ((double) coverage_with_indels[i] + alphabet_.size() + 1));
+        double err_probability = 1 - ((matches[i] + 1) / ((double) coverage[i] + indels[i] + alphabet_.size() + 1));
         quality += (char) (((uint32_t) (-10 * log(err_probability) + 0.499)) + 33);
     }
 

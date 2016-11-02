@@ -70,7 +70,8 @@ public:
     // returns base coverage
     std::string generate_consensus(std::vector<uint32_t>& coverage);
     // returns base coverage and approx. base quality
-    //     (quality_i = -10 log (1 - p_i) + 33; p_i = (bases_equal_to_consensus_at_i + 1) / (coverage_i + indels_i + (alphabet_size + 1)))
+    //     quality_i = -10 log (1 - p_i) + 33;
+    //     p_i = (bases_equal_to_consensus_base_at_i + 1) / (coverage_i + indels_i + (alphabet_size + 1)))
     std::string generate_consensus(std::vector<uint32_t>& coverage, std::string& quality);
 
     void print() const;
