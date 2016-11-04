@@ -157,9 +157,10 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
     __mxxxi* _P_storage = nullptr;
     __mxxxi* _P = allocateAlignedMemory(&_P_storage, num_row_vectors * alphabet_size, kRegisterSize / 8);
 
+    uint32_t padding_penatly = std::max(params.deletion_open, params.insertion_open); // params.mismatch;
     for (const auto& c: graph->alphabet()) {
         while (sequence_profile[c].size() != matrix_width) {
-            sequence_profile[c].emplace_back(params.mismatch);
+            sequence_profile[c].emplace_back(padding_penatly);
         }
 
         typename Simd::type temp[Simd::kNumVariables] __attribute__((aligned(kRegisterSize / 8)));
