@@ -194,7 +194,7 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
 
     std::vector<int32_t> first_column_values(matrix_height, 0);
 
-    if (params.type == AlignmentType::kNW) {
+    if (params.type == AlignmentType::kNW || params.type == AlignmentType::kOV) {
 
         for (uint32_t i = 0; i < num_row_vectors; ++i) {
             _matrix[i].H = Simd::set(params.insertion_open + i * Simd::kNumVariables * params.insertion_extend);
@@ -204,19 +204,21 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
                 _matrix[i].H = Simd::add(_matrix[i].H, _ext);
             }
         }
-        for (uint32_t node_id: sorted_nodes_ids) {
-            const auto& node = graph->node(node_id);
-            uint32_t i = node_id_to_graph_id[node_id] + 1;
+        if (params.type == AlignmentType::kNW) {
+            for (uint32_t node_id: sorted_nodes_ids) {
+                const auto& node = graph->node(node_id);
+                uint32_t i = node_id_to_graph_id[node_id] + 1;
 
-            if (node->in_edges().size() == 0) {
-                first_column_values[i] = params.deletion_open;
-            } else {
-                int32_t max_score = big_negative_value;
-                for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i = node_id_to_graph_id[edge->begin_node_id()] + 1;
-                    max_score = std::max(max_score, first_column_values[pred_i]);
+                if (node->in_edges().size() == 0) {
+                    first_column_values[i] = params.deletion_open;
+                } else {
+                    int32_t max_score = big_negative_value;
+                    for (const auto& edge: node->in_edges()) {
+                        uint32_t pred_i = node_id_to_graph_id[edge->begin_node_id()] + 1;
+                        max_score = std::max(max_score, first_column_values[pred_i]);
+                    }
+                    first_column_values[i] = max_score + params.deletion_extend;
                 }
-                first_column_values[i] = max_score + params.deletion_extend;
             }
         }
     } else {
@@ -327,14 +329,19 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
                 max_i = i;
             }
         } else if (params.type == AlignmentType::kOV) {
-            int32_t max_row_score = valueOfElementInMxxxi<Simd>(_M_row[num_row_vectors - 1].H, last_elem_pos);
+            // int32_t max_row_score = valueOfElementInMxxxi<Simd>(_M_row[num_row_vectors - 1].H, last_elem_pos);
             if (node->out_edges().empty()) {
-                max_row_score = std::max(max_row_score, (int32_t) maxValueInMxxxi<Simd>(_score));
+                // max_row_score = std::max(max_row_score, (int32_t) maxValueInMxxxi<Simd>(_score));
+                int32_t max_row_score = maxValueInMxxxi<Simd>(_score);
+                if (max_score < max_row_score) {
+                    max_score = max_row_score;
+                    max_i = i;
+                }
             }
-            if (max_score < max_row_score) {
+            /* if (max_score < max_row_score) {
                 max_score = max_row_score;
                 max_i = i;
-            }
+            }*/
         } else if (params.type == AlignmentType::kNW) {
             if (node->out_edges().empty()) {
                 int32_t max_row_score = valueOfElementInMxxxi<Simd>(_M_row[num_row_vectors - 1].H, last_elem_pos);

@@ -63,7 +63,7 @@ SisdAlignment::SisdAlignment(const std::string& sequence, std::shared_ptr<Graph>
         node_id_to_graph_id_[sorted_nodes_ids[i]] = i;
     }
 
-    if (params_.type == AlignmentType::kNW) {
+    if (params_.type == AlignmentType::kNW || params_.type == AlignmentType::kOV) {
         max_score_ = big_negative_value;
 
         for (uint32_t j = 1; j < matrix_width_; ++j) {
@@ -71,21 +71,23 @@ SisdAlignment::SisdAlignment(const std::string& sequence, std::shared_ptr<Graph>
             E_[j] = H_[j];
         }
 
-        for (uint32_t node_id: sorted_nodes_ids) {
-            const auto& node = graph_->node(node_id);
-            uint32_t i = node_id_to_graph_id_[node_id] + 1;
+        if (params_.type == AlignmentType::kNW) {
+            for (uint32_t node_id: sorted_nodes_ids) {
+                const auto& node = graph_->node(node_id);
+                uint32_t i = node_id_to_graph_id_[node_id] + 1;
 
-            if (node->in_edges().size() == 0) {
-                H_[i * matrix_width_] = params_.deletion_open;
-            } else {
-                int32_t max_score = big_negative_value;
-                for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
-                    max_score = std::max(max_score, H_[pred_i * matrix_width_]);
+                if (node->in_edges().size() == 0) {
+                    H_[i * matrix_width_] = params_.deletion_open;
+                } else {
+                    int32_t max_score = big_negative_value;
+                    for (const auto& edge: node->in_edges()) {
+                        uint32_t pred_i = node_id_to_graph_id_[edge->begin_node_id()] + 1;
+                        max_score = std::max(max_score, H_[pred_i * matrix_width_]);
+                    }
+                    H_[i * matrix_width_] = max_score + params_.deletion_extend;
                 }
-                H_[i * matrix_width_] = max_score + params_.deletion_extend;
+                F_[i * matrix_width_] = H_[i * matrix_width_];
             }
-            F_[i * matrix_width_] = H_[i * matrix_width_];
         }
     }
 
@@ -153,7 +155,7 @@ void SisdAlignment::align_sequence_to_graph() {
                 update_max_score(H_row, i, j);
             } else if (params_.type == AlignmentType::kNW && (j == matrix_width_ - 1 && node->out_edges().size() == 0)) {
                 update_max_score(H_row, i, j);
-            } else if (params_.type == AlignmentType::kOV && (j == matrix_width_ - 1 || node->out_edges().size() == 0)) {
+            } else if (params_.type == AlignmentType::kOV && (/*j == matrix_width_ - 1 ||*/ node->out_edges().size() == 0)) {
                 update_max_score(H_row, i, j);
             }
         }
