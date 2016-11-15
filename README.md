@@ -119,6 +119,6 @@ To remove include/ and lib/ directories created for the library, run:
 
 For additional information, help and bug reports please send an email to: robert.vaser@fer.hr.
 
-## Acknowledgment
+## Acknowledgement
 
 This work has been supported in part by Croatian Science Foundation under the project UIP-11-2013-7353.
