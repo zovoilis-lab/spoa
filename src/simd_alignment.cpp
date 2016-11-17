@@ -568,8 +568,8 @@ void SimdAlignment::align_sequence_to_graph() {
     uint32_t max_value = std::numeric_limits<int16_t>::max();
     uint32_t width = matrix_width_ + kRegisterSize / 8;
     if ((std::max(abs(params_.match), abs(params_.mismatch)) * std::min(width, matrix_height_) < max_value) &&
-        ((uint32_t) abs(params_.insertion_open + params_.insertion_extend * matrix_height_) < max_value) &&
-        ((uint32_t) abs(params_.deletion_open + params_.deletion_extend * width) < max_value)) {
+        (abs(params_.insertion_open) + abs(params_.insertion_extend) * matrix_height_) < max_value &&
+        (abs(params_.deletion_open) + abs(params_.deletion_extend) * width) < max_value) {
 
         alignSequenceToGraph<SimdInstructionSet<int16_t>>(sequence_profile_,
             matrix_width_, graph_, params_, alignment_node_ids_,
