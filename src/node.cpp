@@ -7,7 +7,7 @@
 #include "edge.hpp"
 #include "node.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 std::unique_ptr<Node> createNode(uint32_t id, char letter) {
     return std::unique_ptr<Node>(new Node(id, letter));

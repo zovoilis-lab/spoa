@@ -12,7 +12,7 @@
 #include <vector>
 #include <unordered_set>
 
-namespace SPOA {
+namespace spoa {
 
 class Node;
 class Alignment;

@@ -6,7 +6,7 @@
 
 #include "edge.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 std::unique_ptr<Edge> createEdge(uint32_t begin_node_id, uint32_t end_node_id,
     uint32_t label, float weight) {

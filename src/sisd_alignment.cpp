@@ -12,7 +12,7 @@
 #include "graph.hpp"
 #include "sisd_alignment.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 std::unique_ptr<Alignment> createSisdAlignment(const std::string& sequence,
     std::shared_ptr<Graph> graph, AlignmentParams params) {

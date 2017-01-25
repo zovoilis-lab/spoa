@@ -10,7 +10,7 @@
 
 #include "chain.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 std::unique_ptr<Chain> createChain(uint64_t id, const char* name, uint32_t name_length,
     const char* data, uint32_t data_length) {

@@ -12,7 +12,7 @@
 #include "alignment.hpp"
 #include "graph.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::string>& sequences,
     AlignmentParams params, bool sorted = false);

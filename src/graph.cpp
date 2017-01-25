@@ -12,7 +12,7 @@
 #include "alignment.hpp"
 #include "graph.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 std::unique_ptr<Graph> createGraph(const std::string& sequence, float weight) {
     std::vector<float> weights(sequence.size(), weight);

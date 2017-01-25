@@ -16,7 +16,7 @@
 
 #include "bioparser/src/bioparser.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 class Chain;
 

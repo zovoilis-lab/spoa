@@ -19,7 +19,7 @@ extern "C" {
 #include "graph.hpp"
 #include "simd_alignment.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 /* Taken from https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=216149 */
 inline void* align(size_t __align, size_t __size, void*& __ptr, size_t& __space) noexcept {

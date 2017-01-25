@@ -14,7 +14,7 @@
 #include "simd_alignment.hpp"
 #include "alignment.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 AlignmentParams::AlignmentParams(int16_t m, int16_t mm, int16_t gap_opn,
     int16_t gap_ext, AlignmentType t) :

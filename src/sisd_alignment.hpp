@@ -13,7 +13,7 @@
 
 #include "alignment.hpp"
 
-namespace SPOA {
+namespace spoa {
 
 class Graph;
 class SisdAlignment;

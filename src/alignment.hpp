@@ -11,7 +11,7 @@
 #include <memory>
 #include <vector>
 
-namespace SPOA {
+namespace spoa {
 
 enum class AlignmentType {
     kSW, // Smith Waterman

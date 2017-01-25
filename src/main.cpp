@@ -10,7 +10,7 @@
 
 #include "bioparser/src/bioparser.hpp"
 
-using namespace SPOA;
+using namespace spoa;
 
 static struct option options[] = {
     {"fasta-sequences", required_argument, 0, 'a'},

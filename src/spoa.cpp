@@ -25,7 +25,7 @@ void prepare_indices(std::vector<uint32_t>& dst, const std::vector<std::string>&
     }
 }
 
-namespace SPOA {
+namespace spoa {
 
 std::shared_ptr<Graph> construct_partial_order_graph(const std::vector<std::string>& sequences,
     AlignmentParams params, bool sorted) {

@@ -9,7 +9,7 @@
 #include <vector>
 #include <memory>
 
-namespace SPOA {
+namespace spoa {
 
 class Edge;
 

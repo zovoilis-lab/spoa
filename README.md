@@ -84,16 +84,16 @@ how to get consensus and multiple sequence alignment for a set of sequences.
             "CCGTAACCTTCATCGGATCACCGGAAAGGACCCGTAAATAGACCTGATTATCATCTACAT"
         };
 
-        auto params = SPOA::AlignmentParams(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]),
-            atoi(argv[4]), (SPOA::AlignmentType) atoi(argv[5]));
+        auto params = spoa::AlignmentParams(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]),
+            atoi(argv[4]), (spoa::AlignmentType) atoi(argv[5]));
 
-        std::string consensus = SPOA::generate_consensus(sequences, params, true);
+        std::string consensus = spoa::generate_consensus(sequences, params, true);
 
         fprintf(stderr, "Consensus (%zu)\n", consensus.size());
         fprintf(stderr, "%s\n", consensus.c_str());
 
         std::vector<std::string> msa;
-        SPOA::generate_msa(msa, sequences, params, true);
+        spoa::generate_msa(msa, sequences, params, true);
 
         fprintf(stderr, "Multiple sequence alignment\n");
         for (const auto& it: msa) {

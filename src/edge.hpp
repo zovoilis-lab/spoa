@@ -11,7 +11,7 @@
 #include <vector>
 #include <memory>
 
-namespace SPOA {
+namespace spoa {
 
 class Edge;
 std::unique_ptr<Edge> createEdge(uint32_t begin_node_id, uint32_t end_node_id,
