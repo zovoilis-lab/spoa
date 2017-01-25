@@ -53,8 +53,8 @@ public:
         uint32_t name_length, const char* data, uint32_t data_length,
         const char* quality, uint32_t quality_length);
 
-    friend BIOPARSER::FastaReader<Chain>;
-    friend BIOPARSER::FastqReader<Chain>;
+    friend bioparser::FastaReader<Chain>;
+    friend bioparser::FastqReader<Chain>;
 
 private:
 

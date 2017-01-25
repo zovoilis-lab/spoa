@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<Graph> graph;
 
     if (!fasta_path.empty()) {
-        auto creader = BIOPARSER::createReader<Chain, BIOPARSER::FastaReader>(fasta_path);
+        auto creader = bioparser::createReader<Chain, bioparser::FastaReader>(fasta_path);
         creader->read_objects(chains, -1);
 
         for (const auto& it: chains) {
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
         graph = construct_partial_order_graph(sequences, params, false);
 
     } else {
-        auto creader = BIOPARSER::createReader<Chain, BIOPARSER::FastqReader>(fastq_path);
+        auto creader = bioparser::createReader<Chain, bioparser::FastqReader>(fastq_path);
         creader->read_objects(chains, -1);
 
         for (const auto& it: chains) {
