@@ -4,8 +4,6 @@
  * @brief Chain class header file
  */
 
-#ifdef SPOA_MAIN_
-
 #pragma once
 
 #include <stdlib.h>
@@ -71,5 +69,3 @@ private:
 };
 
 }
-
-#endif

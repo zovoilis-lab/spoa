@@ -1,5 +1,3 @@
-#ifdef SPOA_MAIN_
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -160,5 +158,3 @@ void help() {
     "    -h, -help\n"
     "        prints out the help\n");
 }
-
-#endif

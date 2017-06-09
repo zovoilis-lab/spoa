@@ -4,8 +4,6 @@
  * @brief Chain class source file
  */
 
-#ifdef SPOA_MAIN_
-
 #include <assert.h>
 
 #include "chain.hpp"
@@ -43,5 +41,3 @@ Chain::Chain(uint64_t id, const char* name, uint32_t name_length, const char* da
 }
 
 }
-
-#endif
