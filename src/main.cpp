@@ -6,7 +6,7 @@
 #include "spoa.hpp"
 #include "chain.hpp"
 
-#include "bioparser/src/bioparser.hpp"
+#include "bioparser/bioparser.hpp"
 
 using namespace spoa;
 

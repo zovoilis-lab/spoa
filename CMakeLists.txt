@@ -23,9 +23,8 @@ target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-include_directories(vendor)
-#add_subdirectory(vendor/bioparser)
-#target_link_libraries(spoa bioparser)
+add_subdirectory(vendor/bioparser)
+target_link_libraries(spoa bioparser)
 
 if (spoa_build_tests)
 endif(spoa_build_tests)

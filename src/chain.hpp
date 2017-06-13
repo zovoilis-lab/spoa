@@ -12,7 +12,7 @@
 #include <vector>
 #include <string>
 
-#include "bioparser/src/bioparser.hpp"
+#include "bioparser/bioparser.hpp"
 
 namespace spoa {
 
