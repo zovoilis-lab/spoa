@@ -16,8 +16,7 @@ add_executable(spoa
     src/main.cpp
     src/node.cpp
     src/simd_alignment.cpp
-    src/sisd_alignment.cpp
-    src/spoa.cpp)
+    src/sisd_alignment.cpp)
 
 target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

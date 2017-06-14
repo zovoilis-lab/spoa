@@ -10,7 +10,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "alignment.hpp"
-#include "graph.hpp"
+#include "spoa/gFraph.hpp"
 
 namespace spoa {
 

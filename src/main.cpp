@@ -3,12 +3,10 @@
 #include <getopt.h>
 #include <assert.h>
 
-#include "spoa.hpp"
 #include "chain.hpp"
 
 #include "bioparser/bioparser.hpp"
-
-using namespace spoa;
+#include "spoa/spoa.hpp"
 
 static struct option options[] = {
     {"fasta-sequences", required_argument, 0, 'a'},
