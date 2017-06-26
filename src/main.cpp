@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <assert.h>
 
 #include "chain.hpp"
 
@@ -28,16 +27,17 @@ int main(int argc, char** argv) {
     std::string fasta_path;
     std::string fastq_path;
 
-    int32_t match = 5;
-    int32_t mismatch = -4;
-    int32_t gap_open = -8;
-    int32_t gap_extend = -6;
+    int8_t match = 5;
+    int8_t mismatch = -4;
+    int8_t gap_open = -8;
+    int8_t gap_extend = -6;
 
-    int32_t algorithm = 0;
-    int32_t result = 0;
+    uint8_t algorithm = 0;
+    uint8_t result = 0;
 
     while (true) {
-        auto argument = getopt_long(argc, argv, "a:q:m:x:o:e:l:r:h", options, nullptr);
+        auto argument = getopt_long(argc, argv, "a:q:m:x:o:e:l:r:h", options,
+            nullptr);
         if (argument == -1) {
             break;
         }
@@ -74,36 +74,42 @@ int main(int argc, char** argv) {
         }
     }
 
-    assert((!fasta_path.empty() || !fastq_path.empty()) && "missing option -a/-q (sequences file)");
+    if (fasta_path.empty() && fastq_path.empty()) {
+        fprintf(stderr, "spoa error: missing option -a/-q (sequences file)\n");
+        help();
+        return -1;
+    }
 
-    auto params = AlignmentParams(match, mismatch, gap_open, gap_extend, (AlignmentType) algorithm);
+    auto alignment_engine = spoa::createAlignmentEngine(
+        static_cast<spoa::AlignmentType>(algorithm), match, mismatch, gap_open,
+        gap_extend);
 
-    std::vector<std::unique_ptr<Chain>> chains;
-    std::vector<std::string> sequences;
-    std::vector<std::string> qualities;
+    auto graph = spoa::createGraph();
 
-    std::shared_ptr<Graph> graph;
+    std::vector<std::unique_ptr<spoa::Chain>> chains;
 
     if (!fasta_path.empty()) {
-        auto creader = bioparser::createReader<Chain, bioparser::FastaReader>(fasta_path);
+        auto creader = bioparser::createReader<spoa::Chain,
+            bioparser::FastaReader>(fasta_path);
         creader->read_objects(chains, -1);
 
         for (const auto& it: chains) {
-            sequences.emplace_back(it->data());
+            auto alignment = alignment_engine->align_sequence_with_graph(
+                it->data(), graph);
+            fprintf(stderr, "Aligned %s\n", it->name().c_str());
+            graph->add_alignment(alignment, it->data());
+            fprintf(stderr, "Added to graph %s\n", it->name().c_str());
         }
-
-        graph = construct_partial_order_graph(sequences, params, false);
-
     } else {
-        auto creader = bioparser::createReader<Chain, bioparser::FastqReader>(fastq_path);
+        auto creader = bioparser::createReader<spoa::Chain,
+            bioparser::FastqReader>(fastq_path);
         creader->read_objects(chains, -1);
 
         for (const auto& it: chains) {
-            sequences.emplace_back(it->data());
-            qualities.emplace_back(it->quality());
+            auto alignment = alignment_engine->align_sequence_with_graph(
+                it->data(), graph);
+            graph->add_alignment(alignment, it->data(), it->quality());
         }
-
-        graph = construct_partial_order_graph(sequences, qualities, params, false);
     }
 
     if (result == 0 || result == 2) {
@@ -114,7 +120,7 @@ int main(int argc, char** argv) {
 
     if (result == 1 || result == 2) {
         std::vector<std::string> msa;
-        graph->generate_msa(msa);
+        graph->generate_multiple_sequence_alignment(msa);
         fprintf(stderr, "Multiple sequence alignment\n");
         for (const auto& it: msa) {
             fprintf(stderr, "%s\n", it.c_str());
@@ -137,22 +143,23 @@ void help() {
     "        input FASTQ file\n"
     "    -m, --match <int>\n"
     "        default: 5\n"
-    "        score for matching bases (must be positive integer)\n"
+    "        score for matching bases\n"
     "    -x, --mismatch <int>\n"
     "        default: -4\n"
-    "        score for mismatching bases (must be negative integer)\n"
+    "        score for mismatching bases\n"
     "    -o, --gap-open <int>\n"
     "        default: -8\n"
-    "        gap opening penalty (must be negative integer)\n"
+    "        gap opening penalty\n"
     "    -e, --gap-extend <int>\n"
     "        default: -6\n"
-    "        gap extension penalty (must be negative integer)\n"
+    "        gap extension penalty\n"
     "    -l, --algorithm <int>\n"
     "        default: 0\n"
     "        alignment mode: 0 - local, 1 - global, 2 - semi-global\n"
     "    -r, --result <int>\n"
     "        default: 0\n"
-    "        result mode: 0 - consensus, 1 - multiple sequence alignment, 2 - 0 + 1\n"
+    "        result mode: 0 - consensus, 1 - multiple sequence alignment"
+    ", 2 - 0 + 1\n"
     "    -h, -help\n"
     "        prints out the help\n");
 }

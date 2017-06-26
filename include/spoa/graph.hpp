@@ -6,32 +6,47 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 #include <unordered_set>
 
 namespace spoa {
 
-class Alignment;
-class SisdAlignment;
-class SimdAlignment;
+class Node;
+class Edge;
 
 class Graph;
 std::unique_ptr<Graph> createGraph();
+
+using Alignment = std::vector<std::pair<int32_t, int32_t>>;
 
 class Graph {
 public:
     ~Graph();
 
-    void add_alignment(const std::vector<std::pair<int32_t, int32_t>>& alignment,
-        const std::string& sequence, float weight = 1.0);
+    const std::vector<std::unique_ptr<Node>>& nodes() const {
+        return nodes_;
+    }
+
+    const std::vector<uint32_t>& sorted_nodes_ids() const {
+        return sorted_nodes_ids_;
+    }
+
+    const std::unordered_set<uint8_t>& alphabet() const {
+        return alphabet_;
+    };
+
+    void add_alignment(const Alignment& alignment, const std::string& sequence,
+        uint32_t weight = 1);
+
+    void add_alignment(const Alignment& alignment, const std::string& sequence,
+        const std::string& quality);
 
     void add_alignment(const std::vector<std::pair<int32_t, int32_t>>& alignment,
-        const std::string& sequence, const std::string& quality);
-
-    void add_alignment(const std::vector<std::pair<int32_t, int32_t>>& alignment,
-        const std::string& sequence, const std::vector<float>& weights);
+        const std::string& sequence, const std::vector<uint32_t>& weights);
 
     void generate_multiple_sequence_alignment(std::vector<std::string>& dst,
         bool include_consensus = false);
@@ -40,11 +55,7 @@ public:
     // returns coverages
     std::string generate_consensus(std::vector<uint32_t>& dst);
 
-    void print() const;
-
-    friend Alignment;
-    friend SisdAlignment;
-    friend SimdAlignment;
+    void print_csv() const;
 
     friend std::unique_ptr<Graph> createGraph();
 private:
@@ -58,7 +69,7 @@ private:
 
     void traverse_heaviest_bundle();
 
-    uint32_t branch_completion(std::vector<float>& scores,
+    uint32_t branch_completion(std::vector<int32_t>& scores,
         std::vector<int32_t>& predecessors,
         uint32_t rank);
 
@@ -74,27 +85,89 @@ private:
 
     uint32_t add_node(char letter);
 
-    void add_edge(uint32_t begin_node_id, uint32_t end_node_id, float weight);
+    void add_edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t weight);
 
     int32_t add_sequence(const std::string& sequence,
-        const std::vector<float>& weights,
+        const std::vector<uint32_t>& weights,
         uint32_t begin, uint32_t end);
 
-    class Node;
     static std::unique_ptr<Node> createNode(uint32_t id, char letter);
 
-    class Edge;
     static std::unique_ptr<Edge> createEdge(uint32_t begin_node_id,
-        uint32_t end_node_id, uint32_t label, float weight);
+        uint32_t end_node_id, uint32_t label, uint32_t weight);
 
     uint32_t num_sequences_;
     uint32_t num_nodes_;
-    std::vector<std::shared_ptr<Node>> nodes_;
+    std::vector<std::unique_ptr<Node>> nodes_;
     std::unordered_set<uint8_t> alphabet_;
-    bool is_sorted_;
     std::vector<uint32_t> sorted_nodes_ids_;
     std::vector<uint32_t> sequences_start_nodes_ids_;
     std::vector<uint32_t> consensus_;
+};
+
+class Node {
+public:
+    ~Node();
+
+    uint32_t id() const {
+        return id_;
+    }
+
+    char letter() const {
+        return letter_;
+    }
+
+    const std::vector<std::shared_ptr<Edge>>& in_edges() const {
+        return in_edges_;
+    }
+
+    const std::vector<std::shared_ptr<Edge>>& out_edges() const {
+        return out_edges_;
+    }
+
+    const std::vector<uint32_t>& aligned_nodes_ids() const {
+        return aligned_nodes_ids_;
+    }
+
+    friend Graph;
+private:
+    Node(uint32_t id, char letter);
+    Node(const Node&) = delete;
+    const Node& operator=(const Node&) = delete;
+
+    uint32_t id_;
+    char letter_;
+    std::vector<std::shared_ptr<Edge>> in_edges_;
+    std::vector<std::shared_ptr<Edge>> out_edges_;
+    std::vector<uint32_t> aligned_nodes_ids_;
+};
+
+class Edge {
+public:
+    ~Edge();
+
+    uint32_t begin_node_id() const {
+        return begin_node_id_;
+    }
+
+    uint32_t end_node_id() const {
+        return end_node_id_;
+    }
+
+    friend Graph;
+private:
+    Edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t label,
+        uint32_t weight);
+    Edge(const Edge&) = delete;
+    const Edge& operator=(const Edge&) = delete;
+
+    void add_sequence(uint32_t label, uint32_t weight = 1);
+
+    uint32_t begin_node_id_;
+    uint32_t end_node_id_;
+    std::vector<uint32_t> sequence_labels_;
+    std::vector<int32_t> sequence_weights_;
+    int32_t total_weight_;
 };
 
 }

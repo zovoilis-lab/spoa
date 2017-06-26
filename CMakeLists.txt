@@ -9,14 +9,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -march=native")
 option(spoa_build_tests "Build spoa google tests" OFF)
 
 add_executable(spoa
-    src/alignment.cpp
+    src/alignment_engine.cpp
     src/chain.cpp
-    src/edge.cpp
     src/graph.cpp
     src/main.cpp
-    src/node.cpp
-    src/simd_alignment.cpp
-    src/sisd_alignment.cpp)
+    src/simd_alignment_engine.cpp
+    src/sisd_alignment_engine.cpp)
 
 target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

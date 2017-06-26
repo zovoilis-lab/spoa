@@ -1,7 +1,7 @@
 /*!
- * @file simd_alignment.cpp
+ * @file simd_alignment_engine.cpp
  *
- * @brief SimdAlignment class source file
+ * @brief SimdAlignmentEngine class source file
  */
 
 #include <stdlib.h>
@@ -14,15 +14,13 @@ extern "C" {
     #include <immintrin.h> // AVX2 and lower
 }
 
-#include "node.hpp"
-#include "edge.hpp"
-#include "graph.hpp"
-#include "simd_alignment.hpp"
+#include "spoa/graph.hpp"
+#include "simd_alignment_engine.hpp"
 
 namespace spoa {
 
 /* Taken from https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=216149 */
-inline void* align(size_t __align, size_t __size, void*& __ptr, size_t& __space) noexcept {
+/*inline void* align(size_t __align, size_t __size, void*& __ptr, size_t& __space) noexcept {
 
     const auto __intptr = reinterpret_cast<uintptr_t>(__ptr);
     const auto __aligned = (__intptr - 1u + __align) & -__align;
@@ -338,10 +336,10 @@ void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, u
                     max_i = i;
                 }
             }
-            /*if (max_score < max_row_score) {
-                max_score = max_row_score;
-                max_i = i;
-            }*/
+            //if (max_score < max_row_score) {
+            //    max_score = max_row_score;
+            //    max_i = i;
+            //}
         } else if (params.type == AlignmentType::kNW) {
             if (node->out_edges().empty()) {
                 int32_t max_row_score = valueOfElementInMxxxi<Simd>(_M_row[num_row_vectors - 1].H, last_elem_pos);
@@ -597,6 +595,6 @@ void SimdAlignment::adjust_node_ids(const std::vector<int32_t>& mapping) {
             alignment_node_ids_[i] = mapping[alignment_node_ids_[i]];
         }
     }
-}
+}*/
 
 }
