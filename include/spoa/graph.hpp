@@ -35,9 +35,17 @@ public:
         return sorted_nodes_ids_;
     }
 
-    const std::unordered_set<uint8_t>& alphabet() const {
-        return alphabet_;
+    uint32_t num_codes() const {
+        return num_codes_;
     };
+
+    uint8_t coder(uint8_t c) const {
+        return coder_[c];
+    }
+
+    uint8_t decoder(uint8_t code) const {
+        return decoder_[code];
+    }
 
     void add_alignment(const Alignment& alignment, const std::string& sequence,
         uint32_t weight = 1);
@@ -55,6 +63,9 @@ public:
     // returns coverages
     std::string generate_consensus(std::vector<uint32_t>& dst);
 
+    std::unique_ptr<Graph> subgraph(uint32_t begin_node_id, uint32_t end_node_id,
+        std::vector<int32_t>& subgraph_to_graph_mapping) const;
+
     void print_csv() const;
 
     friend std::unique_ptr<Graph> createGraph();
@@ -63,7 +74,20 @@ private:
     Graph(const Graph&) = delete;
     const Graph& operator=(const Graph&) = delete;
 
-    void topological_sort(bool rigorous = false);
+    static std::unique_ptr<Node> createNode(uint32_t id, uint32_t code);
+
+    static std::unique_ptr<Edge> createEdge(uint32_t begin_node_id,
+        uint32_t end_node_id, uint32_t label, uint32_t weight);
+
+    uint32_t add_node(uint32_t code);
+
+    void add_edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t weight);
+
+    int32_t add_sequence(const std::string& sequence,
+        const std::vector<uint32_t>& weights,
+        uint32_t begin, uint32_t end);
+
+    void topological_sort();
 
     bool is_topologically_sorted() const;
 
@@ -73,35 +97,20 @@ private:
         std::vector<int32_t>& predecessors,
         uint32_t rank);
 
-    void check_msa(const std::vector<std::string>& msa,
+    void check_multiple_sequence_alignment(const std::vector<std::string>& msa,
         const std::vector<std::string>& sequences,
         const std::vector<uint32_t>& indices) const;
-
-    std::unique_ptr<Graph> subgraph(uint32_t begin_node_id,
-        uint32_t end_node_id, std::vector<int32_t>& map);
 
     void extract_subgraph_nodes(std::vector<bool>& dst, uint32_t current_node_id,
         uint32_t end_node_id) const;
 
-    uint32_t add_node(char letter);
-
-    void add_edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t weight);
-
-    int32_t add_sequence(const std::string& sequence,
-        const std::vector<uint32_t>& weights,
-        uint32_t begin, uint32_t end);
-
-    static std::unique_ptr<Node> createNode(uint32_t id, char letter);
-
-    static std::unique_ptr<Edge> createEdge(uint32_t begin_node_id,
-        uint32_t end_node_id, uint32_t label, uint32_t weight);
-
     uint32_t num_sequences_;
-    uint32_t num_nodes_;
+    uint32_t num_codes_;
+    std::vector<int32_t> coder_;
+    std::vector<int32_t> decoder_;
     std::vector<std::unique_ptr<Node>> nodes_;
-    std::unordered_set<uint8_t> alphabet_;
     std::vector<uint32_t> sorted_nodes_ids_;
-    std::vector<uint32_t> sequences_start_nodes_ids_;
+    std::vector<uint32_t> sequences_begin_nodes_ids_;
     std::vector<uint32_t> consensus_;
 };
 
@@ -113,8 +122,8 @@ public:
         return id_;
     }
 
-    char letter() const {
-        return letter_;
+    uint32_t code() const {
+        return code_;
     }
 
     const std::vector<std::shared_ptr<Edge>>& in_edges() const {
@@ -131,12 +140,12 @@ public:
 
     friend Graph;
 private:
-    Node(uint32_t id, char letter);
+    Node(uint32_t id, uint32_t code);
     Node(const Node&) = delete;
     const Node& operator=(const Node&) = delete;
 
     uint32_t id_;
-    char letter_;
+    uint32_t code_;
     std::vector<std::shared_ptr<Edge>> in_edges_;
     std::vector<std::shared_ptr<Edge>> out_edges_;
     std::vector<uint32_t> aligned_nodes_ids_;

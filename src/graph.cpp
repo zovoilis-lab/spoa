@@ -12,12 +12,14 @@
 
 namespace spoa {
 
-std::unique_ptr<Node> Graph::createNode(uint32_t id, char letter) {
-    return std::unique_ptr<Node>(new Node(id, letter));
+constexpr uint32_t kMaxAlphabetSize = 256;
+
+std::unique_ptr<Node> Graph::createNode(uint32_t id, uint32_t code) {
+    return std::unique_ptr<Node>(new Node(id, code));
 }
 
-Node::Node(uint32_t id, char letter)
-        : id_(id), letter_(letter), in_edges_(), out_edges_(),
+Node::Node(uint32_t id, uint32_t code)
+        : id_(id), code_(code), in_edges_(), out_edges_(),
         aligned_nodes_ids_() {
 }
 
@@ -52,36 +54,24 @@ std::unique_ptr<Graph> createGraph() {
 }
 
 Graph::Graph() :
-        num_sequences_(), num_nodes_(), nodes_(), alphabet_(),
-        sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
+        num_sequences_(0), num_codes_(0), coder_(kMaxAlphabetSize, -1),
+        decoder_(kMaxAlphabetSize, -1), nodes_(), sorted_nodes_ids_(),
+        sequences_begin_nodes_ids_(), consensus_() {
 }
-
-/*Graph::Graph(const std::string& sequence, const std::vector<float>& weights) :
-        num_sequences_(), num_nodes_(), nodes_(), alphabet_(), is_sorted_(false),
-        sorted_nodes_ids_(), sequences_start_nodes_ids_(), consensus_() {
-
-    for (const auto& c: sequence) {
-        alphabet_.insert(c);
-    }
-
-    int32_t start_node_id = this->add_sequence(sequence, weights, 0, sequence.size());
-
-    sequences_start_nodes_ids_.emplace_back(start_node_id);
-    ++num_sequences_;
-}*/
 
 Graph::~Graph() {
 }
 
-uint32_t Graph::add_node(char letter) {
-    nodes_.emplace_back(createNode(num_nodes_, letter));
-    return num_nodes_++;
+uint32_t Graph::add_node(uint32_t code) {
+    uint32_t node_id = nodes_.size();
+    nodes_.emplace_back(createNode(node_id, code));
+    return node_id;
 }
 
 void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id,
     uint32_t weight) {
 
-    assert(begin_node_id < num_nodes_ && end_node_id < num_nodes_);
+    assert(begin_node_id < nodes_.size() && end_node_id < nodes_.size());
 
     for (const auto& edge: nodes_[begin_node_id]->out_edges_) {
         if (edge->end_node_id_ == end_node_id) {
@@ -94,161 +84,6 @@ void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id,
         num_sequences_, weight);
     nodes_[begin_node_id]->out_edges_.emplace_back(edge);
     nodes_[end_node_id]->in_edges_.emplace_back(edge);
-}
-
-void Graph::topological_sort(bool rigorous) {
-
-    sorted_nodes_ids_.clear();
-
-    // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
-    std::vector<uint8_t> marks(num_nodes_, 0);
-    // false - do not check aligned nodes, true - do it
-    std::vector<bool> check(num_nodes_, true);
-    std::stack<uint32_t> nodes_to_visit;
-
-    for (uint32_t i = 0; i < num_nodes_; ++i) {
-        if (marks[i] != 0) {
-            continue;
-        }
-
-        nodes_to_visit.push(i);
-        while (nodes_to_visit.size() != 0) {
-            uint32_t node_id = nodes_to_visit.top();
-            const auto& node = nodes_[node_id];
-            bool valid = true;
-
-            if (marks[node_id] != 2) {
-                for (const auto& edge: node->in_edges_) {
-                    if (marks[edge->begin_node_id_] != 2) {
-                        nodes_to_visit.push(edge->begin_node_id_);
-                        valid = false;
-                    }
-                }
-
-                if (rigorous && check[node_id]) {
-                    for (const auto& aid: node->aligned_nodes_ids_) {
-                        if (marks[aid] != 2) {
-                            nodes_to_visit.push(aid);
-                            check[aid] = false;
-                            valid = false;
-                        }
-                    }
-                }
-
-                assert((valid || marks[node_id] != 1) && "Graph is not a DAG!");
-                if (valid) {
-                    marks[node_id] = 2;
-                    if (!rigorous) {
-                        sorted_nodes_ids_.push_back(node_id);
-                    } else if (check[node_id]) {
-                        sorted_nodes_ids_.push_back(node_id);
-                        for (const auto& aid: node->aligned_nodes_ids_) {
-                            sorted_nodes_ids_.emplace_back(aid);
-                        }
-                    }
-                } else {
-                    marks[node_id] = 1;
-                }
-            }
-
-            if (valid) {
-                nodes_to_visit.pop();
-            }
-        }
-    }
-
-    assert(this->is_topologically_sorted() == true);
-}
-
-bool Graph::is_topologically_sorted() const {
-    assert(nodes_.size() == sorted_nodes_ids_.size());
-
-    std::vector<bool> visited_nodes(num_nodes_, false);
-    for (uint32_t node_id: sorted_nodes_ids_) {
-        for (const auto& edge: nodes_[node_id]->in_edges_) {
-            if (visited_nodes[edge->begin_node_id_] == false) {
-                return false;
-            }
-        }
-        visited_nodes[node_id] = true;
-    }
-
-    return true;
-}
-
-// backtracing from right to left!
-void Graph::extract_subgraph_nodes(std::vector<bool>& dst,
-    uint32_t start_node_id, uint32_t end_node_id) const {
-
-    dst.resize(num_nodes_, false);
-
-    std::stack<uint32_t> nodes_to_visit;
-    nodes_to_visit.push(start_node_id);
-
-    while (nodes_to_visit.size() != 0) {
-        uint32_t node_id = nodes_to_visit.top();
-        nodes_to_visit.pop();
-
-        if (dst[node_id] == false && node_id >= end_node_id) {
-            for (const auto& edge: nodes_[node_id]->in_edges_) {
-                nodes_to_visit.push(edge->begin_node_id_);
-            }
-            for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
-                nodes_to_visit.push(aid);
-            }
-
-            dst[node_id] = true;
-        }
-    }
-}
-
-std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id,
-    uint32_t end_node_id, std::vector<int32_t>& subgraph_to_graph_mapping) {
-
-    std::vector<bool> is_subgraph_node;
-    extract_subgraph_nodes(is_subgraph_node, end_node_id, begin_node_id);
-
-    // init subgraph
-    auto subgraph = std::unique_ptr<Graph>(new Graph());
-    subgraph->alphabet_ = std::unordered_set<uint8_t>(alphabet_);
-
-    // create mapping from subgraph to graph and vice versa and add nodes to
-    // subgraph
-    subgraph_to_graph_mapping.resize(num_nodes_, -1);
-    std::vector<int32_t> graph_to_subgraph_mapping(num_nodes_, -1);
-
-    for (uint32_t i = 0; i < is_subgraph_node.size(); ++i) {
-        if (is_subgraph_node[i] == false) {
-            continue;
-        }
-
-        uint32_t subgraph_id = subgraph->add_node(nodes_[i]->letter_);
-        graph_to_subgraph_mapping[i] = subgraph_id;
-        subgraph_to_graph_mapping[subgraph_id] = i;
-    }
-
-    // add edges and aligned nodes
-    for (uint32_t i = 0; i < is_subgraph_node.size(); ++i) {
-        if (is_subgraph_node[i] == false) {
-            continue;
-        }
-        const auto& node = nodes_[i];
-        uint32_t subgraph_id = graph_to_subgraph_mapping[i];
-        const auto& subgraph_node = subgraph->nodes_[subgraph_id];
-
-        for (const auto& edge: node->in_edges_) {
-            if (graph_to_subgraph_mapping[edge->begin_node_id_] == -1) continue;
-            subgraph->add_edge(graph_to_subgraph_mapping[edge->begin_node_id_],
-                subgraph_id, edge->total_weight_);
-        }
-        for (const auto& aid: node->aligned_nodes_ids_) {
-            if (graph_to_subgraph_mapping[aid] == -1) continue;
-            subgraph_node->aligned_nodes_ids_.emplace_back(
-                graph_to_subgraph_mapping[aid]);
-        }
-    }
-
-    return subgraph;
 }
 
 void Graph::add_alignment(const Alignment& alignment,
@@ -283,14 +118,18 @@ void Graph::add_alignment(const Alignment& alignment,
     }
 
     for (const auto& c: sequence) {
-        alphabet_.insert(c);
+        if (coder_[c] == -1) {
+            coder_[c] = num_codes_;
+            decoder_[num_codes_] = c;
+            ++num_codes_;
+        }
     }
 
     if (alignment.empty()) { // no alignment
-        int32_t start_node_id = this->add_sequence(sequence, weights, 0,
+        int32_t begin_node_id = this->add_sequence(sequence, weights, 0,
             sequence.size());
         ++num_sequences_;
-        sequences_start_nodes_ids_.emplace_back(start_node_id);
+        sequences_begin_nodes_ids_.emplace_back(begin_node_id);
 
         this->topological_sort();
         return;
@@ -303,10 +142,10 @@ void Graph::add_alignment(const Alignment& alignment,
         }
     }
 
-    uint32_t tmp = num_nodes_;
-    int32_t start_node_id = this->add_sequence(sequence, weights, 0,
+    uint32_t tmp = nodes_.size();
+    int32_t begin_node_id = this->add_sequence(sequence, weights, 0,
         valid_seq_ids.front());
-    int32_t head_node_id = tmp == num_nodes_ ? -1 : num_nodes_ - 1;
+    int32_t head_node_id = tmp == nodes_.size() ? -1 : nodes_.size() - 1;
 
     int32_t tail_node_id = this->add_sequence(sequence, weights,
         valid_seq_ids.back() + 1, sequence.size());
@@ -322,35 +161,34 @@ void Graph::add_alignment(const Alignment& alignment,
 
         char letter = sequence[alignment[i].second];
         if (alignment[i].first == -1) {
-            new_node_id = this->add_node(letter);
+            new_node_id = this->add_node(coder_[letter]);
 
         } else {
-            fprintf(stderr, "%d %d\n", alignment[i].first, nodes_.size());
-            const auto& node = nodes_[alignment[i].first];
-            if (node->letter_ == letter) {
+            if (decoder_[nodes_[alignment[i].first]->code_] == letter) {
                 new_node_id = alignment[i].first;
 
             } else {
                 int32_t aligned_to_node_id = -1;
-                for (const auto& aid: node->aligned_nodes_ids_) {
-                    if (nodes_[aid]->letter_ == letter) {
+                for (const auto& aid: nodes_[alignment[i].first]->aligned_nodes_ids_) {
+                    if (decoder_[nodes_[aid]->code_] == letter) {
                         aligned_to_node_id = aid;
                         break;
                     }
                 }
 
                 if (aligned_to_node_id == -1) {
-                    new_node_id = this->add_node(letter);
-                    // fprintf(stderr, "%d %d\n", new_node_id, node->aligned_nodes_ids_.size());
+                    new_node_id = this->add_node(coder_[letter]);
+                    // fprintf(stderr, "%d %d\n", new_node_id, nodes_[alignment[i].first]->aligned_nodes_ids_.size());
 
-                    for (const auto& aid: node->aligned_nodes_ids_) {
+                    for (const auto& aid: nodes_[alignment[i].first]->aligned_nodes_ids_) {
                         nodes_[new_node_id]->aligned_nodes_ids_.emplace_back(aid);
                         nodes_[aid]->aligned_nodes_ids_.emplace_back(new_node_id);
                     }
 
                     nodes_[new_node_id]->aligned_nodes_ids_.emplace_back(
                         alignment[i].first);
-                    node->aligned_nodes_ids_.emplace_back(new_node_id);
+                    nodes_[alignment[i].first]->aligned_nodes_ids_.emplace_back(
+                        new_node_id);
 
                 } else {
                     new_node_id = aligned_to_node_id;
@@ -358,8 +196,8 @@ void Graph::add_alignment(const Alignment& alignment,
             }
         }
 
-        if (start_node_id == -1) {
-            start_node_id = new_node_id;
+        if (begin_node_id == -1) {
+            begin_node_id = new_node_id;
         }
 
         if (head_node_id != -1) {
@@ -379,7 +217,7 @@ void Graph::add_alignment(const Alignment& alignment,
     }
 
     ++num_sequences_;
-    sequences_start_nodes_ids_.emplace_back(start_node_id);
+    sequences_begin_nodes_ids_.emplace_back(begin_node_id);
 
     this->topological_sort();
 }
@@ -393,11 +231,11 @@ int32_t Graph::add_sequence(const std::string& sequence,
 
     assert(begin < sequence.size() && end <= sequence.size());
 
-    int32_t first_node_id = this->add_node(sequence[begin]);
+    int32_t first_node_id = this->add_node(coder_[sequence[begin]]);
 
     uint32_t node_id;
     for (uint32_t i = begin + 1; i < end; ++i) {
-        node_id = this->add_node(sequence[i]);
+        node_id = this->add_node(coder_[sequence[i]]);
         // both nodes contribute to edge weight
         this->add_edge(node_id - 1, node_id, weights[i - 1] + weights[i]);
     }
@@ -405,16 +243,91 @@ int32_t Graph::add_sequence(const std::string& sequence,
     return first_node_id;
 }
 
+void Graph::topological_sort() {
+
+    sorted_nodes_ids_.clear();
+
+    // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
+    std::vector<uint8_t> node_marks(nodes_.size(), 0);
+    std::vector<bool> check_aligned_nodes(nodes_.size(), true);
+    std::stack<uint32_t> nodes_to_visit;
+
+    for (uint32_t i = 0; i < nodes_.size(); ++i) {
+        if (node_marks[i] != 0) {
+            continue;
+        }
+
+        nodes_to_visit.push(i);
+        while (nodes_to_visit.size() != 0) {
+            uint32_t node_id = nodes_to_visit.top();
+            bool valid = true;
+
+            if (node_marks[node_id] != 2) {
+                for (const auto& edge: nodes_[node_id]->in_edges_) {
+                    if (node_marks[edge->begin_node_id_] != 2) {
+                        nodes_to_visit.push(edge->begin_node_id_);
+                        valid = false;
+                    }
+                }
+
+                if (check_aligned_nodes[node_id]) {
+                    for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
+                        if (node_marks[aid] != 2) {
+                            nodes_to_visit.push(aid);
+                            check_aligned_nodes[aid] = false;
+                            valid = false;
+                        }
+                    }
+                }
+
+                assert((valid || node_marks[node_id] != 1) &&
+                    "Graph is not a DAG!");
+
+                if (valid) {
+                    node_marks[node_id] = 2;
+                    if (check_aligned_nodes[node_id]) {
+                        sorted_nodes_ids_.push_back(node_id);
+                        for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
+                            sorted_nodes_ids_.emplace_back(aid);
+                        }
+                    }
+                } else {
+                    node_marks[node_id] = 1;
+                }
+            }
+
+            if (valid) {
+                nodes_to_visit.pop();
+            }
+        }
+    }
+
+    assert(this->is_topologically_sorted() == true);
+}
+
+bool Graph::is_topologically_sorted() const {
+    assert(nodes_.size() == sorted_nodes_ids_.size());
+
+    std::vector<bool> visited_nodes(nodes_.size(), false);
+    for (uint32_t node_id: sorted_nodes_ids_) {
+        for (const auto& edge: nodes_[node_id]->in_edges_) {
+            if (visited_nodes[edge->begin_node_id_] == false) {
+                return false;
+            }
+        }
+        visited_nodes[node_id] = true;
+    }
+
+    return true;
+}
+
 void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
     bool include_consensus) {
 
-    // force rigorous topological sort
-    this->topological_sort(true);
-
     // assign msa id to each node
-    std::vector<int32_t> msa_node_ids(num_nodes_, -1);
+    std::vector<int32_t> msa_node_ids(nodes_.size(), -1);
     int32_t base_counter = 0;
-    for (uint32_t i = 0; i < num_nodes_; ++i) {
+    for (uint32_t i = 0; i < nodes_.size(); ++i) {
         uint32_t node_id = sorted_nodes_ids_[i];
 
         msa_node_ids[node_id] = base_counter;
@@ -428,11 +341,11 @@ void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
     // necessary)
     for (uint32_t i = 0; i < num_sequences_; ++i) {
         std::string alignment_str(base_counter, '-');
-        uint32_t curr_node_id = sequences_start_nodes_ids_[i];
+        uint32_t curr_node_id = sequences_begin_nodes_ids_[i];
 
         while (true) {
             alignment_str[msa_node_ids[curr_node_id]] =
-                nodes_[curr_node_id]->letter_;
+                decoder_[nodes_[curr_node_id]->code_];
 
             uint32_t prev_node_id = curr_node_id;
             for (const auto& edge: nodes_[prev_node_id]->out_edges_) {
@@ -461,13 +374,14 @@ void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
 
         std::string alignment_str(base_counter, '-');
         for (const auto& node_id: consensus_) {
-            alignment_str[msa_node_ids[node_id]] = nodes_[node_id]->letter_;
+            alignment_str[msa_node_ids[node_id]] =
+                decoder_[nodes_[node_id]->code_];
         }
         dst.emplace_back(alignment_str);
     }
 }
 
-void Graph::check_msa(const std::vector<std::string>& msa,
+void Graph::check_multiple_sequence_alignment(const std::vector<std::string>& msa,
     const std::vector<std::string>& sequences,
     const std::vector<uint32_t>& indices) const {
 
@@ -488,7 +402,7 @@ std::string Graph::generate_consensus() {
     this->traverse_heaviest_bundle();
     std::string consensus_str = "";
     for (const auto& node_id: consensus_) {
-        consensus_str += nodes_[node_id]->letter_;
+        consensus_str += decoder_[nodes_[node_id]->code_];
     }
 
     return consensus_str;
@@ -500,13 +414,12 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& dst) {
 
     auto calculate_coverage = [&](uint32_t node_id) -> uint32_t {
         std::unordered_set<uint32_t> label_set;
-        const auto& node = nodes_[node_id];
-        for (const auto& edge: node->in_edges_) {
+        for (const auto& edge: nodes_[node_id]->in_edges_) {
             for (const auto& label: edge->sequence_labels_) {
                 label_set.insert(label);
             }
         }
-        for (const auto& edge: node->out_edges_) {
+        for (const auto& edge: nodes_[node_id]->out_edges_) {
             for (const auto& label: edge->sequence_labels_) {
                 label_set.insert(label);
             }
@@ -527,10 +440,8 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& dst) {
 
 void Graph::traverse_heaviest_bundle() {
 
-    this->topological_sort();
-
-    std::vector<int32_t> predecessors(num_nodes_, -1);
-    std::vector<int32_t> scores(num_nodes_, 0);
+    std::vector<int32_t> predecessors(nodes_.size(), -1);
+    std::vector<int32_t> scores(nodes_.size(), -1);
 
     uint32_t max_score_id = 0;
     for (const auto& node_id: sorted_nodes_ids_) {
@@ -555,8 +466,8 @@ void Graph::traverse_heaviest_bundle() {
 
     if (nodes_[max_score_id]->out_edges_.size() != 0) {
 
-        std::vector<uint32_t> node_id_to_rank(num_nodes_, 0);
-        for (uint32_t i = 0; i < num_nodes_; ++i) {
+        std::vector<uint32_t> node_id_to_rank(nodes_.size(), 0);
+        for (uint32_t i = 0; i < nodes_.size(); ++i) {
             node_id_to_rank[sorted_nodes_ids_[i]] = i;
         }
 
@@ -624,9 +535,92 @@ uint32_t Graph::branch_completion(std::vector<int32_t>& scores,
     return max_score_id;
 }
 
+// backtracing from right to left!
+void Graph::extract_subgraph_nodes(std::vector<bool>& dst,
+    uint32_t begin_node_id, uint32_t end_node_id) const {
+
+    dst.resize(nodes_.size(), false);
+
+    std::stack<uint32_t> nodes_to_visit;
+    nodes_to_visit.push(begin_node_id);
+
+    while (nodes_to_visit.size() != 0) {
+        uint32_t node_id = nodes_to_visit.top();
+        nodes_to_visit.pop();
+
+        if (dst[node_id] == false && node_id >= end_node_id) {
+            for (const auto& edge: nodes_[node_id]->in_edges_) {
+                nodes_to_visit.push(edge->begin_node_id_);
+            }
+            for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
+                nodes_to_visit.push(aid);
+            }
+
+            dst[node_id] = true;
+        }
+    }
+}
+
+std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id,
+    uint32_t end_node_id, std::vector<int32_t>& subgraph_to_graph_mapping) const {
+
+    std::vector<bool> is_subgraph_node;
+    extract_subgraph_nodes(is_subgraph_node, end_node_id, begin_node_id);
+
+    // init subgraph
+    auto subgraph = std::unique_ptr<Graph>(new Graph());
+    subgraph->num_sequences_ = num_sequences_;
+    subgraph->num_codes_ = num_codes_;
+    subgraph->coder_ = std::vector<int32_t>(coder_);
+    subgraph->decoder_ = std::vector<int32_t>(decoder_);
+
+    // create mapping from subgraph to graph and vice versa and add nodes to
+    // subgraph
+    subgraph_to_graph_mapping.resize(nodes_.size(), -1);
+    std::vector<int32_t> graph_to_subgraph_mapping(nodes_.size(), -1);
+
+    for (uint32_t i = 0; i < is_subgraph_node.size(); ++i) {
+        if (is_subgraph_node[i] == false) {
+            continue;
+        }
+
+        uint32_t subgraph_id = subgraph->add_node(nodes_[i]->code_);
+        graph_to_subgraph_mapping[i] = subgraph_id;
+        subgraph_to_graph_mapping[subgraph_id] = i;
+    }
+
+    // add edges and aligned nodes
+    for (uint32_t i = 0; i < is_subgraph_node.size(); ++i) {
+        if (is_subgraph_node[i] == false) {
+            continue;
+        }
+
+        uint32_t subgraph_id = graph_to_subgraph_mapping[i];
+
+        for (const auto& edge: nodes_[i]->in_edges_) {
+            if (graph_to_subgraph_mapping[edge->begin_node_id_] == -1) {
+                continue;
+            }
+            subgraph->add_edge(graph_to_subgraph_mapping[edge->begin_node_id_],
+                subgraph_id, edge->total_weight_);
+        }
+        for (const auto& aid: nodes_[i]->aligned_nodes_ids_) {
+            if (graph_to_subgraph_mapping[aid] == -1) {
+                continue;
+            }
+            subgraph->nodes_[subgraph_id]->aligned_nodes_ids_.emplace_back(
+                graph_to_subgraph_mapping[aid]);
+        }
+    }
+
+    subgraph->topological_sort();
+
+    return subgraph;
+}
+
 void Graph::print_csv() const {
 
-    std::vector<int32_t> in_consensus(num_nodes_, -1);
+    std::vector<int32_t> in_consensus(nodes_.size(), -1);
     int32_t rank = 0;
     for (const auto& id: consensus_) {
         in_consensus[id] = rank++;
@@ -634,8 +628,8 @@ void Graph::print_csv() const {
 
     printf("digraph %d {\n", num_sequences_);
     printf("    graph [rankdir=LR]\n");
-    for (uint32_t i = 0; i < num_nodes_; ++i) {
-        printf("    %d [label = \"%d - %c\"", i, i, nodes_[i]->letter_);
+    for (uint32_t i = 0; i < nodes_.size(); ++i) {
+        printf("    %d [label = \"%d - %c\"", i, i, decoder_[nodes_[i]->code_]);
         if (in_consensus[i] != -1) {
             printf(", style=filled, fillcolor=goldenrod1");
         }

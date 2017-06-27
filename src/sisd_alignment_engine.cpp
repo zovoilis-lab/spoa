@@ -12,8 +12,7 @@
 
 namespace spoa {
 
-constexpr uint32_t kMaxAlphabetSize = 256;
-constexpr int32_t kBigNegativeValue = std::numeric_limits<int32_t>::min() + 1000;
+constexpr int32_t kNegativeInfinity = std::numeric_limits<int32_t>::min() + 1024;
 
 std::unique_ptr<AlignmentEngine> createSisdAlignmentEngine(
     AlignmentType alignment_type, int8_t match, int8_t mismatch,
@@ -51,22 +50,9 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
     uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
 
-    auto print_matrix = [&]() -> void {
-        for (uint32_t i = 0; i < matrix_height; ++i) {
-            for (uint32_t j = 0; j < matrix_width; ++j) {
-                fprintf(stderr, "(%3d %3d %3d) ",
-                    pimpl_->H[i * matrix_width + j],
-                    pimpl_->E[i * matrix_width + j],
-                    pimpl_->F[i * matrix_width + j]);
-            }
-            fprintf(stderr, "\n");
-        }
-        fprintf(stderr, "\n");
-    };
-
     // realloc
-    if (pimpl_->sequence_profile.size() < kMaxAlphabetSize * matrix_width) {
-        pimpl_->sequence_profile.resize(kMaxAlphabetSize * matrix_width, 0);
+    if (pimpl_->sequence_profile.size() < graph->num_codes() * matrix_width) {
+        pimpl_->sequence_profile.resize(graph->num_codes() * matrix_width, 0);
     }
     if (pimpl_->node_id_to_rank.size() < sorted_nodes_ids.size()) {
         pimpl_->node_id_to_rank.resize(sorted_nodes_ids.size(), 0);
@@ -75,17 +61,19 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
         pimpl_->H.resize(matrix_width * matrix_height, 0);
     }
     if (pimpl_->F.size() < matrix_width * matrix_height) {
-        pimpl_->F.resize(matrix_width * matrix_height, kBigNegativeValue);
+        pimpl_->F.resize(matrix_width * matrix_height, kNegativeInfinity);
     }
     if (pimpl_->E.size() < matrix_width * matrix_height) {
-        pimpl_->E.resize(matrix_width * matrix_height, kBigNegativeValue);
+        pimpl_->E.resize(matrix_width * matrix_height, kNegativeInfinity);
     }
 
-    // nitialize
-    for (const auto& c: graph->alphabet()) {
+    // initialize
+    for (uint32_t i = 0; i < graph->num_codes(); ++i) {
+        char c = graph->decoder(i);
+        pimpl_->sequence_profile[i * matrix_width] = 0;
         for (uint32_t j = 0; j < sequence.size(); ++j) {
-            pimpl_->sequence_profile[(uint32_t) c * matrix_width + j] =
-                c == sequence[j] ? match_ : mismatch_;
+            pimpl_->sequence_profile[i * matrix_width + (j + 1)] =
+                (c == sequence[j] ? match_ : mismatch_);
         }
     }
     for (uint32_t i = 0; i < sorted_nodes_ids.size(); ++i) {
@@ -106,15 +94,30 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
         return;
     };
 
+    for (uint32_t i = 0; i < matrix_height; ++i) {
+        pimpl_->E[i * matrix_width] = kNegativeInfinity;
+    }
+    for (uint32_t j = 0; j < matrix_width; ++j) {
+        pimpl_->F[j] = kNegativeInfinity;
+    }
+
+    if (alignment_type_ == AlignmentType::kSW) {
+        for (uint32_t i = 0; i < matrix_height; ++i) {
+            pimpl_->H[i * matrix_width] = 0;
+        }
+        for (uint32_t j = 0; j < matrix_width; ++j) {
+            pimpl_->H[j] = 0;
+        }
+    }
+
     if (alignment_type_ == AlignmentType::kNW) {
-        max_score = kBigNegativeValue;
         for (const auto& node_id: sorted_nodes_ids) {
             uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
             const auto& node = graph->nodes()[node_id];
             if (node->in_edges().empty()) {
                 pimpl_->H[i * matrix_width] = gap_open_;
             } else {
-                int32_t penalty = kBigNegativeValue;
+                int32_t penalty = kNegativeInfinity;
                 for (const auto& edge: node->in_edges()) {
                     uint32_t pred_i =
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
@@ -122,29 +125,32 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
                 }
                 pimpl_->H[i * matrix_width] = penalty + gap_extend_;
             }
-            // needed for smoother backtrack
+            // needed for easier NW backtrack
             pimpl_->F[i * matrix_width] = pimpl_->H[i * matrix_width];
         }
         for (uint32_t j = 1; j < matrix_width; ++j) {
             pimpl_->H[j] = gap_open_ + (j - 1) * gap_extend_;
-            // needed for smoother backtrack
+            // needed for easier NW backtrack
             pimpl_->E[j] = pimpl_->H[j];
         }
+        max_score = kNegativeInfinity;
+    }
 
-    } else if (alignment_type_ == AlignmentType::kOV) {
-        max_score = kBigNegativeValue;
+    if (alignment_type_ == AlignmentType::kOV) {
+        for (uint32_t i = 0; i < matrix_height; ++i) {
+            pimpl_->H[i * matrix_width] = 0;
+        }
         for (uint32_t j = 1; j < matrix_width; ++j) {
             pimpl_->H[j] = gap_open_ + (j - 1) * gap_extend_;
         }
+        max_score = kNegativeInfinity;
     }
-
-    print_matrix();
 
     // alignment
     for (uint32_t node_id: sorted_nodes_ids) {
         const auto& node = graph->nodes()[node_id];
         const auto& char_profile =
-            &(pimpl_->sequence_profile[node->letter() * matrix_width]);
+            &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
         uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
 
@@ -162,8 +168,7 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
             F_row[j] = std::max(H_pred_row[j] + gap_open_,
                 F_pred_row[j] + gap_extend_);
             // update H
-            H_row[j] = std::max(H_pred_row[j - 1] + char_profile[j - 1],
-                F_row[j]);
+            H_row[j] = H_pred_row[j - 1] + char_profile[j];
         }
 
         // check other predeccessors
@@ -178,8 +183,7 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
                 F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + gap_open_,
                     F_pred_row[j] + gap_extend_));
                 // update H
-                H_row[j] = std::max(H_row[j], std::max(H_pred_row[j - 1] +
-                    char_profile[j - 1], F_row[j]));
+                H_row[j] = std::max(H_row[j], H_pred_row[j - 1] + char_profile[j]);
             }
         }
 
@@ -190,29 +194,25 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
             E_row[j] = std::max(H_row[j - 1] + gap_open_,
                 E_row[j - 1] + gap_extend_);
             // update H
-            H_row[j] = std::max(H_row[j], E_row[j]);
+            H_row[j] = std::max(H_row[j], std::max(F_row[j], E_row[j]));
 
             if (alignment_type_ == AlignmentType::kSW) {
                 H_row[j] = std::max(H_row[j], 0);
                 update_max_score(H_row, i, j);
 
-            } else if (alignment_type_ == AlignmentType::kNW) {
-                if (j == matrix_width - 1 && node->out_edges().empty()) {
-                    update_max_score(H_row, i, j);
-                }
+            } else if (alignment_type_ == AlignmentType::kNW &&
+                (j == matrix_width - 1 && node->out_edges().empty())) {
+                update_max_score(H_row, i, j);
 
-            } else if (alignment_type_ == AlignmentType::kOV) {
-                if (node->out_edges().empty()) {
-                    update_max_score(H_row, i, j);
-                }
+            } else if (alignment_type_ == AlignmentType::kOV &&
+                (node->out_edges().empty())) {
+                update_max_score(H_row, i, j);
             }
         }
     }
 
-    print_matrix();
-
     // backtrack
-    std::vector<std::pair<int32_t, int32_t>> alignment;
+    Alignment alignment;
 
     uint32_t i = max_i;
     uint32_t j = max_j;
@@ -239,8 +239,8 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
 
         if (i != 0) {
             const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
-            int32_t match_cost = j != 0 ?
-                pimpl_->sequence_profile[node->letter() * matrix_width + (j - 1)] : 0;
+            int32_t match_cost =
+                pimpl_->sequence_profile[node->code() * matrix_width + j];
 
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
@@ -285,11 +285,6 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
             predecessor_found = true;
         }
 
-        if (!predecessor_found) {
-            fprintf(stderr, "WTFFFF\n");
-            exit(1);
-        }
-
         alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
             j == prev_j ? -1 : j - 1);
 
@@ -298,14 +293,6 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
     }
 
     std::reverse(alignment.begin(), alignment.end());
-    std::string a, b;
-    for (const auto& it: alignment) {
-        if (it.first == -1) a += '-';
-        else a += graph->nodes()[it.first]->letter();
-        if (it.second == -1) b += '-';
-        else b += sequence[it.second];
-    }
-    fprintf(stderr, "%s\n%s\n", a.c_str(), b.c_str());
     return alignment;
 }
 
