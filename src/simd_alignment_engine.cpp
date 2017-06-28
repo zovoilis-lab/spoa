@@ -4,11 +4,9 @@
  * @brief SimdAlignmentEngine class source file
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
 #include <limits>
 #include <algorithm>
+#include <cmath>
 
 extern "C" {
     #include <immintrin.h> // AVX2 and lower
@@ -19,8 +17,9 @@ extern "C" {
 
 namespace spoa {
 
-/* Taken from https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=216149 */
-/*inline void* align(size_t __align, size_t __size, void*& __ptr, size_t& __space) noexcept {
+// Taken from https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=216149
+inline void* align(size_t __align, size_t __size, void*& __ptr,
+    size_t& __space) noexcept {
 
     const auto __intptr = reinterpret_cast<uintptr_t>(__ptr);
     const auto __aligned = (__intptr - 1u + __align) & -__align;
@@ -34,110 +33,223 @@ namespace spoa {
 }
 
 template<typename T>
-T* allocateAlignedMemory(T** storage, uint32_t size, uint32_t alignment_size) {
-    *storage = new T[size + alignment_size - 1];
-    void* ptr = (void*) *storage;
-    size_t storage_size = (size + alignment_size - 1) * sizeof(T);
-    return (T*) align(alignment_size, size * sizeof(T), ptr, storage_size);
+T* allocateAlignedMemory(T** storage, uint32_t size, uint32_t alignment) {
+    *storage = new T[size + alignment - 1];
+    void* ptr = static_cast<void*>(*storage);
+    size_t storage_size = (size + alignment - 1) * sizeof(T);
+    return static_cast<T*>(align(alignment, size * sizeof(T), ptr, storage_size));
 }
 
-#ifdef __SSE4_1__
+template<typename T>
+struct InstructionSet;
+
+#if defined(__AVX2__)
+
+constexpr uint32_t kRegisterSize = 256;
+constexpr uint32_t kAlignment = kRegisterSize / 8;
+using __mxxxi = __m256i;
+
+inline __mxxxi _mmxxx_load_si(__mxxxi const* mem_addr) {
+    return _mm256_load_si256(mem_addr);
+}
+
+inline void _mmxxx_store_si(__mxxxi* mem_addr, const __mxxxi& a) {
+    _mm256_store_si256(mem_addr, a);
+}
+
+inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
+    return _mm256_or_si256(a, b);
+}
+
+template<>
+struct InstructionSet<int16_t> {
+    using type = int16_t;
+    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
+        return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
+            _MM_SHUFFLE(0, 0, 2, 0)), 16 - sizeof(type));
+    }
+    inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
+        return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
+            _MM_SHUFFLE(2, 0, 0, 1)), (kNumVar - 1) * sizeof(type) - 16);
+    }
+    static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_add_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_sub_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_sub_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_min_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_min_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_max_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_max_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_set1_epi(int16_t a) {
+        return _mm256_set1_epi16(a);
+    }
+};
+
+template<>
+struct InstructionSet<int32_t> {
+    using type = int32_t;
+    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
+        return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
+            _MM_SHUFFLE(0, 0, 2, 0)), 16 - sizeof(type));
+    }
+    inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
+        return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
+            _MM_SHUFFLE(2, 0, 0, 1)), (kNumVar - 1) * sizeof(type) - 16);
+    }
+    static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_add_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_sub_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_sub_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_min_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_min_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_max_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm256_max_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_set1_epi(int16_t a) {
+        return _mm256_set1_epi32(a);
+    }
+};
+
+#elif defined(__SSE4_1__)
 
 constexpr uint32_t kRegisterSize = 128;
+constexpr uint32_t kAlignment = kRegisterSize / 8;
 using __mxxxi = __m128i;
 
-#define _mmxxx_load _mm_load_si128
-#define _mmxxx_store _mm_store_si128
-#define _mmxxx_or _mm_or_si128
-#define _mmxxx_lshift _mm_slli_si128
-#define _mmxxx_rshift _mm_srli_si128
+inline __mxxxi _mmxxx_load_si(__mxxxi const* mem_addr) {
+    return _mm_load_si128(mem_addr);
+}
 
-#define _mmxxx_add_epi16 _mm_add_epi16
-#define _mmxxx_sub_epi16 _mm_sub_epi16
-#define _mmxxx_min_epi16 _mm_min_epi16
-#define _mmxxx_max_epi16 _mm_max_epi16
-#define _mmxxx_set1_epi16 _mm_set1_epi16
+inline void _mmxxx_store_si(__mxxxi* mem_addr, const __mxxxi& a) {
+    _mm_store_si128(mem_addr, a);
+}
 
-#define _mmxxx_add_epi32 _mm_add_epi32
-#define _mmxxx_sub_epi32 _mm_sub_epi32
-#define _mmxxx_min_epi32 _mm_min_epi32
-#define _mmxxx_max_epi32 _mm_max_epi32
-#define _mmxxx_set1_epi32 _mm_set1_epi32
-
-struct Cell {
-    __mxxxi H;
-    __mxxxi F;
-};
-
-template<typename T> struct SimdInstructionSet;
+inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
+    return _mm_or_si128(a, b);
+}
 
 template<>
-struct SimdInstructionSet<int16_t> {
+struct InstructionSet<int16_t> {
     using type = int16_t;
-    static constexpr uint32_t kNumVariables = kRegisterSize / (8 * sizeof(int16_t));
-    static constexpr uint32_t kLeftShiftSize = sizeof(int16_t);
-    static constexpr uint32_t kRightShiftSize = (kNumVariables - 1) * sizeof(int16_t);
-    static inline __mxxxi add(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_add_epi16(a, b); };
-    static inline __mxxxi sub(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_sub_epi16(a, b); };
-    static inline __mxxxi min(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_min_epi16(a, b); };
-    static inline __mxxxi max(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_max_epi16(a, b); };
-    static inline __mxxxi set(int16_t a) { return _mmxxx_set1_epi16(a); }
+    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
+        return _mm_slli_si128(a, sizeof(type));
+    }
+    inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
+        return _mm_srli_si128(a, (kNumVar - 1) * sizeof(type));
+    }
+    static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_add_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_sub_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_sub_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_min_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_min_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_max_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_max_epi16(a, b);
+    };
+    static inline __mxxxi _mmxxx_set1_epi(int16_t a) {
+        return _mm_set1_epi16(a);
+    }
 };
 
 template<>
-struct SimdInstructionSet<int32_t> {
+struct InstructionSet<int32_t> {
     using type = int32_t;
-    static constexpr uint32_t kNumVariables = kRegisterSize / (8 * sizeof(int32_t));
-    static constexpr uint32_t kLeftShiftSize = sizeof(int32_t);
-    static constexpr uint32_t kRightShiftSize = (kNumVariables - 1) * sizeof(int32_t);
-    static inline __mxxxi add(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_add_epi32(a, b); };
-    static inline __mxxxi sub(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_sub_epi32(a, b); };
-    static inline __mxxxi min(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_min_epi32(a, b); };
-    static inline __mxxxi max(const __mxxxi& a, const __mxxxi& b) { return _mmxxx_max_epi32(a, b); };
-    static inline __mxxxi set(int32_t a) { return _mmxxx_set1_epi32(a); }
+    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
+        return _mm_slli_si128(a, sizeof(type));
+    }
+    inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
+        return _mm_srli_si128(a, (kNumVar - 1) * sizeof(type));
+    }
+    static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_add_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_sub_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_sub_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_min_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_min_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_max_epi(const __mxxxi& a, const __mxxxi& b) {
+        return _mm_max_epi32(a, b);
+    };
+    static inline __mxxxi _mmxxx_set1_epi(int16_t a) {
+        return _mm_set1_epi32(a);
+    }
 };
 
-template<typename Simd>
-void printMxxxi(const __mxxxi& _vec) {
-    typename Simd::type unpacked[Simd::kNumVariables] __attribute__((aligned(kRegisterSize / 8)));
-    _mmxxx_store((__mxxxi*) unpacked, _vec);
-    for (uint32_t i = 0; i < Simd::kNumVariables; i++) {
+#endif
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+template<typename T>
+void _mmxxx_print(const __mxxxi& a) {
+
+    typename T::type unpacked[T::kNumVar] __attribute__((aligned(kAlignment)));
+    _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), a);
+
+    for (uint32_t i = 0; i < T::kNumVar; i++) {
         printf("%d ", unpacked[i]);
     }
 }
 
-template<typename Simd>
-typename Simd::type maxValueInMxxxi(const __mxxxi& _vec) {
-    typename Simd::type max_score = 0;
-    typename Simd::type unpacked[Simd::kNumVariables] __attribute__((aligned(kRegisterSize / 8)));
-    _mmxxx_store((__mxxxi*) unpacked, _vec);
-    for (uint32_t i = 0; i < Simd::kNumVariables; i++) {
+template<typename T>
+typename T::type _mmxxx_max_value(const __mxxxi& a) {
+
+    typename T::type max_score = 0;
+    typename T::type unpacked[T::kNumVar] __attribute__((aligned(kAlignment)));
+    _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), a);
+
+    for (uint32_t i = 0; i < T::kNumVar; i++) {
         max_score = std::max(max_score, unpacked[i]);
     }
+
     return max_score;
 }
 
-template<typename Simd>
-typename Simd::type valueOfElementInMxxxi(const __mxxxi& _vec, uint32_t pos) {
-    typename Simd::type unpacked[Simd::kNumVariables] __attribute__((aligned(kRegisterSize / 8)));
-    _mmxxx_store((__mxxxi*) unpacked, _vec);
-    return unpacked[pos];
+template<typename T>
+typename T::type _mmxxx_value_at(const __mxxxi& a, uint32_t i) {
+
+    typename T::type unpacked[T::kNumVar] __attribute__((aligned(kAlignment)));
+    _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), a);
+
+    return unpacked[i];
 }
 
-template<typename Simd>
-uint32_t findIndexOfValueInRow(Cell* _row, uint32_t num_vectors, typename Simd::type value) {
-    for (uint32_t i = 0; i < num_vectors; ++i) {
-        typename Simd::type unpacked[Simd::kNumVariables] __attribute__((aligned(kRegisterSize / 8)));
-        _mmxxx_store((__mxxxi*) unpacked, _row[i].H);
-        for (uint32_t j = 0; j < Simd::kNumVariables; j++) {
+template<typename T>
+int32_t _mmxxx_index_of(const __mxxxi* row, uint32_t row_width,
+    typename T::type value) {
+
+    for (uint32_t i = 0; i < row_width; ++i) {
+        typename T::type unpacked[T::kNumVar] __attribute__((aligned(kAlignment)));
+        _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), row[i]);
+
+        for (uint32_t j = 0; j < T::kNumVar; j++) {
             if (unpacked[j] == value) {
-                return i * Simd::kNumVariables + j;
+                return i * T::kNumVar + j;
             }
         }
     }
-    return 0;
+
+    return -1;
 }
 
+#endif
+
+/*
 template<typename Simd>
 void alignSequenceToGraph(std::vector<std::vector<int32_t>>& sequence_profile, uint32_t sequence_size,
     std::shared_ptr<Graph> graph, AlignmentParams& params, std::vector<int32_t>& alignment_node_ids,
@@ -539,17 +651,101 @@ std::unique_ptr<Alignment> createSimdAlignment(const std::string& sequence,
     return nullptr;
 #endif
 }
+*/
 
-SimdAlignment::SimdAlignment(const std::string& sequence, std::shared_ptr<Graph> graph,
-    AlignmentParams params) :
-        graph_(graph),
-        params_(std::move(params)),
-        matrix_width_(sequence.size()),
-        matrix_height_(graph->nodes().size() + 1),
-        sequence_profile_(256),
-        is_aligned_(false),
-        alignment_node_ids_(),
-        alignment_seq_ids_() {
+std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
+    AlignmentType alignment_type, int8_t match, int8_t mismatch,
+    int8_t gap_open, int8_t gap_extend) {
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+    return std::unique_ptr<AlignmentEngine>(new SimdAlignmentEngine(
+        alignment_type, match, mismatch, gap_open, gap_extend));
+
+#endif
+
+    return nullptr;
+}
+
+struct SimdAlignmentEngine::Implementation {
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+    std::vector<uint32_t> node_id_to_rank;
+
+    std::unique_ptr<__mxxxi[]> sequence_profile_storage;
+    __mxxxi* sequence_profile;
+    uint32_t sequence_profile_size;
+
+    std::unique_ptr<__mxxxi[]> H_storage;
+    __mxxxi* H;
+
+    std::unique_ptr<__mxxxi[]> F_storage;
+    __mxxxi* F;
+
+    std::unique_ptr<__mxxxi[]> E_storage;
+    __mxxxi* E;
+
+    uint32_t X_size;
+
+    Implementation()
+            : node_id_to_rank(), sequence_profile_storage(nullptr),
+            sequence_profile(nullptr), sequence_profile_size(0),
+            H_storage(nullptr), H(nullptr),
+            F_storage(nullptr), F(nullptr),
+            E_storage(nullptr), E(nullptr),
+            X_size(0) {
+        }
+
+#endif
+};
+
+SimdAlignmentEngine::SimdAlignmentEngine(AlignmentType alignment_type,
+    int8_t match, int8_t mismatch, int8_t gap_open, int8_t gap_extend)
+        : AlignmentEngine(alignment_type, match, mismatch, gap_open, gap_extend),
+        pimpl_(new Implementation()) {
+}
+
+SimdAlignmentEngine::~SimdAlignmentEngine() {
+}
+
+Alignment SimdAlignmentEngine::align_sequence_with_graph(
+    const std::string& sequence, const std::unique_ptr<Graph>& graph) {
+
+    if (graph->nodes().empty() || sequence.empty()) {
+        return Alignment();
+    }
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+    uint32_t matrix_width = sequence.size() + InstructionSet<int16_t>::kNumVar;
+    uint32_t matrix_height = graph->nodes().size() + 1;
+
+    uint32_t max_short_value = std::numeric_limits<int16_t>::max();
+    int8_t max_penalty = std::max(std::max(abs(match_), abs(mismatch_)),
+        std::max(abs(gap_open_), abs(gap_extend_)));
+
+    if (max_penalty * (matrix_width + matrix_height) < max_short_value) {
+        return align<InstructionSet<int16_t>>(sequence, graph);
+    } else {
+        return align<InstructionSet<int32_t>>(sequence, graph);
+    }
+
+#else
+
+    return Alignment();
+
+#endif
+}
+
+template<typename T>
+Alignment SimdAlignmentEngine::align(const std::string& sequence,
+    const std::unique_ptr<Graph>& graph) {
+
+    return Alignment();
+}
+
+/*
 
     for (const auto& c: graph->alphabet()) {
         sequence_profile_[c].reserve(sequence.size());
@@ -559,34 +755,6 @@ SimdAlignment::SimdAlignment(const std::string& sequence, std::shared_ptr<Graph>
     }
 }
 
-SimdAlignment::~SimdAlignment() {
-}
-
-void SimdAlignment::align_sequence_to_graph() {
-
-    if (is_aligned_ == true) {
-        return;
-    }
-
-#ifdef __SSE4_1__
-    // decide which precision to use in alignment
-    uint32_t max_value = std::numeric_limits<int16_t>::max();
-    uint32_t width = matrix_width_ + kRegisterSize / 8;
-    if ((std::max(abs(params_.match), abs(params_.mismatch)) * std::min(width, matrix_height_) < max_value) &&
-        (abs(params_.insertion_open) + abs(params_.insertion_extend) * matrix_height_) < max_value &&
-        (abs(params_.deletion_open) + abs(params_.deletion_extend) * width) < max_value) {
-
-        alignSequenceToGraph<SimdInstructionSet<int16_t>>(sequence_profile_,
-            matrix_width_, graph_, params_, alignment_node_ids_,
-            alignment_seq_ids_);
-    } else {
-        alignSequenceToGraph<SimdInstructionSet<int32_t>>(sequence_profile_,
-            matrix_width_, graph_, params_, alignment_node_ids_,
-            alignment_seq_ids_);
-    }
-#endif
-    is_aligned_ = true;
-}
 
 // TODO: come up with a more elegant way for this function (its duplicate with SisdAlignment::adjust_node_ids)
 void SimdAlignment::adjust_node_ids(const std::vector<int32_t>& mapping) {

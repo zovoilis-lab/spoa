@@ -26,7 +26,9 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(
         exit(1);
     }
 
-    std::unique_ptr<AlignmentEngine> alignment_engine = nullptr;
+    auto alignment_engine = createSimdAlignmentEngine(alignment_type, match,
+        mismatch, gap_open, gap_extend);
+
     if (alignment_engine == nullptr) {
         return createSisdAlignmentEngine(alignment_type, match, mismatch,
             gap_open, gap_extend);

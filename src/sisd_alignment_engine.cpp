@@ -23,11 +23,15 @@ std::unique_ptr<AlignmentEngine> createSisdAlignmentEngine(
 }
 
 struct SisdAlignmentEngine::Implementation {
-    std::vector<int32_t> sequence_profile;
     std::vector<uint32_t> node_id_to_rank;
+    std::vector<int32_t> sequence_profile;
     std::vector<int32_t> H;
     std::vector<int32_t> F;
     std::vector<int32_t> E;
+
+    Implementation()
+            : node_id_to_rank(), sequence_profile(), H(), F(), E() {
+    }
 };
 
 SisdAlignmentEngine::SisdAlignmentEngine(AlignmentType alignment_type,
@@ -42,7 +46,7 @@ SisdAlignmentEngine::~SisdAlignmentEngine() {
 Alignment SisdAlignmentEngine::align_sequence_with_graph(
     const std::string& sequence, const std::unique_ptr<Graph>& graph) {
 
-    if (graph->nodes().empty()) {
+    if (graph->nodes().empty() || sequence.empty()) {
         return Alignment();
     }
 
@@ -51,19 +55,15 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
     const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
 
     // realloc
+    if (pimpl_->node_id_to_rank.size() < matrix_height - 1) {
+        pimpl_->node_id_to_rank.resize(matrix_height - 1, 0);
+    }
     if (pimpl_->sequence_profile.size() < graph->num_codes() * matrix_width) {
         pimpl_->sequence_profile.resize(graph->num_codes() * matrix_width, 0);
     }
-    if (pimpl_->node_id_to_rank.size() < sorted_nodes_ids.size()) {
-        pimpl_->node_id_to_rank.resize(sorted_nodes_ids.size(), 0);
-    }
     if (pimpl_->H.size() < matrix_width * matrix_height) {
         pimpl_->H.resize(matrix_width * matrix_height, 0);
-    }
-    if (pimpl_->F.size() < matrix_width * matrix_height) {
         pimpl_->F.resize(matrix_width * matrix_height, kNegativeInfinity);
-    }
-    if (pimpl_->E.size() < matrix_width * matrix_height) {
         pimpl_->E.resize(matrix_width * matrix_height, kNegativeInfinity);
     }
 

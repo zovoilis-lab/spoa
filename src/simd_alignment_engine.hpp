@@ -39,6 +39,10 @@ private:
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 
+    template<typename T>
+    Alignment align(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph);
+
     struct Implementation;
     std::unique_ptr<Implementation> pimpl_;
 };
