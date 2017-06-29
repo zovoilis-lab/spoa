@@ -31,6 +31,9 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(
 class AlignmentEngine {
 public:
     virtual ~AlignmentEngine() {}
+
+    virtual void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) = 0;
+
     virtual Alignment align_sequence_with_graph(const std::string& sequence,
         const std::unique_ptr<Graph>& graph) = 0;
 protected:

@@ -93,17 +93,27 @@ int main(int argc, char** argv) {
             bioparser::FastaReader>(fasta_path);
         creader->read_objects(chains, -1);
 
+        size_t max_sequence_size = 0;
+        for (const auto& it: chains) {
+            max_sequence_size = std::max(max_sequence_size, it->data().size());
+        }
+        alignment_engine->prealloc(max_sequence_size, 4);
+
         for (const auto& it: chains) {
             auto alignment = alignment_engine->align_sequence_with_graph(
                 it->data(), graph);
-            fprintf(stderr, "Aligned %s\n", it->name().c_str());
             graph->add_alignment(alignment, it->data());
-            fprintf(stderr, "Added to graph %s\n", it->name().c_str());
         }
     } else {
         auto creader = bioparser::createReader<spoa::Chain,
             bioparser::FastqReader>(fastq_path);
         creader->read_objects(chains, -1);
+
+        size_t max_sequence_size = 0;
+        for (const auto& it: chains) {
+            max_sequence_size = std::max(max_sequence_size, it->data().size());
+        }
+        alignment_engine->prealloc(max_sequence_size, 4);
 
         for (const auto& it: chains) {
             auto alignment = alignment_engine->align_sequence_with_graph(

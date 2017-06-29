@@ -27,6 +27,8 @@ class SisdAlignmentEngine: public AlignmentEngine {
 public:
     ~SisdAlignmentEngine();
 
+    void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) override;
+
     Alignment align_sequence_with_graph(const std::string& sequence,
         const std::unique_ptr<Graph>& graph) override;
 
@@ -38,6 +40,8 @@ private:
         int8_t mismatch, int8_t gap_open, int8_t gap_extend);
     SisdAlignmentEngine(const SisdAlignmentEngine&) = delete;
     const SisdAlignmentEngine& operator=(const SisdAlignmentEngine&) = delete;
+
+    void realloc(uint32_t matrix_height, uint32_t num_codes, uint32_t matrix_width);
 
     struct Implementation;
     std::unique_ptr<Implementation> pimpl_;

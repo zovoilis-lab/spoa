@@ -27,6 +27,8 @@ class SimdAlignmentEngine: public AlignmentEngine {
 public:
     ~SimdAlignmentEngine();
 
+    void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) override;
+
     Alignment align_sequence_with_graph(const std::string& sequence,
         const std::unique_ptr<Graph>& graph) override;
 
@@ -38,6 +40,8 @@ private:
         int8_t mismatch, int8_t gap_open, int8_t gap_extend);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
+
+    void realloc(uint32_t matrix_height, uint32_t num_codes, uint32_t matrix_width);
 
     template<typename T>
     Alignment align(const std::string& sequence,
