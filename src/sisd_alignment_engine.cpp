@@ -255,22 +255,16 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
 
         if (i != 0) {
             const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
-            int32_t match_cost =
-                pimpl_->sequence_profile[node->code() * matrix_width + j];
 
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-            if (j != 0 && H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
-                prev_i = pred_i;
-                prev_j = j - 1;
-                predecessor_found = true;
-            } else if ((H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
-                (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_)) {
-                prev_i = pred_i;
-                prev_j = j;
-                predecessor_found = true;
-            }
+            if ((H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
+               (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_)) {
+               prev_i = pred_i;
+               prev_j = j;
+               predecessor_found = true;
+           }
 
             if (!predecessor_found) {
                 const auto& edges = node->in_edges();
@@ -278,12 +272,6 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
                     uint32_t pred_i =
                         pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
-                    if (j != 0 && H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
-                        prev_i = pred_i;
-                        prev_j = j - 1;
-                        predecessor_found = true;
-                        break;
-                    }
                     if ((H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
                         (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_)) {
                         prev_i = pred_i;
@@ -299,6 +287,36 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
             prev_i = i;
             prev_j = j - 1;
             predecessor_found = true;
+        }
+
+        if (!predecessor_found && i != 0 && j != 0) {
+            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            int32_t match_cost =
+                pimpl_->sequence_profile[node->code() * matrix_width + j];
+
+            uint32_t pred_i = node->in_edges().empty() ? 0 :
+                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+            if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                prev_i = pred_i;
+                prev_j = j - 1;
+                predecessor_found = true;
+            }
+
+            if (!predecessor_found) {
+                const auto& edges = node->in_edges();
+                for (uint32_t p = 1; p < edges.size(); ++p) {
+                    uint32_t pred_i =
+                        pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
+
+                    if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                        prev_i = pred_i;
+                        prev_j = j - 1;
+                        predecessor_found = true;
+                        break;
+                    }
+                }
+            }
         }
 
         alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],

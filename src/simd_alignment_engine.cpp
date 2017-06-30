@@ -673,6 +673,7 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
         H_diag_pred[T::kNumVar * max_num_predecessors];
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         F_pred[T::kNumVar * max_num_predecessors];
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type E[T::kNumVar];
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         profile[T::kNumVar];
 
@@ -703,6 +704,8 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
             // load current cells
             _mmxxx_store_si(reinterpret_cast<__mxxxi*>(H),
                 pimpl_->H[i * matrix_width + j_div]);
+            _mmxxx_store_si(reinterpret_cast<__mxxxi*>(E),
+                pimpl_->E[i * matrix_width + j_div]);
 
             // load predecessors cells
             if (node->in_edges().empty()) {
@@ -758,15 +761,6 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
 
         if (i != 0) {
             for (uint32_t p = 0; p < predecessors.size(); ++p) {
-                if ((j_mod == 0 && H[j_mod] ==
-                    H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
-                    (j_mod != 0 && H[j_mod] ==
-                    H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
-                    prev_i = predecessors[p];
-                    prev_j = j - 1;
-                    predecessor_found = true;
-                    break;
-                }
                 if ((H[j_mod] == F_pred[p * T::kNumVar + j_mod] + gap_extend_) ||
                     (H[j_mod] == H_pred[p * T::kNumVar + j_mod] + gap_open_)) {
                     prev_i = predecessors[p];
@@ -777,9 +771,25 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
             }
         }
 
-        if (!predecessor_found) {
+        if (!predecessor_found && H[j_mod] == E[j_mod]) {
             prev_i = i;
             prev_j = j - 1;
+            predecessor_found = true;
+        }
+
+        if (!predecessor_found && i != 0) {
+            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                if ((j_mod == 0 && H[j_mod] ==
+                        H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
+                    (j_mod != 0 && H[j_mod] ==
+                        H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
+
+                    prev_i = predecessors[p];
+                    prev_j = j - 1;
+                    predecessor_found = true;
+                    break;
+                }
+            }
         }
 
         alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
