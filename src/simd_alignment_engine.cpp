@@ -43,7 +43,7 @@ T* allocateAlignedMemory(T** storage, uint32_t size, uint32_t alignment) {
 template<typename T>
 struct InstructionSet;
 
-#if defined(__AVX2__)
+#if 0 && defined(__AVX2__)
 
 constexpr uint32_t kRegisterSize = 256;
 using __mxxxi = __m256i;
