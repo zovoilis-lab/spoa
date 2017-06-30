@@ -227,8 +227,6 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
         }
     }
 
-    printf("%d| %d %d\n", max_score, max_i, max_j);
-
     // backtrack
     Alignment alignment;
 
