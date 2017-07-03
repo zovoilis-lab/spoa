@@ -618,6 +618,16 @@ std::unique_ptr<Graph> Graph::subgraph(uint32_t begin_node_id,
     return subgraph;
 }
 
+void Graph::update_alignment(Alignment& alignment,
+    const std::vector<int32_t>& subgraph_to_graph_mapping) const {
+
+    for (uint32_t i = 0; i < alignment.size(); ++i) {
+        if (alignment[i].first != -1) {
+            alignment[i].first = subgraph_to_graph_mapping[alignment[i].first];
+        }
+    }
+}
+
 void Graph::print_csv() const {
 
     std::vector<int32_t> in_consensus(nodes_.size(), -1);

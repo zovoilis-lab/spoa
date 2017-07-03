@@ -66,6 +66,9 @@ public:
     std::unique_ptr<Graph> subgraph(uint32_t begin_node_id, uint32_t end_node_id,
         std::vector<int32_t>& subgraph_to_graph_mapping) const;
 
+    void update_alignment(Alignment& alignment,
+        const std::vector<int32_t>& subgraph_to_graph_mapping) const;
+
     void print_csv() const;
 
     friend std::unique_ptr<Graph> createGraph();

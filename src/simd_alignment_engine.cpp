@@ -1224,14 +1224,4 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
 #endif
 }
 
-/*
-// TODO: come up with a more elegant way for this function (its duplicate with SisdAlignment::adjust_node_ids)
-void SimdAlignment::adjust_node_ids(const std::vector<int32_t>& mapping) {
-    for (uint32_t i = 0; i < alignment_node_ids_.size(); ++i) {
-        if (alignment_node_ids_[i] != -1) {
-            alignment_node_ids_[i] = mapping[alignment_node_ids_[i]];
-        }
-    }
-}*/
-
 }
