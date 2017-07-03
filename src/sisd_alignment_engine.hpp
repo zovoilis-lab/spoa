@@ -41,7 +41,17 @@ private:
     SisdAlignmentEngine(const SisdAlignmentEngine&) = delete;
     const SisdAlignmentEngine& operator=(const SisdAlignmentEngine&) = delete;
 
-    void realloc(uint32_t matrix_height, uint32_t num_codes, uint32_t matrix_width);
+    Alignment align_normal(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph);
+
+    Alignment align_gotoh(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph);
+
+    void realloc(uint32_t matrix_width, uint32_t matrix_height,
+        uint32_t num_codes);
+
+    void initialize(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph);
 
     struct Implementation;
     std::unique_ptr<Implementation> pimpl_;

@@ -66,11 +66,11 @@ struct InstructionSet<int16_t> {
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
         return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
-            _MM_SHUFFLE(0, 0, 2, 0)), 16 - sizeof(type));
+            _MM_SHUFFLE(0, 0, 2, 0)), 14);
     }
     static inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
         return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
-            _MM_SHUFFLE(2, 0, 0, 1)), (kNumVar - 1) * sizeof(type) - 16);
+            _MM_SHUFFLE(2, 0, 0, 1)), 14);
     }
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm256_add_epi16(a, b);
@@ -95,11 +95,11 @@ struct InstructionSet<int32_t> {
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
         return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
-            _MM_SHUFFLE(0, 0, 2, 0)), 16 - sizeof(type));
+            _MM_SHUFFLE(0, 0, 2, 0)), 12);
     }
     static inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
         return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
-            _MM_SHUFFLE(2, 0, 0, 1)), (kNumVar - 1) * sizeof(type) - 16);
+            _MM_SHUFFLE(2, 0, 0, 1)), 12);
     }
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm256_add_epi32(a, b);
@@ -140,10 +140,10 @@ struct InstructionSet<int16_t> {
     using type = int16_t;
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
-        return _mm_slli_si128(a, sizeof(type));
+        return _mm_slli_si128(a, 2);
     }
     static inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
-        return _mm_srli_si128(a, (kNumVar - 1) * sizeof(type));
+        return _mm_srli_si128(a, 14);
     }
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm_add_epi16(a, b);
@@ -167,10 +167,10 @@ struct InstructionSet<int32_t> {
     using type = int32_t;
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static inline __mxxxi _mmxxx_slli_si(const __mxxxi& a) {
-        return _mm_slli_si128(a, sizeof(type));
+        return _mm_slli_si128(a, 4);
     }
     static inline __mxxxi _mmxxx_srli_si(const __mxxxi& a) {
-        return _mm_srli_si128(a, (kNumVar - 1) * sizeof(type));
+        return _mm_srli_si128(a, 12);
     }
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm_add_epi32(a, b);
@@ -255,6 +255,8 @@ std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
     AlignmentType alignment_type, int8_t match, int8_t mismatch,
     int8_t gap_open, int8_t gap_extend) {
 
+    return nullptr;
+
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
     return std::unique_ptr<AlignmentEngine>(new SimdAlignmentEngine(
@@ -319,18 +321,18 @@ void SimdAlignmentEngine::prealloc(uint32_t max_sequence_size,
         std::max(abs(gap_open_), abs(gap_extend_)));
 
     if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
-        this->realloc(alphabet_size * max_sequence_size, alphabet_size,
-            (max_sequence_size / InstructionSet<int16_t>::kNumVar) + 1);
+        this->realloc((max_sequence_size / InstructionSet<int16_t>::kNumVar) + 1,
+            alphabet_size * max_sequence_size, alphabet_size);
     } else {
-        this->realloc(alphabet_size * max_sequence_size, alphabet_size,
-            (max_sequence_size / InstructionSet<int32_t>::kNumVar) + 1);
+        this->realloc((max_sequence_size / InstructionSet<int32_t>::kNumVar) + 1,
+            alphabet_size * max_sequence_size, alphabet_size);
     }
 
 #endif
 }
 
-void SimdAlignmentEngine::realloc(uint32_t matrix_height, uint32_t num_codes,
-    uint32_t matrix_width) {
+void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
+    uint32_t num_codes) {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
@@ -348,15 +350,28 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_height, uint32_t num_codes,
     if (pimpl_->first_column.size() < matrix_height) {
         pimpl_->first_column.resize(matrix_height, 0);
     }
-    if (pimpl_->X_size < 3 * matrix_height * matrix_width) {
-        __mxxxi* storage = nullptr;
-        pimpl_->X_size = 3 * matrix_height * matrix_width;
-        pimpl_->H = allocateAlignedMemory(&storage, pimpl_->X_size,
-            kRegisterSize / 8);
-        pimpl_->F = &(pimpl_->H[matrix_height * matrix_width]);
-        pimpl_->E = &(pimpl_->F[matrix_height * matrix_width]);
-        pimpl_->X_storage.reset();
-        pimpl_->X_storage = std::unique_ptr<__mxxxi[]>(storage);
+    if (gap_open_ == gap_extend_) {
+        if (pimpl_->X_size < matrix_height * matrix_width) {
+            __mxxxi* storage = nullptr;
+            pimpl_->X_size = matrix_height * matrix_width;
+            pimpl_->H = allocateAlignedMemory(&storage, pimpl_->X_size,
+                kRegisterSize / 8);
+            pimpl_->F = nullptr;
+            pimpl_->E = nullptr;
+            pimpl_->X_storage.reset();
+            pimpl_->X_storage = std::unique_ptr<__mxxxi[]>(storage);
+        }
+    } else {
+        if (pimpl_->X_size < 3 * matrix_height * matrix_width) {
+            __mxxxi* storage = nullptr;
+            pimpl_->X_size = 3 * matrix_height * matrix_width;
+            pimpl_->H = allocateAlignedMemory(&storage, pimpl_->X_size,
+                kRegisterSize / 8);
+            pimpl_->F = &(pimpl_->H[matrix_height * matrix_width]);
+            pimpl_->E = &(pimpl_->F[matrix_height * matrix_width]);
+            pimpl_->X_storage.reset();
+            pimpl_->X_storage = std::unique_ptr<__mxxxi[]>(storage);
+        }
     }
     if (pimpl_->masks_size < InstructionSet<int16_t>::kNumVar) {
         __mxxxi* storage = nullptr;
@@ -370,50 +385,13 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_height, uint32_t num_codes,
 #endif
 }
 
-Alignment SimdAlignmentEngine::align_sequence_with_graph(
-    const std::string& sequence, const std::unique_ptr<Graph>& graph) {
-
-    if (graph->nodes().empty() || sequence.empty()) {
-        return Alignment();
-    }
-
-#if defined(__AVX2__) || defined(__SSE4_1__)
-
-    uint32_t longest_path = graph->nodes().size() + 1 + sequence.size() +
-        InstructionSet<int16_t>::kNumVar;
-
-    uint32_t max_penalty = std::max(std::max(abs(match_), abs(mismatch_)),
-        std::max(abs(gap_open_), abs(gap_extend_)));
-
-    if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
-        return align<InstructionSet<int16_t>>(sequence, graph);
-    } else {
-        return align<InstructionSet<int32_t>>(sequence, graph);
-    }
-
-#else
-
-    return Alignment();
-
-#endif
-}
-
 template<typename T>
-Alignment SimdAlignmentEngine::align(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
+void SimdAlignmentEngine::initialize(const std::string& sequence,
+    const std::unique_ptr<Graph>& graph, uint32_t normal_matrix_width,
+    uint32_t matrix_width, uint32_t matrix_height) {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t normal_matrix_width = sequence.size();
-    uint32_t matrix_width = (sequence.size() + (sequence.size() % T::kNumVar == 0 ?
-        0 : T::kNumVar - sequence.size() % T::kNumVar)) / T::kNumVar;
-    uint32_t matrix_height = graph->nodes().size() + 1;
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
-
-    // realloc
-    this->realloc(matrix_height, graph->num_codes(), matrix_width);
-
-    // initialize
     int32_t padding_penatly = -1 * std::max(std::max(abs(match_), abs(mismatch_)),
         std::max(abs(gap_open_), abs(gap_extend_)));
 
@@ -432,6 +410,9 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
                 _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
         }
     }
+
+    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+
     for (uint32_t i = 0; i < sorted_nodes_ids.size(); ++i) {
         pimpl_->node_id_to_rank[sorted_nodes_ids[i]] = i;
     }
@@ -439,16 +420,7 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
     typename T::type negative_infinity =
         std::numeric_limits<typename T::type>::min() + 1024;
 
-    __mxxxi negative_infinities = T::_mmxxx_set1_epi(negative_infinity);
     __mxxxi zeroes = T::_mmxxx_set1_epi(0);
-
-    typename T::type max_score = 0;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-
-    for (uint32_t j = 0; j < matrix_width; ++j) {
-        pimpl_->F[j] = negative_infinities;
-    }
 
     if (alignment_type_ == AlignmentType::kSW) {
         for (uint32_t i = 0; i < matrix_height; ++i) {
@@ -487,8 +459,6 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
                 pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], ext);
             }
         }
-
-        max_score = negative_infinity;
     }
 
     if (alignment_type_ == AlignmentType::kOV) {
@@ -506,8 +476,418 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
                 pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], ext);
             }
         }
+    }
 
-        max_score = negative_infinity;
+#endif
+}
+
+Alignment SimdAlignmentEngine::align_sequence_with_graph(
+    const std::string& sequence, const std::unique_ptr<Graph>& graph) {
+
+    if (graph->nodes().empty() || sequence.empty()) {
+        return Alignment();
+    }
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+    uint32_t longest_path = graph->nodes().size() + 1 + sequence.size() +
+        InstructionSet<int16_t>::kNumVar;
+
+    uint32_t max_penalty = std::max(std::max(abs(match_), abs(mismatch_)),
+        std::max(abs(gap_open_), abs(gap_extend_)));
+
+    if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
+        if (gap_open_ == gap_extend_) {
+            return align_normal<InstructionSet<int16_t>>(sequence, graph);
+        }
+        return align_gotoh<InstructionSet<int16_t>>(sequence, graph);
+    } else {
+        if (gap_open_ == gap_extend_) {
+            return align_normal<InstructionSet<int32_t>>(sequence, graph);
+        }
+        return align_gotoh<InstructionSet<int32_t>>(sequence, graph);
+    }
+
+#else
+
+    return Alignment();
+
+#endif
+}
+
+template<typename T>
+Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
+    const std::unique_ptr<Graph>& graph) {
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+    uint32_t normal_matrix_width = sequence.size();
+    uint32_t matrix_width = (sequence.size() + (sequence.size() % T::kNumVar == 0 ?
+        0 : T::kNumVar - sequence.size() % T::kNumVar)) / T::kNumVar;
+    uint32_t matrix_height = graph->nodes().size() + 1;
+    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+
+    // realloc
+    this->realloc(matrix_width, matrix_height, graph->num_codes());
+
+    // initialize
+    this->initialize<T>(sequence, graph, normal_matrix_width, matrix_width,
+        matrix_height);
+
+    typename T::type negative_infinity =
+        std::numeric_limits<typename T::type>::min() + 1024;
+
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type
+        unpacked[T::kNumVar] = {};
+
+    for (uint32_t i = 0; i < T::kNumVar; ++i) {
+        unpacked[i] = 0;
+    }
+    for (uint32_t i = 0; i < T::kNumVar; ++i) {
+        pimpl_->masks[i] =
+            _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
+        unpacked[i] = negative_infinity;
+    }
+
+    typename T::type max_score = alignment_type_ == AlignmentType::kSW ? 0 :
+        negative_infinity;
+    int32_t max_i = -1;
+    int32_t max_j = -1;
+    uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
+    __mxxxi zeroes = T::_mmxxx_set1_epi(0);
+    __mxxxi opn = T::_mmxxx_set1_epi(gap_open_);
+
+    // alignment
+    for (uint32_t node_id: sorted_nodes_ids) {
+        const auto& node = graph->nodes()[node_id];
+        __mxxxi* char_profile =
+            &(pimpl_->sequence_profile[node->code() * matrix_width]);
+
+        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        uint32_t pred_i = node->in_edges().empty() ? 0 :
+            pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+        __mxxxi* H_row = &(pimpl_->H[i * matrix_width]);
+        __mxxxi* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+
+        __mxxxi x = T::_mmxxx_srli_si(T::_mmxxx_set1_epi(
+            pimpl_->first_column[pred_i]));
+
+        for (uint32_t j = 0; j < matrix_width; ++j) {
+            // get diagonal
+            __mxxxi t1 = T::_mmxxx_srli_si(H_pred_row[j]);
+            H_row[j] = _mmxxx_or_si(T::_mmxxx_slli_si(H_pred_row[j]), x);
+            x = t1;
+
+            // update H
+            H_row[j] = T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_row[j],
+                char_profile[j]), T::_mmxxx_add_epi(H_pred_row[j], opn));
+        }
+
+        // check other predecessors
+        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+            pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
+
+            H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+
+            x = T::_mmxxx_srli_si(T::_mmxxx_set1_epi(
+                pimpl_->first_column[pred_i]));
+
+            for (uint32_t j = 0; j < matrix_width; ++j) {
+                // get diagonal
+                __mxxxi t1 = T::_mmxxx_srli_si(H_pred_row[j]);
+                __mxxxi h = _mmxxx_or_si(T::_mmxxx_slli_si(H_pred_row[j]), x);
+                x = t1;
+
+                // updage H
+                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(
+                    T::_mmxxx_add_epi(h, char_profile[j]),
+                    T::_mmxxx_add_epi(H_pred_row[j], opn)));
+            }
+        }
+
+        __mxxxi score = T::_mmxxx_set1_epi(negative_infinity);
+        x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
+
+        for (uint32_t j = 0; j < matrix_width; ++j) {
+            __mxxxi t1 = T::_mmxxx_add_epi(_mmxxx_or_si(T::_mmxxx_slli_si(
+                H_row[j]), T::_mmxxx_srli_si(x)), opn);
+            __mxxxi t2 = opn;
+
+            for (uint32_t k = 0; k < T::kNumVar; ++k) {
+                H_row[j] = T::_mmxxx_max_epi(H_row[j], _mmxxx_or_si(t1,
+                    pimpl_->masks[k]));
+                t2 = T::_mmxxx_slli_si(t2);
+                t1 = T::_mmxxx_add_epi(T::_mmxxx_slli_si(t1), t2);
+            }
+
+            x = H_row[j];
+
+            if (alignment_type_ == AlignmentType::kSW) {
+                H_row[j] = T::_mmxxx_max_epi(H_row[j], zeroes);
+            }
+            score = T::_mmxxx_max_epi(score, H_row[j]);
+        }
+
+        if (alignment_type_ == AlignmentType::kSW) {
+            int32_t max_row_score = _mmxxx_max_value<T>(score);
+            if (max_score < max_row_score) {
+                max_score = max_row_score;
+                max_i = i;
+            }
+
+        } else if (alignment_type_ == AlignmentType::kOV) {
+            if (node->out_edges().empty()) {
+                int32_t max_row_score = _mmxxx_max_value<T>(score);
+                if (max_score < max_row_score) {
+                    max_score = max_row_score;
+                    max_i = i;
+                }
+            }
+
+        } else if (alignment_type_ == AlignmentType::kNW) {
+            if (node->out_edges().empty()) {
+                int32_t max_row_score = _mmxxx_value_at<T>(
+                    H_row[matrix_width - 1], last_column_id);
+                if (max_score < max_row_score) {
+                    max_score = max_row_score;
+                    max_i = i;
+                }
+            }
+        }
+    }
+
+    if (max_i == -1 && max_j == -1) { // no alignment found
+        return Alignment();
+    }
+
+    if (alignment_type_ == AlignmentType::kSW) {
+        max_j = _mmxxx_index_of<T>(&(pimpl_->H[max_i * matrix_width]),
+            matrix_width, max_score);
+
+    } else if (alignment_type_ == AlignmentType::kOV) {
+        if (graph->nodes()[sorted_nodes_ids[max_i - 1]]->out_edges().empty()) {
+            max_j = _mmxxx_index_of<T>(&(pimpl_->H[max_i * matrix_width]),
+                matrix_width, max_score);
+        } else {
+            max_j = normal_matrix_width - 1;
+        }
+
+    } else if (alignment_type_ == AlignmentType::kNW) {
+        max_j = normal_matrix_width - 1;
+    }
+
+    // backtrack
+    uint32_t max_num_predecessors = 0;
+    for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
+        max_num_predecessors = std::max(max_num_predecessors,
+            (uint32_t) graph->nodes()[sorted_nodes_ids[i]]->in_edges().size());
+    }
+
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type H[T::kNumVar];
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type
+        H_pred[T::kNumVar * max_num_predecessors];
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type
+        H_diag_pred[T::kNumVar * max_num_predecessors];
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type
+        H_left_pred[T::kNumVar];
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type
+        profile[T::kNumVar];
+
+    std::vector<uint32_t> predecessors;
+
+    int32_t i = max_i;
+    int32_t j = max_j;
+    int32_t prev_i = 0, prev_j = 0;
+
+    uint32_t j_div = j / T::kNumVar;
+    uint32_t j_mod = j % T::kNumVar;
+
+    bool load_next_segment = true;
+
+    Alignment alignment;
+
+    do {
+        // check stop condition
+        if (j == -1 || i == 0) {
+            break;
+        }
+
+        const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+        // load everything
+        if (load_next_segment) {
+            predecessors.clear();
+
+            // load current cells
+            _mmxxx_store_si(reinterpret_cast<__mxxxi*>(H),
+                pimpl_->H[i * matrix_width + j_div]);
+
+            // load predecessors cells
+            if (node->in_edges().empty()) {
+                predecessors.emplace_back(0);
+                _mmxxx_store_si(reinterpret_cast<__mxxxi*>(H_pred),
+                    pimpl_->H[j_div]);
+
+            } else {
+                uint32_t store_pos = 0;
+                for (const auto& edge: node->in_edges()) {
+                    predecessors.emplace_back(
+                        pimpl_->node_id_to_rank[edge->begin_node_id()] + 1);
+                    _mmxxx_store_si(
+                        reinterpret_cast<__mxxxi*>(&H_pred[store_pos * T::kNumVar]),
+                        pimpl_->H[predecessors.back() * matrix_width + j_div]);
+                    ++store_pos;
+                }
+            }
+
+            // load query profile cells
+            _mmxxx_store_si(reinterpret_cast<__mxxxi*>(profile),
+                pimpl_->sequence_profile[node->code() * matrix_width + j_div]);
+        }
+
+        // check stop condition
+        if (alignment_type_ == AlignmentType::kSW && H[j_mod] == 0) {
+            break;
+        }
+
+        if (j_mod == 0) {
+            // border case
+            if (j_div > 0) {
+                _mmxxx_store_si(reinterpret_cast<__mxxxi*>(H_left_pred),
+                    pimpl_->H[i * matrix_width + j_div - 1]);
+
+                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                    _mmxxx_store_si(
+                        reinterpret_cast<__mxxxi*>(&H_diag_pred[p * T::kNumVar]),
+                        pimpl_->H[predecessors[p] * matrix_width + (j_div - 1)]);
+                }
+            } else {
+                H_left_pred[T::kNumVar - 1] = pimpl_->first_column[i];
+
+                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                    H_diag_pred[(p + 1) * T::kNumVar - 1] =
+                        pimpl_->first_column[predecessors[p]];
+                }
+            }
+        }
+
+        // find best predecessor cell
+        bool predecessor_found = false;
+
+        if (i != 0) {
+            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                if (H[j_mod] == H_pred[p * T::kNumVar + j_mod] + gap_open_) {
+                    prev_i = predecessors[p];
+                    prev_j = j;
+                    predecessor_found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!predecessor_found) {
+            if ((j_mod == 0 && H[j_mod] == H_left_pred[T::kNumVar - 1] + gap_open_) ||
+                (j_mod != 0 && H[j_mod] == H[j_mod - 1] + gap_open_)) {
+                prev_i = i;
+                prev_j = j - 1;
+                predecessor_found = true;
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
+            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                if ((j_mod == 0 && H[j_mod] ==
+                        H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
+                    (j_mod != 0 && H[j_mod] ==
+                        H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
+
+                    prev_i = predecessors[p];
+                    prev_j = j - 1;
+                    predecessor_found = true;
+                    break;
+                }
+            }
+        }
+
+        alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
+            j == prev_j ? -1 : j);
+
+        // update for next round
+        load_next_segment = (i == prev_i ? false : true) ||
+            (j != prev_j && prev_j % T::kNumVar == T::kNumVar - 1 ? true : false);
+
+        i = prev_i;
+        j = prev_j;
+        j_div = j / T::kNumVar;
+        j_mod = j % T::kNumVar;
+
+    } while (true);
+
+    // update alignment for NW (backtrack stops on first row or column)
+    if (alignment_type_ == AlignmentType::kNW) {
+        while (i == 0 && j != -1) {
+            alignment.emplace_back(-1, j);
+            --j;
+        }
+        while (i != 0 && j == -1) {
+            alignment.emplace_back(sorted_nodes_ids[i - 1], -1);
+
+            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            if (node->in_edges().empty()) {
+                i = 0;
+            } else {
+                for (const auto& edge: node->in_edges()) {
+                    uint32_t pred_i =
+                        pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
+                    if (pimpl_->first_column[i] ==
+                        pimpl_->first_column[pred_i] + gap_open_) {
+                        i = pred_i;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    std::reverse(alignment.begin(), alignment.end());
+    return alignment;
+
+#else
+
+    return Alignment();
+
+#endif
+}
+
+template<typename T>
+Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
+    const std::unique_ptr<Graph>& graph) {
+
+#if defined(__AVX2__) || defined(__SSE4_1__)
+
+    uint32_t normal_matrix_width = sequence.size();
+    uint32_t matrix_width = (sequence.size() + (sequence.size() % T::kNumVar == 0 ?
+        0 : T::kNumVar - sequence.size() % T::kNumVar)) / T::kNumVar;
+    uint32_t matrix_height = graph->nodes().size() + 1;
+    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+
+    // realloc
+    this->realloc(matrix_width, matrix_height, graph->num_codes());
+
+    // initialize
+    this->initialize<T>(sequence, graph, normal_matrix_width, matrix_width,
+        matrix_height);
+
+    __attribute__((aligned(kRegisterSize / 8))) typename T::type
+        unpacked[T::kNumVar] = {};
+
+    typename T::type negative_infinity =
+        std::numeric_limits<typename T::type>::min() + 1024;
+
+    __mxxxi negative_infinities = T::_mmxxx_set1_epi(negative_infinity);
+
+    for (uint32_t j = 0; j < matrix_width; ++j) {
+        pimpl_->F[j] = negative_infinities;
     }
 
     for (uint32_t i = 0; i < T::kNumVar; ++i) {
@@ -519,7 +899,12 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
             _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
     }
 
+    typename T::type max_score = alignment_type_ == AlignmentType::kSW ? 0 :
+        negative_infinity;
+    int32_t max_i = -1;
+    int32_t max_j = -1;
     uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
+    __mxxxi zeroes = T::_mmxxx_set1_epi(0);
     __mxxxi opn = T::_mmxxx_set1_epi(gap_open_ - gap_extend_);
     __mxxxi ext = T::_mmxxx_set1_epi(gap_extend_);
 
@@ -586,7 +971,7 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
         }
 
         __mxxxi* E_row = &(pimpl_->E[i * matrix_width]);
-        __mxxxi score = zeroes;
+        __mxxxi score = negative_infinities;
         x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
 
         for (uint32_t j = 0; j < matrix_width; ++j) {
@@ -743,15 +1128,15 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
         if (j_mod == 0) {
             // border case
             if (j_div > 0) {
-                for (uint32_t i = 0; i < predecessors.size(); ++i) {
+                for (uint32_t p = 0; p < predecessors.size(); ++p) {
                     _mmxxx_store_si(
-                        reinterpret_cast<__mxxxi*>(&H_diag_pred[i * T::kNumVar]),
-                        pimpl_->H[predecessors[i] * matrix_width + (j_div - 1)]);
+                        reinterpret_cast<__mxxxi*>(&H_diag_pred[p * T::kNumVar]),
+                        pimpl_->H[predecessors[p] * matrix_width + (j_div - 1)]);
                 }
             } else {
-                for (uint32_t i = 0; i < predecessors.size(); ++i) {
-                    H_diag_pred[(i + 1) * T::kNumVar - 1] =
-                        pimpl_->first_column[predecessors[i]];
+                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                    H_diag_pred[(p + 1) * T::kNumVar - 1] =
+                        pimpl_->first_column[predecessors[p]];
                 }
             }
         }

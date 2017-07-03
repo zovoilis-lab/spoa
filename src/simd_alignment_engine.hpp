@@ -41,11 +41,21 @@ private:
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 
-    void realloc(uint32_t matrix_height, uint32_t num_codes, uint32_t matrix_width);
+    template<typename T>
+    Alignment align_normal(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph);
 
     template<typename T>
-    Alignment align(const std::string& sequence,
+    Alignment align_gotoh(const std::string& sequence,
         const std::unique_ptr<Graph>& graph);
+
+    void realloc(uint32_t matrix_width, uint32_t matrix_height,
+        uint32_t num_codes);
+
+    template<typename T>
+    void initialize(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph, uint32_t normal_matrix_width,
+        uint32_t matrix_width, uint32_t matrix_height);
 
     struct Implementation;
     std::unique_ptr<Implementation> pimpl_;
