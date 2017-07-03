@@ -255,8 +255,6 @@ std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
     AlignmentType alignment_type, int8_t match, int8_t mismatch,
     int8_t gap_open, int8_t gap_extend) {
 
-    return nullptr;
-
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
     return std::unique_ptr<AlignmentEngine>(new SimdAlignmentEngine(
@@ -933,14 +931,11 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
             F_row[j] = T::_mmxxx_add_epi(T::_mmxxx_max_epi(T::_mmxxx_add_epi(
                 H_pred_row[j], opn), F_pred_row[j]), ext);
 
-            // get diagonal
+            // get diagonal and update H
             __mxxxi t1 = T::_mmxxx_srli_si(H_pred_row[j]);
-            H_row[j] = _mmxxx_or_si(T::_mmxxx_slli_si(H_pred_row[j]), x);
+            H_row[j] = T::_mmxxx_add_epi(_mmxxx_or_si(T::_mmxxx_slli_si(
+                H_pred_row[j]), x), char_profile[j]);
             x = t1;
-
-            // update H
-            H_row[j] = T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_row[j],
-                char_profile[j]), F_row[j]);
         }
 
         // check other predecessors
@@ -959,14 +954,12 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
                     T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_pred_row[j],
                     opn), F_pred_row[j]), ext));
 
-                // get diagonal
+                // get diagonal and update H
                 __mxxxi t1 = T::_mmxxx_srli_si(H_pred_row[j]);
-                __mxxxi h = _mmxxx_or_si(T::_mmxxx_slli_si(H_pred_row[j]), x);
+                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_add_epi(
+                    _mmxxx_or_si(T::_mmxxx_slli_si(H_pred_row[j]), x),
+                    char_profile[j]));
                 x = t1;
-
-                // updage H
-                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(
-                    T::_mmxxx_add_epi(h, char_profile[j]), F_row[j]));
             }
         }
 
@@ -975,6 +968,8 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
         x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
 
         for (uint32_t j = 0; j < matrix_width; ++j) {
+            H_row[j] = T::_mmxxx_max_epi(H_row[j], F_row[j]);
+
             E_row[j] = T::_mmxxx_add_epi(T::_mmxxx_add_epi(_mmxxx_or_si(
                 T::_mmxxx_slli_si(H_row[j]), T::_mmxxx_srli_si(x)), opn), ext);
 
@@ -1043,6 +1038,8 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
     } else if (alignment_type_ == AlignmentType::kNW) {
         max_j = normal_matrix_width - 1;
     }
+
+    max_j = std::min(max_j, static_cast<int32_t>(normal_matrix_width - 1));
 
     // backtrack
     uint32_t max_num_predecessors = 0;
