@@ -29,7 +29,7 @@ an executable named `spoa` will appear in `build/bin` directory and a library na
 
 Optionally, you can run `sudo make install` to install spoa executable and library to your machine.
 
-**Note** If you omitted `--recursive` from `git clone`, run `git submodule init` and `git submodule update` before proceeding with compilation.
+***Note***: if you omitted `--recursive` from `git clone`, run `git submodule init` and `git submodule update` before proceeding with compilation.
 
 ## Usage
 
