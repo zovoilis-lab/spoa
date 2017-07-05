@@ -79,7 +79,7 @@ void SisdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
 }
 
 void SisdAlignmentEngine::initialize(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
+    const std::unique_ptr<Graph>& graph) noexcept {
 
     uint32_t matrix_width = sequence.size() + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;
@@ -155,7 +155,7 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
 }
 
 Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
+    const std::unique_ptr<Graph>& graph) noexcept {
 
     uint32_t matrix_width = sequence.size() + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;
@@ -336,7 +336,7 @@ Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
 }
 
 Alignment SisdAlignmentEngine::align_gotoh(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
+    const std::unique_ptr<Graph>& graph) noexcept {
 
     uint32_t matrix_width = sequence.size() + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;

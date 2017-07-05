@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <stdlib.h>
 #include <stdint.h>
 #include <memory>
 #include <vector>
@@ -15,14 +14,6 @@
 #include "bioparser/bioparser.hpp"
 
 namespace spoa {
-
-class Chain;
-
-std::unique_ptr<Chain> createChain(uint64_t id, const char* name, uint32_t name_length,
-    const char* data, uint32_t data_length);
-
-std::unique_ptr<Chain> createChain(uint64_t id, const char* name, uint32_t name_length,
-    const char* data, uint32_t data_length, const char* quality, uint32_t quality_length);
 
 class Chain {
 public:
@@ -45,20 +36,15 @@ public:
         return quality_;
     }
 
-    friend std::unique_ptr<Chain> createChain(uint64_t id, const char* name,
-        uint32_t name_length, const char* data, uint32_t data_length);
-    friend std::unique_ptr<Chain> createChain(uint64_t id, const char* name,
-        uint32_t name_length, const char* data, uint32_t data_length,
-        const char* quality, uint32_t quality_length);
-
     friend bioparser::FastaReader<Chain>;
     friend bioparser::FastqReader<Chain>;
 
 private:
 
-    Chain(uint64_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length);
-    Chain(uint64_t id, const char* name, uint32_t name_length, const char* data, uint32_t data_length,
-        const char* quality, uint32_t quality_length);
+    Chain(uint64_t id, const char* name, uint32_t name_length, const char* data,
+        uint32_t data_length);
+    Chain(uint64_t id, const char* name, uint32_t name_length, const char* data,
+        uint32_t data_length, const char* quality, uint32_t quality_length);
     Chain(const Chain&) = delete;
     const Chain& operator=(const Chain&) = delete;
 

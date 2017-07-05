@@ -107,12 +107,12 @@ void Graph::add_alignment(const Alignment& alignment,
     const std::string& sequence, const std::vector<uint32_t>& weights) {
 
     if (sequence.empty()) {
-        fprintf(stderr, "spoa::Graph::add_alignment error:"
+        fprintf(stderr, "[spoa::Graph::add_alignment] Error: "
             "empty sequence\n");
         exit(1);
     }
     if (sequence.size() != weights.size()) {
-        fprintf(stderr, "spoa::Graph::add_alignment error:"
+        fprintf(stderr, "[spoa::Graph::add_alignment] Error: "
             "unequal sequence and weight sizes");
         exit(1);
     }
@@ -178,7 +178,6 @@ void Graph::add_alignment(const Alignment& alignment,
 
                 if (aligned_to_node_id == -1) {
                     new_node_id = this->add_node(coder_[letter]);
-                    // fprintf(stderr, "%d %d\n", new_node_id, nodes_[alignment[i].first]->aligned_nodes_ids_.size());
 
                     for (const auto& aid: nodes_[alignment[i].first]->aligned_nodes_ids_) {
                         nodes_[new_node_id]->aligned_nodes_ids_.emplace_back(aid);

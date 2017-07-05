@@ -386,7 +386,7 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
 template<typename T>
 void SimdAlignmentEngine::initialize(const std::string& sequence,
     const std::unique_ptr<Graph>& graph, uint32_t normal_matrix_width,
-    uint32_t matrix_width, uint32_t matrix_height) {
+    uint32_t matrix_width, uint32_t matrix_height) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
@@ -515,7 +515,7 @@ Alignment SimdAlignmentEngine::align_sequence_with_graph(
 
 template<typename T>
 Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
+    const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
@@ -859,7 +859,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
 
 template<typename T>
 Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
+    const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 

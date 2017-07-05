@@ -43,11 +43,11 @@ private:
 
     template<typename T>
     Alignment align_normal(const std::string& sequence,
-        const std::unique_ptr<Graph>& graph);
+        const std::unique_ptr<Graph>& graph) noexcept;
 
     template<typename T>
     Alignment align_gotoh(const std::string& sequence,
-        const std::unique_ptr<Graph>& graph);
+        const std::unique_ptr<Graph>& graph) noexcept;
 
     void realloc(uint32_t matrix_width, uint32_t matrix_height,
         uint32_t num_codes);
@@ -55,7 +55,7 @@ private:
     template<typename T>
     void initialize(const std::string& sequence,
         const std::unique_ptr<Graph>& graph, uint32_t normal_matrix_width,
-        uint32_t matrix_width, uint32_t matrix_height);
+        uint32_t matrix_width, uint32_t matrix_height) noexcept;
 
     struct Implementation;
     std::unique_ptr<Implementation> pimpl_;
