@@ -21,7 +21,7 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(
         alignment_type != AlignmentType::kNW &&
         alignment_type != AlignmentType::kOV) {
 
-        fprintf(stderr, "[spoa::createAlignmentEngine] Error: "
+        fprintf(stderr, "spoa::createAlignmentEngine error: "
             "invalid alignment type\n");
         exit(1);
     }
