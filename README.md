@@ -55,7 +55,7 @@ Usage of spoa is as following:
     -h, -help
         prints out the help
 
-###Library
+### Library
 
 Simple library usage can be seen in the following `example.cpp` file. This code shows how to get consensus and multiple sequence alignment for a set of sequences without quality values.
 
@@ -100,11 +100,11 @@ int main(int argc, char** argv) {
 }
 ```
 
-This code can be compiled from spoa root with:
+This code can be compiled from spoa root directory with:
 ```bash
 g++ example.cpp -std=c++11 -Iinclude/ -Lbuild/lib/ -lspoa -o example
 ```
-If spoa was installed, the following modified command will compile as well:
+or with the following modified command if spoa was installed beforehand:
 ```bash
 g++ example.cpp -std=c++11 -lspoa -o example
 ```
