@@ -18,6 +18,8 @@ Application uses following software:
 CmakeLists is provided in the project root folder. By running the following commands:
 
 ```bash
+git clone --recursive https://github.com/rvaser/spoa spoa
+cd spoa
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -26,6 +28,8 @@ make
 an executable named `spoa` will appear in `build/bin` directory and a library named `libspoa.a` in the `build/lib` directory.
 
 Optionally, you can run `sudo make install` to install spoa executable and library to your machine.
+
+**Note** If you omitted `--recursive` from `git clone`, run `git submodule init` and `git submodule update` before proceeding with compilation.
 
 ## Usage
 
@@ -115,7 +119,6 @@ The executable can be run with:
 ```
 
 On the other hand, if you are using `cmake` you can add spoa to your project by adding commands `add_subdirectory(vendor/spoa EXCLUDE_FROM_ALL)` and `target_link_libraries(your_exe spoa)` to your main CMakeLists file.
-
 
 ## Contact information
 
