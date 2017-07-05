@@ -48,8 +48,8 @@ SisdAlignmentEngine::~SisdAlignmentEngine() {
 void SisdAlignmentEngine::prealloc(uint32_t max_sequence_size,
     uint32_t alphabet_size) {
 
-    this->realloc(alphabet_size * max_sequence_size, alphabet_size,
-        max_sequence_size);
+    this->realloc(max_sequence_size, alphabet_size * max_sequence_size,
+        alphabet_size);
 }
 
 void SisdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
