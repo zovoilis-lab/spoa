@@ -380,22 +380,6 @@ void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
     }
 }
 
-void Graph::check_multiple_sequence_alignment(const std::vector<std::string>& msa,
-    const std::vector<std::string>& sequences,
-    const std::vector<uint32_t>& indices) const {
-
-    for (uint32_t i = 0; i < sequences.size(); ++i) {
-        std::string temp = "";
-        for (const auto& c: msa[i]) {
-            if (c != '-') temp += c;
-        }
-        assert(temp.size() == sequences[indices[i]].size() &&
-            "different lenghts");
-        assert(temp.compare(sequences[indices[i]]) == 0 &&
-            "different sequence");
-    }
-}
-
 std::string Graph::generate_consensus() {
 
     this->traverse_heaviest_bundle();

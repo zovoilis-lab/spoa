@@ -100,10 +100,6 @@ private:
         std::vector<int32_t>& predecessors,
         uint32_t rank);
 
-    void check_multiple_sequence_alignment(const std::vector<std::string>& msa,
-        const std::vector<std::string>& sequences,
-        const std::vector<uint32_t>& indices) const;
-
     void extract_subgraph_nodes(std::vector<bool>& dst, uint32_t current_node_id,
         uint32_t end_node_id) const;
 

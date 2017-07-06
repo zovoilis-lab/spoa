@@ -28,6 +28,21 @@ target_include_directories(spoa PUBLIC
     $<INSTALL_INTERFACE:include>)
 
 if (spoa_build_tests)
+    file(COPY test/data DESTINATION ${PROJECT_BINARY_DIR})
+    set(spoa_test_data_path ${PROJECT_BINARY_DIR}/data/)
+    configure_file(
+        "${PROJECT_SOURCE_DIR}/test/spoa_test_config.h.in"
+        "${PROJECT_BINARY_DIR}/config/spoa_test_config.h"
+    )
+    include_directories(${PROJECT_BINARY_DIR}/config)
+    include_directories(${PROJECT_SOURCE_DIR}/src)
+
+    add_executable(spoa_test
+        src/chain.cpp
+        test/spoa_test.cpp)
+
+    add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
+    target_link_libraries(spoa_test spoa bioparser gtest_main)
 endif(spoa_build_tests)
 
 install(TARGETS spoa-bin DESTINATION bin)
