@@ -774,6 +774,21 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
 
         if (i != 0) {
             for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                if ((j_mod == 0 && H[j_mod] ==
+                        H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
+                    (j_mod != 0 && H[j_mod] ==
+                        H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
+
+                    prev_i = predecessors[p];
+                    prev_j = j - 1;
+                    predecessor_found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
+            for (uint32_t p = 0; p < predecessors.size(); ++p) {
                 if (H[j_mod] == H_pred[p * T::kNumVar + j_mod] + gap_open_) {
                     prev_i = predecessors[p];
                     prev_j = j;
@@ -789,21 +804,6 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
                 prev_i = i;
                 prev_j = j - 1;
                 predecessor_found = true;
-            }
-        }
-
-        if (!predecessor_found && i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
-                if ((j_mod == 0 && H[j_mod] ==
-                        H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
-                    (j_mod != 0 && H[j_mod] ==
-                        H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
-
-                    prev_i = predecessors[p];
-                    prev_j = j - 1;
-                    predecessor_found = true;
-                    break;
-                }
             }
         }
 
