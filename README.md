@@ -1,4 +1,4 @@
-# spoa
+# Spoa
 
 ![image](https://travis-ci.org/rvaser/spoa.svg?branch=master)
 
