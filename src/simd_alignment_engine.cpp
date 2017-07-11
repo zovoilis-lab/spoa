@@ -409,10 +409,10 @@ void SimdAlignmentEngine::initialize(const std::string& sequence,
         }
     }
 
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+    const auto& rank_to_node_id = graph->rank_to_node_id();
 
-    for (uint32_t i = 0; i < sorted_nodes_ids.size(); ++i) {
-        pimpl_->node_id_to_rank[sorted_nodes_ids[i]] = i;
+    for (uint32_t i = 0; i < rank_to_node_id.size(); ++i) {
+        pimpl_->node_id_to_rank[rank_to_node_id[i]] = i;
     }
 
     typename T::type negative_infinity =
@@ -431,7 +431,7 @@ void SimdAlignmentEngine::initialize(const std::string& sequence,
 
     if (alignment_type_ == AlignmentType::kNW) {
         pimpl_->first_column[0] = 0;
-        for (const auto& node_id: sorted_nodes_ids) {
+        for (const auto& node_id: rank_to_node_id) {
             uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
             const auto& node = graph->nodes()[node_id];
             if (node->in_edges().empty()) {
@@ -523,7 +523,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
     uint32_t matrix_width = (sequence.size() + (sequence.size() % T::kNumVar == 0 ?
         0 : T::kNumVar - sequence.size() % T::kNumVar)) / T::kNumVar;
     uint32_t matrix_height = graph->nodes().size() + 1;
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+    const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
     this->realloc(matrix_width, matrix_height, graph->num_codes());
@@ -556,7 +556,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
     __mxxxi opn = T::_mmxxx_set1_epi(gap_open_);
 
     // alignment
-    for (uint32_t node_id: sorted_nodes_ids) {
+    for (uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         __mxxxi* char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
@@ -664,7 +664,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
             matrix_width, max_score);
 
     } else if (alignment_type_ == AlignmentType::kOV) {
-        if (graph->nodes()[sorted_nodes_ids[max_i - 1]]->out_edges().empty()) {
+        if (graph->nodes()[rank_to_node_id[max_i - 1]]->out_edges().empty()) {
             max_j = _mmxxx_index_of<T>(&(pimpl_->H[max_i * matrix_width]),
                 matrix_width, max_score);
         } else {
@@ -679,7 +679,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
     uint32_t max_num_predecessors = 0;
     for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
         max_num_predecessors = std::max(max_num_predecessors,
-            (uint32_t) graph->nodes()[sorted_nodes_ids[i]]->in_edges().size());
+            (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
     }
 
     __attribute__((aligned(kRegisterSize / 8))) typename T::type H[T::kNumVar];
@@ -711,7 +711,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
             break;
         }
 
-        const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+        const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
         // load everything
         if (load_next_segment) {
             predecessors.clear();
@@ -807,7 +807,7 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
             }
         }
 
-        alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
+        alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
             j == prev_j ? -1 : j);
 
         // update for next round
@@ -828,9 +828,9 @@ Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
             --j;
         }
         while (i != 0 && j == -1) {
-            alignment.emplace_back(sorted_nodes_ids[i - 1], -1);
+            alignment.emplace_back(rank_to_node_id[i - 1], -1);
 
-            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
             if (node->in_edges().empty()) {
                 i = 0;
             } else {
@@ -867,7 +867,7 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
     uint32_t matrix_width = (sequence.size() + (sequence.size() % T::kNumVar == 0 ?
         0 : T::kNumVar - sequence.size() % T::kNumVar)) / T::kNumVar;
     uint32_t matrix_height = graph->nodes().size() + 1;
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+    const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
     this->realloc(matrix_width, matrix_height, graph->num_codes());
@@ -907,7 +907,7 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
     __mxxxi ext = T::_mmxxx_set1_epi(gap_extend_);
 
     // alignment
-    for (uint32_t node_id: sorted_nodes_ids) {
+    for (uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         __mxxxi* char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
@@ -1028,7 +1028,7 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
             matrix_width, max_score);
 
     } else if (alignment_type_ == AlignmentType::kOV) {
-        if (graph->nodes()[sorted_nodes_ids[max_i - 1]]->out_edges().empty()) {
+        if (graph->nodes()[rank_to_node_id[max_i - 1]]->out_edges().empty()) {
             max_j = _mmxxx_index_of<T>(&(pimpl_->H[max_i * matrix_width]),
                 matrix_width, max_score);
         } else {
@@ -1045,7 +1045,7 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
     uint32_t max_num_predecessors = 0;
     for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
         max_num_predecessors = std::max(max_num_predecessors,
-            (uint32_t) graph->nodes()[sorted_nodes_ids[i]]->in_edges().size());
+            (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
     }
 
     __attribute__((aligned(kRegisterSize / 8))) typename T::type H[T::kNumVar];
@@ -1078,7 +1078,7 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
             break;
         }
 
-        const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+        const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
         // load everything
         if (load_next_segment) {
             predecessors.clear();
@@ -1174,7 +1174,7 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
             }
         }
 
-        alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
+        alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
             j == prev_j ? -1 : j);
 
         // update for next round
@@ -1195,9 +1195,9 @@ Alignment SimdAlignmentEngine::align_gotoh(const std::string& sequence,
             --j;
         }
         while (i != 0 && j == -1) {
-            alignment.emplace_back(sorted_nodes_ids[i - 1], -1);
+            alignment.emplace_back(rank_to_node_id[i - 1], -1);
 
-            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
             if (node->in_edges().empty()) {
                 i = 0;
             } else {

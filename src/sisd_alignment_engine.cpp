@@ -93,10 +93,10 @@ void SisdAlignmentEngine::initialize(const std::string& sequence,
         }
     }
 
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+    const auto& rank_to_node_id = graph->rank_to_node_id();
 
-    for (uint32_t i = 0; i < sorted_nodes_ids.size(); ++i) {
-        pimpl_->node_id_to_rank[sorted_nodes_ids[i]] = i;
+    for (uint32_t i = 0; i < rank_to_node_id.size(); ++i) {
+        pimpl_->node_id_to_rank[rank_to_node_id[i]] = i;
     }
 
     if (alignment_type_ == AlignmentType::kSW) {
@@ -110,7 +110,7 @@ void SisdAlignmentEngine::initialize(const std::string& sequence,
 
     if (alignment_type_ == AlignmentType::kNW) {
         pimpl_->H[0] = 0;
-        for (const auto& node_id: sorted_nodes_ids) {
+        for (const auto& node_id: rank_to_node_id) {
             uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
             const auto& node = graph->nodes()[node_id];
             if (node->in_edges().empty()) {
@@ -159,7 +159,7 @@ Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
 
     uint32_t matrix_width = sequence.size() + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+    const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
     this->realloc(matrix_width, matrix_height, graph->num_codes());
@@ -182,7 +182,7 @@ Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
     };
 
     // alignment
-    for (uint32_t node_id: sorted_nodes_ids) {
+    for (uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         const auto& char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
@@ -261,7 +261,7 @@ Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
         bool predecessor_found = false;
 
         if (i != 0 && j != 0) {
-            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
             int32_t match_cost =
                 pimpl_->sequence_profile[node->code() * matrix_width + j];
 
@@ -291,7 +291,7 @@ Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
         }
 
         if (!predecessor_found && i != 0) {
-            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
@@ -324,7 +324,7 @@ Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
             predecessor_found = true;
         }
 
-        alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
+        alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
             j == prev_j ? -1 : j - 1);
 
         i = prev_i;
@@ -340,7 +340,7 @@ Alignment SisdAlignmentEngine::align_gotoh(const std::string& sequence,
 
     uint32_t matrix_width = sequence.size() + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;
-    const auto& sorted_nodes_ids = graph->sorted_nodes_ids();
+    const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
     this->realloc(matrix_width, matrix_height, graph->num_codes());
@@ -374,7 +374,7 @@ Alignment SisdAlignmentEngine::align_gotoh(const std::string& sequence,
     }
 
     // alignment
-    for (uint32_t node_id: sorted_nodes_ids) {
+    for (uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         const auto& char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
@@ -465,7 +465,7 @@ Alignment SisdAlignmentEngine::align_gotoh(const std::string& sequence,
         bool predecessor_found = false;
 
         if (i != 0) {
-            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
@@ -501,7 +501,7 @@ Alignment SisdAlignmentEngine::align_gotoh(const std::string& sequence,
         }
 
         if (!predecessor_found && i != 0 && j != 0) {
-            const auto& node = graph->nodes()[sorted_nodes_ids[i - 1]];
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
             int32_t match_cost =
                 pimpl_->sequence_profile[node->code() * matrix_width + j];
 
@@ -530,7 +530,7 @@ Alignment SisdAlignmentEngine::align_gotoh(const std::string& sequence,
             }
         }
 
-        alignment.emplace_back(i == prev_i ? -1 : sorted_nodes_ids[i - 1],
+        alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
             j == prev_j ? -1 : j - 1);
 
         i = prev_i;

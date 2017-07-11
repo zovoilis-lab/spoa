@@ -31,8 +31,8 @@ public:
         return nodes_;
     }
 
-    const std::vector<uint32_t>& sorted_nodes_ids() const {
-        return sorted_nodes_ids_;
+    const std::vector<uint32_t>& rank_to_node_id() const {
+        return rank_to_node_id_;
     }
 
     uint32_t num_codes() const {
@@ -108,7 +108,7 @@ private:
     std::vector<int32_t> coder_;
     std::vector<int32_t> decoder_;
     std::vector<std::unique_ptr<Node>> nodes_;
-    std::vector<uint32_t> sorted_nodes_ids_;
+    std::vector<uint32_t> rank_to_node_id_;
     std::vector<uint32_t> sequences_begin_nodes_ids_;
     std::vector<uint32_t> consensus_;
 };

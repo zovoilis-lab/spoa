@@ -55,7 +55,7 @@ std::unique_ptr<Graph> createGraph() {
 
 Graph::Graph() :
         num_sequences_(0), num_codes_(0), coder_(kMaxAlphabetSize, -1),
-        decoder_(kMaxAlphabetSize, -1), nodes_(), sorted_nodes_ids_(),
+        decoder_(kMaxAlphabetSize, -1), nodes_(), rank_to_node_id_(),
         sequences_begin_nodes_ids_(), consensus_() {
 }
 
@@ -244,7 +244,7 @@ int32_t Graph::add_sequence(const std::string& sequence,
 
 void Graph::topological_sort() {
 
-    sorted_nodes_ids_.clear();
+    rank_to_node_id_.clear();
 
     // 0 - unmarked, 1 - temporarily marked, 2 - permanently marked
     std::vector<uint8_t> node_marks(nodes_.size(), 0);
@@ -285,9 +285,9 @@ void Graph::topological_sort() {
                 if (valid) {
                     node_marks[node_id] = 2;
                     if (check_aligned_nodes[node_id]) {
-                        sorted_nodes_ids_.push_back(node_id);
+                        rank_to_node_id_.push_back(node_id);
                         for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
-                            sorted_nodes_ids_.emplace_back(aid);
+                            rank_to_node_id_.emplace_back(aid);
                         }
                     }
                 } else {
@@ -305,10 +305,10 @@ void Graph::topological_sort() {
 }
 
 bool Graph::is_topologically_sorted() const {
-    assert(nodes_.size() == sorted_nodes_ids_.size());
+    assert(nodes_.size() == rank_to_node_id_.size());
 
     std::vector<bool> visited_nodes(nodes_.size(), false);
-    for (uint32_t node_id: sorted_nodes_ids_) {
+    for (uint32_t node_id: rank_to_node_id_) {
         for (const auto& edge: nodes_[node_id]->in_edges_) {
             if (visited_nodes[edge->begin_node_id_] == false) {
                 return false;
@@ -327,11 +327,11 @@ void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
     std::vector<int32_t> msa_node_ids(nodes_.size(), -1);
     int32_t base_counter = 0;
     for (uint32_t i = 0; i < nodes_.size(); ++i) {
-        uint32_t node_id = sorted_nodes_ids_[i];
+        uint32_t node_id = rank_to_node_id_[i];
 
         msa_node_ids[node_id] = base_counter;
         for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids_.size(); ++j) {
-            msa_node_ids[sorted_nodes_ids_[++i]] = base_counter;
+            msa_node_ids[rank_to_node_id_[++i]] = base_counter;
         }
         ++base_counter;
     }
@@ -427,7 +427,7 @@ void Graph::traverse_heaviest_bundle() {
     std::vector<int32_t> scores(nodes_.size(), -1);
 
     uint32_t max_score_id = 0;
-    for (const auto& node_id: sorted_nodes_ids_) {
+    for (const auto& node_id: rank_to_node_id_) {
         for (const auto& edge: nodes_[node_id]->in_edges_) {
             if (scores[node_id] < edge->total_weight_ ||
                 (scores[node_id] == edge->total_weight_ &&
@@ -451,7 +451,7 @@ void Graph::traverse_heaviest_bundle() {
 
         std::vector<uint32_t> node_id_to_rank(nodes_.size(), 0);
         for (uint32_t i = 0; i < nodes_.size(); ++i) {
-            node_id_to_rank[sorted_nodes_ids_[i]] = i;
+            node_id_to_rank[rank_to_node_id_[i]] = i;
         }
 
         while (nodes_[max_score_id]->out_edges_.size() != 0) {
@@ -474,7 +474,7 @@ void Graph::traverse_heaviest_bundle() {
 uint32_t Graph::branch_completion(std::vector<int32_t>& scores,
     std::vector<int32_t>& predecessors, uint32_t rank) {
 
-    uint32_t node_id = sorted_nodes_ids_[rank];
+    uint32_t node_id = rank_to_node_id_[rank];
     for (const auto& edge: nodes_[node_id]->out_edges_) {
         for (const auto& o_edge: nodes_[edge->end_node_id_]->in_edges_) {
             if (o_edge->begin_node_id_ != node_id) {
@@ -485,9 +485,9 @@ uint32_t Graph::branch_completion(std::vector<int32_t>& scores,
 
     float max_score = 0;
     uint32_t max_score_id = 0;
-    for (uint32_t i = rank + 1; i < sorted_nodes_ids_.size(); ++i) {
+    for (uint32_t i = rank + 1; i < rank_to_node_id_.size(); ++i) {
 
-        uint32_t node_id = sorted_nodes_ids_[i];
+        uint32_t node_id = rank_to_node_id_[i];
         scores[node_id] = -1;
         predecessors[node_id] = -1;
 
