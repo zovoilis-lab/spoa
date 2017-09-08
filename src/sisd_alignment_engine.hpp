@@ -39,10 +39,7 @@ private:
     SisdAlignmentEngine(const SisdAlignmentEngine&) = delete;
     const SisdAlignmentEngine& operator=(const SisdAlignmentEngine&) = delete;
 
-    Alignment align_normal(const std::string& sequence,
-        const std::unique_ptr<Graph>& graph) noexcept;
-
-    Alignment align_gotoh(const std::string& sequence,
+    Alignment align(const std::string& sequence,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     void realloc(uint32_t matrix_width, uint32_t matrix_height,

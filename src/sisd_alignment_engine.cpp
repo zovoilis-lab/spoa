@@ -125,10 +125,10 @@ Alignment SisdAlignmentEngine::align_sequence_with_graph(
         return Alignment();
     }
 
-    return align_normal(sequence, graph);
+    return align(sequence, graph);
 }
 
-Alignment SisdAlignmentEngine::align_normal(const std::string& sequence,
+Alignment SisdAlignmentEngine::align(const std::string& sequence,
     const std::unique_ptr<Graph>& graph) noexcept {
 
     uint32_t matrix_width = sequence.size() + 1;

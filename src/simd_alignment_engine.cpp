@@ -60,14 +60,18 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     return _mm256_or_si256(a, b);
 }
 
-#define _mmxxx_slli_si(a, n) n < 16 ? \
-    _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a, \
-        _MM_SHUFFLE(0, 0, 2, 0)), 16 - n) : \
-    _mm256_permute2x128_si256(a, a, _MM_SHUFFLE(0, 0, 2, 0))
+inline __mxxxi _mmxxx_slli_si(const __mxxxi& a, const uint8_t n) {
+    if (n < 16) {
+        return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
+            _MM_SHUFFLE(0, 0, 2, 0)), 16 - n);
+    }
+    return _mm256_permute2x128_si256(a, a, _MM_SHUFFLE(0, 0, 2, 0));
+}
 
-#define _mmxxx_srli_si(a, n) \
-    _mm256_srli_si256(_mm256_permute2x128_si256(a, a, \
-        _MM_SHUFFLE(2, 0, 0, 1)), n - 16)
+inline __mxxxi _mmxxx_srli_si(const __mxxxi& a, const uint8_t n) {
+    return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
+        _MM_SHUFFLE(2, 0, 0, 1)), n - 16);
+}
 
 // PSS - Prefix max Shift Sizes
 // LSS - Left Shift Size
@@ -142,8 +146,13 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     return _mm_or_si128(a, b);
 }
 
-#define _mmxxx_slli_si(a, n) _mm_slli_si128(a, n)
-#define _mmxxx_srli_si(a, n) _mm_srli_si128(a, n)
+inline __mxxxi _mmxxx_slli_si(const __mxxxi& a, const uint8_t n) {
+    return _mm_slli_si128(a, n);
+}
+
+inline __mxxxi _mmxxx_srli_si(const __mxxxi& a, const uint8_t n) {
+    return _mm_srli_si128(a, n);
+}
 
 template<>
 struct InstructionSet<int16_t> {
@@ -482,9 +491,9 @@ Alignment SimdAlignmentEngine::align_sequence_with_graph(
     uint32_t max_penalty = std::max(std::max(abs(match_), abs(mismatch_)), abs(gap_));
 
     if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
-        return align_normal<InstructionSet<int16_t>>(sequence, graph);
+        return align<InstructionSet<int16_t>>(sequence, graph);
     } else {
-        return align_normal<InstructionSet<int32_t>>(sequence, graph);
+        return align<InstructionSet<int32_t>>(sequence, graph);
     }
 
 #else
@@ -495,7 +504,7 @@ Alignment SimdAlignmentEngine::align_sequence_with_graph(
 }
 
 template<typename T>
-Alignment SimdAlignmentEngine::align_normal(const std::string& sequence,
+Alignment SimdAlignmentEngine::align(const std::string& sequence,
     const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
