@@ -60,18 +60,14 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     return _mm256_or_si256(a, b);
 }
 
-inline __mxxxi _mmxxx_slli_si(const __mxxxi& a, const uint8_t n) {
-    if (n < 16) {
-        return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
-            _MM_SHUFFLE(0, 0, 2, 0)), 16 - n);
-    }
-    return _mm256_permute2x128_si256(a, a, _MM_SHUFFLE(0, 0, 2, 0));
-}
+#define _mmxxx_slli_si(a, n) n < 16 ? \
+    _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a, \
+        _MM_SHUFFLE(0, 0, 2, 0)), 16 - n) : \
+    _mm256_permute2x128_si256(a, a, _MM_SHUFFLE(0, 0, 2, 0))
 
-inline __mxxxi _mmxxx_srli_si(const __mxxxi& a, const uint8_t n) {
-    return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
-        _MM_SHUFFLE(2, 0, 0, 1)), n - 16);
-}
+#define _mmxxx_srli_si(a, n) \
+    _mm256_srli_si256(_mm256_permute2x128_si256(a, a, \
+        _MM_SHUFFLE(2, 0, 0, 1)), n - 16)
 
 // PSS - Prefix max Shift Sizes
 // LSS - Left Shift Size
@@ -146,13 +142,8 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     return _mm_or_si128(a, b);
 }
 
-inline __mxxxi _mmxxx_slli_si(const __mxxxi& a, const uint8_t n) {
-    return _mm_slli_si128(a, n);
-}
-
-inline __mxxxi _mmxxx_srli_si(const __mxxxi& a, const uint8_t n) {
-    return _mm_srli_si128(a, n);
-}
+#define _mmxxx_slli_si(a, n) _mm_slli_si128(a, n)
+#define _mmxxx_srli_si(a, n) _mm_srli_si128(a, n)
 
 template<>
 struct InstructionSet<int16_t> {
