@@ -20,8 +20,7 @@ class Graph;
 
 class SimdAlignmentEngine;
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
-    AlignmentType alignment_type, int8_t match, int8_t mismatch,
-    int8_t gap_open, int8_t gap_extend);
+    AlignmentType alignment_type, int8_t match, int8_t mismatch, int8_t gap);
 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
@@ -33,11 +32,10 @@ public:
         const std::unique_ptr<Graph>& graph) override;
 
     friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
-        AlignmentType alignment_type, int8_t match, int8_t mismatch,
-        int8_t gap_open, int8_t gap_extend);
+        AlignmentType alignment_type, int8_t match, int8_t mismatch, int8_t gap);
 private:
     SimdAlignmentEngine(AlignmentType alignment_type, int8_t match,
-        int8_t mismatch, int8_t gap_open, int8_t gap_extend);
+        int8_t mismatch, int8_t gap);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 

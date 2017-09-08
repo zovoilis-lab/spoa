@@ -15,7 +15,7 @@ namespace spoa {
 
 std::unique_ptr<AlignmentEngine> createAlignmentEngine(
     AlignmentType alignment_type, int8_t match, int8_t mismatch,
-    int8_t gap_open, int8_t gap_extend) {
+    int8_t gap) {
 
     if (alignment_type != AlignmentType::kSW &&
         alignment_type != AlignmentType::kNW &&
@@ -27,20 +27,19 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(
     }
 
     auto alignment_engine = createSimdAlignmentEngine(alignment_type, match,
-        mismatch, gap_open, gap_extend);
+        mismatch, gap);
 
     if (alignment_engine == nullptr) {
-        return createSisdAlignmentEngine(alignment_type, match, mismatch,
-            gap_open, gap_extend);
+        return createSisdAlignmentEngine(alignment_type, match, mismatch, gap);
     }
 
     return alignment_engine;
 }
 
 AlignmentEngine::AlignmentEngine(AlignmentType alignment_type, int8_t match,
-    int8_t mismatch, int8_t gap_open, int8_t gap_extend)
+    int8_t mismatch, int8_t gap)
         : alignment_type_(alignment_type), match_(match), mismatch_(mismatch),
-        gap_open_(gap_open), gap_extend_(gap_extend) {
+        gap_(gap) {
 }
 
 }

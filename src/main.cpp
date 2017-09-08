@@ -28,14 +28,13 @@ int main(int argc, char** argv) {
 
     int8_t match = 5;
     int8_t mismatch = -4;
-    int8_t gap_open = -8;
-    int8_t gap_extend = -6;
+    int8_t gap = -8;
 
     uint8_t algorithm = 0;
     uint8_t result = 0;
 
     while (true) {
-        auto argument = getopt_long(argc, argv, "a:q:m:x:o:e:l:r:h", options,
+        auto argument = getopt_long(argc, argv, "a:q:m:x:g:l:r:h", options,
             nullptr);
         if (argument == -1) {
             break;
@@ -54,11 +53,8 @@ int main(int argc, char** argv) {
             case 'x':
                 mismatch = atoi(optarg);
                 break;
-            case 'o':
-                gap_open = atoi(optarg);
-                break;
-            case 'e':
-                gap_extend = atoi(optarg);
+            case 'g':
+                gap = atoi(optarg);
                 break;
             case 'l':
                 algorithm = atoi(optarg);
@@ -81,8 +77,7 @@ int main(int argc, char** argv) {
     }
 
     auto alignment_engine = spoa::createAlignmentEngine(
-        static_cast<spoa::AlignmentType>(algorithm), match, mismatch, gap_open,
-        gap_extend);
+        static_cast<spoa::AlignmentType>(algorithm), match, mismatch, gap);
 
     auto graph = spoa::createGraph();
 
@@ -157,12 +152,9 @@ void help() {
     "    -x, --mismatch <int>\n"
     "        default: -4\n"
     "        score for mismatching bases\n"
-    "    -o, --gap-open <int>\n"
+    "    -g, --gap <int>\n"
     "        default: -8\n"
-    "        gap opening penalty\n"
-    "    -e, --gap-extend <int>\n"
-    "        default: -6\n"
-    "        gap extension penalty\n"
+    "        gap penalty\n"
     "    -l, --algorithm <int>\n"
     "        default: 0\n"
     "        alignment mode: 0 - local, 1 - global, 2 - semi-global\n"

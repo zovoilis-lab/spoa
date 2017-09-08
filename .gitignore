@@ -1,5 +1,2 @@
 # Compiled Object files
-obj/
-
-# Executables
-spoa
+build/

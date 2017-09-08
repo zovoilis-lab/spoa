@@ -25,8 +25,7 @@ using Alignment = std::vector<std::pair<int32_t, int32_t>>;
 
 class AlignmentEngine;
 std::unique_ptr<AlignmentEngine> createAlignmentEngine(
-    AlignmentType alignment_type, int8_t match, int8_t mismatch,
-    int8_t gap_open, int8_t gap_extend);
+    AlignmentType alignment_type, int8_t match, int8_t mismatch, int8_t gap);
 
 class AlignmentEngine {
 public:
@@ -38,15 +37,14 @@ public:
         const std::unique_ptr<Graph>& graph) = 0;
 protected:
     AlignmentEngine(AlignmentType alignment_type, int8_t match, int8_t mismatch,
-        int8_t gap_open, int8_t gap_extend);
+        int8_t gap);
     AlignmentEngine(const AlignmentEngine&) = delete;
     const AlignmentEngine& operator=(const AlignmentEngine&) = delete;
 
     AlignmentType alignment_type_;
     int8_t match_;
     int8_t mismatch_;
-    int8_t gap_open_;
-    int8_t gap_extend_;
+    int8_t gap_;
 };
 
 }
