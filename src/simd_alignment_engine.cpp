@@ -60,31 +60,22 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     return _mm256_or_si256(a, b);
 }
 
-inline __mxxxi _mmxxx_slli_si(const __mxxxi& a, const uint8_t n) {
-    if (n < 16) {
-        return _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a,
-            _MM_SHUFFLE(0, 0, 2, 0)), 16 - n);
-    }
-    return _mm256_permute2x128_si256(a, a, _MM_SHUFFLE(0, 0, 2, 0));
-}
+#define _mmxxx_slli_si(a, n) n < 16 ? \
+    _mm256_alignr_epi8(a, _mm256_permute2x128_si256(a, a, \
+        _MM_SHUFFLE(0, 0, 2, 0)), 16 - n) : \
+    _mm256_permute2x128_si256(a, a, _MM_SHUFFLE(0, 0, 2, 0))
 
-inline __mxxxi _mmxxx_srli_si(const __mxxxi& a, const uint8_t n) {
-    return _mm256_srli_si256(_mm256_permute2x128_si256(a, a,
-        _MM_SHUFFLE(2, 0, 0, 1)), n - 16);
-}
-
-// PSS - Prefix max Shift Sizes
-// LSS - Left Shift Size
-// RSS - Right Shift Size
+#define _mmxxx_srli_si(a, n) \
+    _mm256_srli_si256(_mm256_permute2x128_si256(a, a, \
+        _MM_SHUFFLE(2, 0, 0, 1)), n - 16)
 
 template<>
 struct InstructionSet<int16_t> {
     using type = int16_t;
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static constexpr uint32_t kLogNumVar = 4;
-    static constexpr uint32_t kPSS[kLogNumVar] = {2, 4, 8, 16};
-    static constexpr uint32_t kLSS = 2;
-    static constexpr uint32_t kRSS = 30;
+    static constexpr uint32_t kLSS = 2; // Left Shift Size
+    static constexpr uint32_t kRSS = 30; // Right Shift Size
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm256_add_epi16(a, b);
     }
@@ -100,15 +91,25 @@ struct InstructionSet<int16_t> {
     static inline __mxxxi _mmxxx_set1_epi(type a) {
         return _mm256_set1_epi16(a);
     }
+    static inline void _mmxxx_prefix_max(__mxxxi& a, const __mxxxi* masks,
+        const __mxxxi* penalties) {
+
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[0], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[0]), 2)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[1], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[1]), 4)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[2], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[2]), 8)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[3], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[3]), 16)));
+    }
 };
-constexpr uint32_t InstructionSet<int16_t>::kPSS[4];
 
 template<>
 struct InstructionSet<int32_t> {
     using type = int32_t;
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static constexpr uint32_t kLogNumVar = 3;
-    static constexpr uint32_t kPSS[kLogNumVar] = {4, 8, 16};
     static constexpr uint32_t kLSS = 4;
     static constexpr uint32_t kRSS = 28;
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
@@ -126,8 +127,17 @@ struct InstructionSet<int32_t> {
     static inline __mxxxi _mmxxx_set1_epi(type a) {
         return _mm256_set1_epi32(a);
     }
+    static inline void _mmxxx_prefix_max(__mxxxi& a, const __mxxxi* masks,
+        const __mxxxi* penalties) {
+
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[0], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[0]), 4)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[1], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[1]), 8)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[2], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[2]), 16)));
+    }
 };
-constexpr uint32_t InstructionSet<int32_t>::kPSS[3];
 
 #elif defined(__SSE4_1__)
 
@@ -146,20 +156,17 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     return _mm_or_si128(a, b);
 }
 
-inline __mxxxi _mmxxx_slli_si(const __mxxxi& a, const uint8_t n) {
-    return _mm_slli_si128(a, n);
-}
+#define _mmxxx_slli_si(a, n) \
+    _mm_slli_si128(a, n)
 
-inline __mxxxi _mmxxx_srli_si(const __mxxxi& a, const uint8_t n) {
-    return _mm_srli_si128(a, n);
-}
+#define _mmxxx_srli_si(a, n) \
+    _mm_srli_si128(a, n)
 
 template<>
 struct InstructionSet<int16_t> {
     using type = int16_t;
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static constexpr uint32_t kLogNumVar = 3;
-    static constexpr uint32_t kPSS[kLogNumVar] = {2, 4, 8};
     static constexpr uint32_t kLSS = 2;
     static constexpr uint32_t kRSS = 14;
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
@@ -177,15 +184,23 @@ struct InstructionSet<int16_t> {
     static inline __mxxxi _mmxxx_set1_epi(type a) {
         return _mm_set1_epi16(a);
     }
+    static inline void _mmxxx_prefix_max(__mxxxi& a, const __mxxxi* masks,
+        const __mxxxi* penalties) {
+
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[0], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[0]), 2)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[1], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[1]), 4)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[2], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[2]), 8)));
+    }
 };
-constexpr uint32_t InstructionSet<int16_t>::kPSS[3];
 
 template<>
 struct InstructionSet<int32_t> {
     using type = int32_t;
     static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
     static constexpr uint32_t kLogNumVar = 2;
-    static constexpr uint32_t kPSS[kLogNumVar] = {4, 8};
     static constexpr uint32_t kLSS = 4;
     static constexpr uint32_t kRSS = 12;
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
@@ -203,8 +218,15 @@ struct InstructionSet<int32_t> {
     static inline __mxxxi _mmxxx_set1_epi(type a) {
         return _mm_set1_epi32(a);
     }
+    static inline void _mmxxx_prefix_max(__mxxxi& a, const __mxxxi* masks,
+        const __mxxxi* penalties) {
+
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[0], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[0]), 4)));
+        a = _mmxxx_max_epi(a, _mmxxx_or_si(masks[1], _mmxxx_slli_si(
+            _mmxxx_add_epi(a, penalties[1]), 8)));
+    }
 };
-constexpr uint32_t InstructionSet<int32_t>::kPSS[2];
 
 #endif
 
@@ -463,7 +485,7 @@ void SimdAlignmentEngine::initialize(const std::string& sequence,
         }
     } else if (alignment_type_ == AlignmentType::kOV || alignment_type_ == AlignmentType::kNW) {
         for (uint32_t j = 0; j < matrix_width; ++j) {
-            pimpl_->M[j] = T::_mmxxx_set1_epi((j + 1) * T::kNumVar * gap_);
+            pimpl_->M[j] = T::_mmxxx_set1_epi(gap_ + j * T::kNumVar * gap_);
             __mxxxi penalty = T::_mmxxx_set1_epi(gap_);
 
             for (uint32_t k = 1; k < T::kNumVar; ++k) {
@@ -530,7 +552,7 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
 
     for (uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
         unpacked[i] = negative_infinity;
-        if (i == T::kPSS[j] / sizeof(typename T::type) - 1) {
+        if ((i & (i + 1)) == 0) {
             pimpl_->masks[j++] =
                 _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
         }
@@ -611,12 +633,7 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
             M_row[j] = T::_mmxxx_max_epi(M_row[j], _mmxxx_or_si(x,
                 pimpl_->masks[T::kLogNumVar]));
 
-            // prefix max update
-            for (uint32_t k = 0; k < T::kLogNumVar; ++k) {
-                M_row[j] = T::_mmxxx_max_epi(M_row[j], _mmxxx_or_si(
-                    pimpl_->masks[k], _mmxxx_slli_si(T::_mmxxx_add_epi(M_row[j],
-                    pimpl_->penalties[k]), T::kPSS[k])));
-            }
+            T::_mmxxx_prefix_max(M_row[j], pimpl_->masks, pimpl_->penalties);
 
             x = _mmxxx_srli_si(T::_mmxxx_add_epi(M_row[j], penalty), T::kRSS);
 
