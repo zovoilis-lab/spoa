@@ -108,12 +108,12 @@ void Graph::add_alignment(const Alignment& alignment,
 
     if (sequence.empty()) {
         fprintf(stderr, "spoa::Graph::add_alignment error: "
-            "empty sequence\n");
+            "empty sequence!\n");
         exit(1);
     }
     if (sequence.size() != weights.size()) {
         fprintf(stderr, "spoa::Graph::add_alignment error: "
-            "unequal sequence and weight sizes");
+            "sequence and weights are of unequal length!");
         exit(1);
     }
 

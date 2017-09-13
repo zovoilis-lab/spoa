@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
 
     if (fasta_path.empty() && fastq_path.empty()) {
         fprintf(stderr, "spoa:: error: "
-            "missing option -a/-q (sequences file)\n");
+            "missing option -a/-q (sequences file)!\n");
         help();
         return -1;
     }
