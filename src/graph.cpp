@@ -53,8 +53,8 @@ std::unique_ptr<Graph> createGraph() {
     return std::unique_ptr<Graph>(new Graph());
 }
 
-Graph::Graph() :
-        num_sequences_(0), num_codes_(0), coder_(kMaxAlphabetSize, -1),
+Graph::Graph()
+        : num_sequences_(0), num_codes_(0), coder_(kMaxAlphabetSize, -1),
         decoder_(kMaxAlphabetSize, -1), nodes_(), rank_to_node_id_(),
         sequences_begin_nodes_ids_(), consensus_() {
 }
