@@ -36,26 +36,35 @@ Optionally, you can run `sudo make install` to install spoa executable and libra
 
 Usage of spoa is as following:
 
-    spoa -a <FASTA file> (or -q <FASTQ file>) [arguments ...]
+    spoa [options ...] <sequences>
 
-    arguments:
-    -m, --match <int>
-        default: 5
-        score for matching bases (must be positive integer)
-    -x, --mismatch <int>
-        default: -4
-        score for mismatching bases (must be negative integer)
-    -g, --gap <int>
-        default: -8
-        gap penalty (must be negative integer)
-    -l, --algorithm <int>
-        default: 0
-        alignment mode: 0 - local, 1 - global, 2 - semi-global
-    -r, --result <int>
-        default: 0
-        result mode: 0 - consensus, 1 - multiple sequence alignment, 2 - 0 + 1
-    -h, -help
-        prints out the help
+        <sequences>
+            input file in FASTA/FASTQ format containing sequences
+
+        options:
+            -m, --match <int>
+                default: 5
+                score for matching bases
+            -x, --mismatch <int>
+                default: -4
+                score for mismatching bases
+            -g, --gap <int>
+                default: -8
+                gap penalty
+            -l, --algorithm <int>
+                default: 0
+                alignment mode:
+                    0 - local (Smith-Waterman)
+                    1 - global (Needleman-Wunsch)
+                    2 - semi-global
+            -r, --result <int>
+                default: 0
+                result mode:
+                    0 - consensus
+                    1 - multiple sequence alignment
+                    2 - 0 + 1
+            -h, --help
+                prints out the help
 
 ### Library
 
