@@ -28,8 +28,7 @@ target_include_directories(spoa PUBLIC
     $<INSTALL_INTERFACE:include>)
 
 if (spoa_build_tests)
-    file(COPY test/data DESTINATION ${PROJECT_BINARY_DIR})
-    set(spoa_test_data_path ${PROJECT_BINARY_DIR}/data/)
+    set(spoa_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
     configure_file(
         "${PROJECT_SOURCE_DIR}/test/spoa_test_config.h.in"
         "${PROJECT_BINARY_DIR}/config/spoa_test_config.h"
