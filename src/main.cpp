@@ -28,9 +28,9 @@ int main(int argc, char** argv) {
     uint8_t algorithm = 0;
     uint8_t result = 0;
 
-    char argument;
-    while ((argument = getopt_long(argc, argv, "m:x:g:l:r:h", options, nullptr)) != -1) {
-        switch (argument) {
+    char opt;
+    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:h", options, nullptr)) != -1) {
+        switch (opt) {
             case 'm':
                 match = atoi(optarg);
                 break;

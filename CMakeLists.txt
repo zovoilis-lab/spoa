@@ -14,14 +14,14 @@ add_library(spoa STATIC
     src/simd_alignment_engine.cpp
     src/sisd_alignment_engine.cpp)
 
-add_executable(spoa-bin
+add_executable(spoa_bin
     src/chain.cpp
     src/main.cpp)
 
 add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
 
-target_link_libraries(spoa-bin spoa bioparser)
-set_target_properties(spoa-bin PROPERTIES OUTPUT_NAME spoa)
+target_link_libraries(spoa_bin spoa bioparser)
+set_target_properties(spoa_bin PROPERTIES OUTPUT_NAME spoa)
 
 target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -44,6 +44,6 @@ if (spoa_build_tests)
     target_link_libraries(spoa_test spoa bioparser gtest_main)
 endif(spoa_build_tests)
 
-install(TARGETS spoa-bin DESTINATION bin)
+install(TARGETS spoa_bin DESTINATION bin)
 install(TARGETS spoa DESTINATION lib)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION include)
