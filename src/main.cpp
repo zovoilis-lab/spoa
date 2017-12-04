@@ -60,7 +60,8 @@ int main(int argc, char** argv) {
     }
 
     std::string input_path = argv[optind];
-    auto extension = input_path.substr(input_path.rfind('.'));
+    auto extension = input_path.substr(std::min(input_path.rfind('.'),
+        input_path.size()));
 
     if (extension != ".fasta" && extension != ".fa" && extension != ".fastq" &&
         extension != ".fq") {
