@@ -26,9 +26,15 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-an executable named `spoa` will appear in `build/bin` directory and a library named `libspoa.a` in the `build/lib` directory.
+a library named `libspoa.a` will appear in the `build/lib` directory. If you want the spoa executable, run the following two commands:
 
-Optionally, you can run `sudo make install` to install spoa executable and library to your machine.
+```bash
+cmake -DCMAKE_BUILD_TYPE=Release -Dspoa_build_executable=ON ..
+make
+```
+which will place an executable named `spoa` in `build/bin` directory.
+
+Optionally, you can run `sudo make install` to install spoa library (and executable) to your machine.
 
 ***Note***: if you omitted `--recursive` from `git clone`, run `git submodule init` and `git submodule update` before proceeding with compilation.
 

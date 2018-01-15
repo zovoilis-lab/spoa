@@ -4,8 +4,12 @@ project(spoa)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -march=native")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -march=native")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(spoa_build_executable "Build spoa standalone tool" OFF)
 option(spoa_build_tests "Build spoa google tests" OFF)
 
 add_library(spoa STATIC
@@ -14,18 +18,25 @@ add_library(spoa STATIC
     src/simd_alignment_engine.cpp
     src/sisd_alignment_engine.cpp)
 
-add_executable(spoa_bin
-    src/chain.cpp
-    src/main.cpp)
-
-add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
-
-target_link_libraries(spoa_bin spoa bioparser)
-set_target_properties(spoa_bin PROPERTIES OUTPUT_NAME spoa)
-
 target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
+
+install(TARGETS spoa DESTINATION lib)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION include)
+
+if (spoa_build_executable)
+    add_executable(spoa_bin
+        src/sequence.cpp
+        src/main.cpp)
+
+    add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
+
+    target_link_libraries(spoa_bin spoa bioparser)
+    set_target_properties(spoa_bin PROPERTIES OUTPUT_NAME spoa)
+
+    install(TARGETS spoa_bin DESTINATION bin)
+endif(spoa_build_executable)
 
 if (spoa_build_tests)
     set(spoa_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
@@ -37,13 +48,9 @@ if (spoa_build_tests)
     include_directories(${PROJECT_SOURCE_DIR}/src)
 
     add_executable(spoa_test
-        src/chain.cpp
+        src/sequence.cpp
         test/spoa_test.cpp)
 
     add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
     target_link_libraries(spoa_test spoa bioparser gtest_main)
 endif(spoa_build_tests)
-
-install(TARGETS spoa_bin DESTINATION bin)
-install(TARGETS spoa DESTINATION lib)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION include)

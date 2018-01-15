@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <getopt.h>
 
-#include "chain.hpp"
+#include "sequence.hpp"
 
 #include "spoa/spoa.hpp"
+#include "bioparser/bioparser.hpp"
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
@@ -63,8 +64,15 @@ int main(int argc, char** argv) {
     auto extension = input_path.substr(std::min(input_path.rfind('.'),
         input_path.size()));
 
-    if (extension != ".fasta" && extension != ".fa" && extension != ".fastq" &&
-        extension != ".fq") {
+    std::unique_ptr<bioparser::Parser<spoa::Sequence>> sparser = nullptr;
+
+    if (extension == ".fasta" || extension == ".fa") {
+        sparser = bioparser::createParser<bioparser::FastaParser, spoa::Sequence>(
+            input_path);
+    } else if (extension == ".fastq" || extension == ".fq") {
+        sparser = bioparser::createParser<bioparser::FastqParser, spoa::Sequence>(
+            input_path);
+    } else {
         fprintf(stderr, "spoa:: error: "
             "file %s has unsupported format extension (valid extensions: "
             ".fasta, .fa, .fastq, .fq)!\n", input_path.c_str());
@@ -76,40 +84,19 @@ int main(int argc, char** argv) {
 
     auto graph = spoa::createGraph();
 
-    std::vector<std::unique_ptr<spoa::Chain>> chains;
+    std::vector<std::unique_ptr<spoa::Sequence>> sequences;
+    sparser->parse_objects(sequences, -1);
 
-    if (extension == ".fasta" || extension == ".fa") {
-        auto creader = bioparser::createReader<spoa::Chain,
-            bioparser::FastaReader>(input_path);
-        creader->read_objects(chains, -1);
+    size_t max_sequence_size = 0;
+    for (const auto& it: sequences) {
+        max_sequence_size = std::max(max_sequence_size, it->data().size());
+    }
+    alignment_engine->prealloc(max_sequence_size, 4);
 
-        size_t max_sequence_size = 0;
-        for (const auto& it: chains) {
-            max_sequence_size = std::max(max_sequence_size, it->data().size());
-        }
-        alignment_engine->prealloc(max_sequence_size, 4);
-
-        for (const auto& it: chains) {
-            auto alignment = alignment_engine->align_sequence_with_graph(
-                it->data(), graph);
-            graph->add_alignment(alignment, it->data());
-        }
-    } else if (extension == ".fastq" || extension == ".fq") {
-        auto creader = bioparser::createReader<spoa::Chain,
-            bioparser::FastqReader>(input_path);
-        creader->read_objects(chains, -1);
-
-        size_t max_sequence_size = 0;
-        for (const auto& it: chains) {
-            max_sequence_size = std::max(max_sequence_size, it->data().size());
-        }
-        alignment_engine->prealloc(max_sequence_size, 4);
-
-        for (const auto& it: chains) {
-            auto alignment = alignment_engine->align_sequence_with_graph(
-                it->data(), graph);
-            graph->add_alignment(alignment, it->data(), it->quality());
-        }
+    for (const auto& it: sequences) {
+        auto alignment = alignment_engine->align_sequence_with_graph(it->data(),
+            graph);
+        graph->add_alignment(alignment, it->data(), it->quality());
     }
 
     if (result == 0 || result == 2) {

@@ -6,8 +6,10 @@
 
 #include "spoa_test_config.h"
 
-#include "chain.hpp"
+#include "sequence.hpp"
+
 #include "spoa/spoa.hpp"
+#include "bioparser/bioparser.hpp"
 #include "gtest/gtest.h"
 
 class SpoaAlignmentTest: public ::testing::Test {
@@ -15,7 +17,8 @@ public:
     void SetUp(const std::string& file_name, spoa::AlignmentType alignment_type,
         int8_t match, int8_t mismatch, int8_t gap) {
 
-        reader = bioparser::createReader<spoa::Chain, bioparser::FastqReader>(file_name);
+        parser = bioparser::createParser<bioparser::FastqParser, spoa::Sequence>(
+            file_name);
         alignment_engine = spoa::createAlignmentEngine(alignment_type, match,
             mismatch, gap);
         graph = spoa::createGraph();
@@ -24,17 +27,17 @@ public:
     void TearDown() {}
 
     void initialize() {
-        reader->read_objects(chains, -1);
+        parser->parse_objects(sequences, -1);
 
         size_t max_sequence_size = 0;
-        for (const auto& it: chains) {
+        for (const auto& it: sequences) {
             max_sequence_size = std::max(max_sequence_size, it->data().size());
         }
         alignment_engine->prealloc(max_sequence_size, 4);
     }
 
     void construct_partial_order_graph(bool use_qualities) {
-        for (const auto& it: chains) {
+        for (const auto& it: sequences) {
             auto alignment = alignment_engine->align_sequence_with_graph(
                 it->data(), graph);
 
@@ -46,8 +49,8 @@ public:
         }
     }
 
-    std::vector<std::unique_ptr<spoa::Chain>> chains;
-    std::unique_ptr<bioparser::Reader<spoa::Chain>> reader;
+    std::vector<std::unique_ptr<spoa::Sequence>> sequences;
+    std::unique_ptr<bioparser::Parser<spoa::Sequence>> parser;
     std::unique_ptr<spoa::AlignmentEngine> alignment_engine;
     std::unique_ptr<spoa::Graph> graph;
 };
@@ -202,7 +205,7 @@ TEST_F(SpoaAlignmentTest, LocalMSA) {
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);
 
-    EXPECT_TRUE(msa.size() == chains.size());
+    EXPECT_TRUE(msa.size() == sequences.size());
 
     for (uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
@@ -210,8 +213,8 @@ TEST_F(SpoaAlignmentTest, LocalMSA) {
             if (c != '-') tmp += c;
         }
 
-        EXPECT_TRUE(tmp.size() == chains[i]->data().size());
-        EXPECT_TRUE(tmp.compare(chains[i]->data()) == 0);
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
     }
 }
 
@@ -225,7 +228,7 @@ TEST_F(SpoaAlignmentTest, LocalMSAWithQualities) {
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);
 
-    EXPECT_TRUE(msa.size() == chains.size());
+    EXPECT_TRUE(msa.size() == sequences.size());
 
     for (uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
@@ -233,8 +236,8 @@ TEST_F(SpoaAlignmentTest, LocalMSAWithQualities) {
             if (c != '-') tmp += c;
         }
 
-        EXPECT_TRUE(tmp.size() == chains[i]->data().size());
-        EXPECT_TRUE(tmp.compare(chains[i]->data()) == 0);
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
     }
 }
 
@@ -248,7 +251,7 @@ TEST_F(SpoaAlignmentTest, GlobalMSA) {
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);
 
-    EXPECT_TRUE(msa.size() == chains.size());
+    EXPECT_TRUE(msa.size() == sequences.size());
 
     for (uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
@@ -256,8 +259,8 @@ TEST_F(SpoaAlignmentTest, GlobalMSA) {
             if (c != '-') tmp += c;
         }
 
-        EXPECT_TRUE(tmp.size() == chains[i]->data().size());
-        EXPECT_TRUE(tmp.compare(chains[i]->data()) == 0);
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
     }
 }
 
@@ -271,7 +274,7 @@ TEST_F(SpoaAlignmentTest, GlobalMSAWithQualities) {
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);
 
-    EXPECT_TRUE(msa.size() == chains.size());
+    EXPECT_TRUE(msa.size() == sequences.size());
 
     for (uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
@@ -279,8 +282,8 @@ TEST_F(SpoaAlignmentTest, GlobalMSAWithQualities) {
             if (c != '-') tmp += c;
         }
 
-        EXPECT_TRUE(tmp.size() == chains[i]->data().size());
-        EXPECT_TRUE(tmp.compare(chains[i]->data()) == 0);
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
     }
 }
 
@@ -294,7 +297,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSA) {
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);
 
-    EXPECT_TRUE(msa.size() == chains.size());
+    EXPECT_TRUE(msa.size() == sequences.size());
 
     for (uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
@@ -302,8 +305,8 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSA) {
             if (c != '-') tmp += c;
         }
 
-        EXPECT_TRUE(tmp.size() == chains[i]->data().size());
-        EXPECT_TRUE(tmp.compare(chains[i]->data()) == 0);
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
     }
 }
 
@@ -317,7 +320,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSAWithQualities) {
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);
 
-    EXPECT_TRUE(msa.size() == chains.size());
+    EXPECT_TRUE(msa.size() == sequences.size());
 
     for (uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
@@ -325,7 +328,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSAWithQualities) {
             if (c != '-') tmp += c;
         }
 
-        EXPECT_TRUE(tmp.size() == chains[i]->data().size());
-        EXPECT_TRUE(tmp.compare(chains[i]->data()) == 0);
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
     }
 }

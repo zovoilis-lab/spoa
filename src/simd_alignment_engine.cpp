@@ -698,15 +698,14 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
             (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
     }
 
-    __attribute__((aligned(kRegisterSize / 8))) typename T::type M[T::kNumVar];
-    __attribute__((aligned(kRegisterSize / 8))) typename T::type
-        M_pred[T::kNumVar * max_num_predecessors];
-    __attribute__((aligned(kRegisterSize / 8))) typename T::type
-        M_diag_pred[T::kNumVar * max_num_predecessors];
-    __attribute__((aligned(kRegisterSize / 8))) typename T::type
-        M_left_pred[T::kNumVar];
-    __attribute__((aligned(kRegisterSize / 8))) typename T::type
-        profile[T::kNumVar];
+    typename T::type* backtrack_storage = nullptr;
+    typename T::type* M = allocateAlignedMemory(&backtrack_storage,
+        3 * T::kNumVar + 2 * T::kNumVar * max_num_predecessors,
+        kRegisterSize / 8);
+    typename T::type* M_pred = &(M[T::kNumVar]);
+    typename T::type* M_diag_pred = &(M_pred[T::kNumVar * max_num_predecessors]);
+    typename T::type* M_left_pred = &(M_diag_pred[T::kNumVar * max_num_predecessors]);
+    typename T::type* profile = &(M_left_pred[T::kNumVar]);
 
     std::vector<uint32_t> predecessors;
 
@@ -836,6 +835,8 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
         j_mod = j % T::kNumVar;
 
     } while (true);
+
+    delete[] backtrack_storage;
 
     // update alignment for NW (backtrack stops on first row or column)
     if (alignment_type_ == AlignmentType::kNW) {
