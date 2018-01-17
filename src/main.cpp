@@ -10,8 +10,7 @@
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
     {"mismatch", required_argument, 0, 'x'},
-    {"gap-open", required_argument, 0, 'o'},
-    {"gap-extend", required_argument, 0, 'e'},
+    {"gap", required_argument, 0, 'g'},
     {"algorithm", required_argument, 0, 'l'},
     {"result", required_argument, 0, 'r'},
     {"help", no_argument, 0, 'h'},
