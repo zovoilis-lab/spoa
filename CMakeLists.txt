@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(spoa_build_executable "Build spoa standalone tool" OFF)
-option(spoa_build_tests "Build spoa google tests" OFF)
+option(spoa_build_tests "Build spoa unit tests" OFF)
 
 add_library(spoa STATIC
     src/alignment_engine.cpp
@@ -40,10 +40,8 @@ endif(spoa_build_executable)
 
 if (spoa_build_tests)
     set(spoa_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
-    configure_file(
-        "${PROJECT_SOURCE_DIR}/test/spoa_test_config.h.in"
-        "${PROJECT_BINARY_DIR}/config/spoa_test_config.h"
-    )
+    configure_file("${PROJECT_SOURCE_DIR}/test/spoa_test_config.h.in"
+        "${PROJECT_BINARY_DIR}/config/spoa_test_config.h")
     include_directories(${PROJECT_BINARY_DIR}/config)
     include_directories(${PROJECT_SOURCE_DIR}/src)
 
@@ -52,5 +50,6 @@ if (spoa_build_tests)
         test/spoa_test.cpp)
 
     add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
+
     target_link_libraries(spoa_test spoa bioparser gtest_main)
 endif(spoa_build_tests)

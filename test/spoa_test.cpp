@@ -57,7 +57,7 @@ public:
 
 TEST(SpoaTest, AlignmentTypeError) {
     EXPECT_DEATH((spoa::createAlignmentEngine(static_cast<spoa::AlignmentType>(4),
-        0, 0, 0)), "spoa::createAlignmentEngine error: invalid alignment type");
+        0, 0, 0)), ".spoa::createAlignmentEngine. error: invalid alignment type!");
 }
 
 TEST(SpoaTest, EmptyInputError) {

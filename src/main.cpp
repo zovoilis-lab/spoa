@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     }
 
     if (optind >= argc) {
-        fprintf(stderr, "spoa:: error: missing input file!\n");
+        fprintf(stderr, "[spoa::] error: missing input file!\n");
         help();
         return -1;
     }
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         sparser = bioparser::createParser<bioparser::FastqParser, spoa::Sequence>(
             input_path);
     } else {
-        fprintf(stderr, "spoa:: error: "
+        fprintf(stderr, "[spoa::] error: "
             "file %s has unsupported format extension (valid extensions: "
             ".fasta, .fa, .fastq, .fq)!\n", input_path.c_str());
         return -1;
