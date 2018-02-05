@@ -144,7 +144,7 @@ void help() {
         "            result mode:\n"
         "                0 - consensus\n"
         "                1 - multiple sequence alignment\n"
-        "                2 - 0 + 1\n"
+        "                2 - 0 & 1\n"
         "        -h, --help\n"
         "            prints out the help\n");
 }

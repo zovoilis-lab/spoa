@@ -56,7 +56,7 @@ Usage of spoa is as following:
                 score for mismatching bases
             -g, --gap <int>
                 default: -8
-                gap penalty
+                gap penalty (must be negative)
             -l, --algorithm <int>
                 default: 0
                 alignment mode:
@@ -68,7 +68,7 @@ Usage of spoa is as following:
                 result mode:
                     0 - consensus
                     1 - multiple sequence alignment
-                    2 - 0 + 1
+                    2 - 0 & 1
             -h, --help
                 prints out the help
 

@@ -57,12 +57,12 @@ public:
 
 TEST(SpoaTest, AlignmentTypeError) {
     EXPECT_DEATH((spoa::createAlignmentEngine(static_cast<spoa::AlignmentType>(4),
-        0, 0, 0)), ".spoa::createAlignmentEngine. error: invalid alignment type!");
+        1, 1, -1)), ".spoa::createAlignmentEngine. error: invalid alignment type!");
 }
 
 TEST(SpoaTest, EmptyInputError) {
     auto alignment_engine = spoa::createAlignmentEngine(
-        static_cast<spoa::AlignmentType>(0), 0, 0, 0);
+        static_cast<spoa::AlignmentType>(0), 1, 1, -1);
     auto graph = spoa::createGraph();
     auto alignment = alignment_engine->align_sequence_with_graph("", graph);
 

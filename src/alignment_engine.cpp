@@ -26,6 +26,12 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(
         exit(1);
     }
 
+    if (gap >= 0) {
+        fprintf(stderr, "[spoa::createAlignmentEngine] error: "
+            "gap penalty must be negative!\n");
+        exit(1);
+    }
+
     auto alignment_engine = createSimdAlignmentEngine(alignment_type, match,
         mismatch, gap);
 
