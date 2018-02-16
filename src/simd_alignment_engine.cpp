@@ -692,7 +692,7 @@ Alignment SimdAlignmentEngine::align(const std::string& sequence,
     }
 
     // backtrack
-    uint32_t max_num_predecessors = 0;
+    uint32_t max_num_predecessors = 1;
     for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
         max_num_predecessors = std::max(max_num_predecessors,
             (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());

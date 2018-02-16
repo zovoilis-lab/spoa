@@ -30,7 +30,9 @@ if (spoa_build_executable)
         src/sequence.cpp
         src/main.cpp)
 
-    add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
+    if (NOT TARGET bioparser)
+        add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
+    endif()
 
     target_link_libraries(spoa_bin spoa bioparser)
     set_target_properties(spoa_bin PROPERTIES OUTPUT_NAME spoa)
@@ -49,6 +51,9 @@ if (spoa_build_tests)
         src/sequence.cpp
         test/spoa_test.cpp)
 
+    if (NOT TARGET bioparser)
+        add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
+    endif()
     add_subdirectory(vendor/googletest/googletest EXCLUDE_FROM_ALL)
 
     target_link_libraries(spoa_test spoa bioparser gtest_main)
