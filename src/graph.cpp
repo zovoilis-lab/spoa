@@ -89,35 +89,55 @@ void Graph::add_edge(uint32_t begin_node_id, uint32_t end_node_id,
 void Graph::add_alignment(const Alignment& alignment,
     const std::string& sequence, uint32_t weight) {
 
-    std::vector<uint32_t> weights(sequence.size(), weight);
-    this->add_alignment(alignment, sequence, weights);
+    this->add_alignment(alignment, sequence.c_str(), sequence.size(), weight);
 }
 
-void Graph::add_alignment(const Alignment& alignment,
-    const std::string& sequence, const std::string& quality) {
+void Graph::add_alignment(const Alignment& alignment, const char* sequence,
+    uint32_t sequence_size, uint32_t weight) {
+
+    std::vector<uint32_t> weights(sequence_size, weight);
+    this->add_alignment(alignment, sequence, sequence_size, weights);
+}
+
+void Graph::add_alignment(const Alignment& alignment, const std::string& sequence,
+    const std::string& quality) {
+
+    this->add_alignment(alignment, sequence.c_str(), sequence.size(),
+        quality.c_str(), quality.size());
+}
+
+void Graph::add_alignment(const Alignment& alignment, const char* sequence,
+    uint32_t sequence_size, const char* quality, uint32_t quality_size) {
 
     std::vector<uint32_t> weights;
-    for (const auto& q: quality) {
-        weights.emplace_back(static_cast<uint32_t>(q - 33)); // PHRED quality
+    for (uint32_t i = 0; i < quality_size; ++i) {
+        weights.emplace_back(static_cast<uint32_t>(quality[i] - 33)); // PHRED quality
     }
-    this->add_alignment(alignment, sequence, weights);
+    this->add_alignment(alignment, sequence, sequence_size, weights);
 }
 
-void Graph::add_alignment(const Alignment& alignment,
-    const std::string& sequence, const std::vector<uint32_t>& weights) {
+void Graph::add_alignment(const Alignment& alignment, const std::string& sequence,
+    const std::vector<uint32_t>& weights) {
 
-    if (sequence.empty()) {
+    this->add_alignment(alignment, sequence.c_str(), sequence.size(), weights);
+}
+
+void Graph::add_alignment(const Alignment& alignment, const char* sequence,
+    uint32_t sequence_size, const std::vector<uint32_t>& weights) {
+
+    if (sequence_size == 0) {
         fprintf(stderr, "[spoa::Graph::add_alignment] error: "
             "empty sequence!\n");
         exit(1);
     }
-    if (sequence.size() != weights.size()) {
+    if (sequence_size != weights.size()) {
         fprintf(stderr, "[spoa::Graph::add_alignment] error: "
-            "sequence and weights are of unequal length!");
+            "sequence and weights are of unequal size!");
         exit(1);
     }
 
-    for (const auto& c: sequence) {
+    for (uint32_t i = 0; i < sequence_size; ++i) {
+        auto c = sequence[i];
         if (coder_[c] == -1) {
             coder_[c] = num_codes_;
             decoder_[num_codes_] = c;
@@ -127,7 +147,7 @@ void Graph::add_alignment(const Alignment& alignment,
 
     if (alignment.empty()) { // no alignment
         int32_t begin_node_id = this->add_sequence(sequence, weights, 0,
-            sequence.size());
+            sequence_size);
         ++num_sequences_;
         sequences_begin_nodes_ids_.emplace_back(begin_node_id);
 
@@ -142,13 +162,16 @@ void Graph::add_alignment(const Alignment& alignment,
         }
     }
 
+    assert(valid_seq_ids.front() <= sequence_size);
+    assert(valid_seq_ids.back() + 1 < sequence_size);
+
     uint32_t tmp = nodes_.size();
     int32_t begin_node_id = this->add_sequence(sequence, weights, 0,
         valid_seq_ids.front());
     int32_t head_node_id = tmp == nodes_.size() ? -1 : nodes_.size() - 1;
 
     int32_t tail_node_id = this->add_sequence(sequence, weights,
-        valid_seq_ids.back() + 1, sequence.size());
+        valid_seq_ids.back() + 1, sequence_size);
 
     int32_t new_node_id = -1;
     float prev_weight = head_node_id == -1 ?
@@ -221,14 +244,12 @@ void Graph::add_alignment(const Alignment& alignment,
     this->topological_sort();
 }
 
-int32_t Graph::add_sequence(const std::string& sequence,
-    const std::vector<uint32_t>& weights, uint32_t begin, uint32_t end) {
+int32_t Graph::add_sequence(const char* sequence, const std::vector<uint32_t>& weights,
+    uint32_t begin, uint32_t end) {
 
     if (begin == end) {
         return -1;
     }
-
-    assert(begin < sequence.size() && end <= sequence.size());
 
     int32_t first_node_id = this->add_node(coder_[sequence[begin]]);
 

@@ -61,16 +61,16 @@ void SisdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
     }
 }
 
-void SisdAlignmentEngine::initialize(const std::string& sequence,
+void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_size,
     const std::unique_ptr<Graph>& graph) noexcept {
 
-    uint32_t matrix_width = sequence.size() + 1;
+    uint32_t matrix_width = sequence_size + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;
 
     for (uint32_t i = 0; i < graph->num_codes(); ++i) {
         char c = graph->decoder(i);
         pimpl_->sequence_profile[i * matrix_width] = 0;
-        for (uint32_t j = 0; j < sequence.size(); ++j) {
+        for (uint32_t j = 0; j < sequence_size; ++j) {
             pimpl_->sequence_profile[i * matrix_width + (j + 1)] =
                 (c == sequence[j] ? match_ : mismatch_);
         }
@@ -118,20 +118,20 @@ void SisdAlignmentEngine::initialize(const std::string& sequence,
     }
 }
 
-Alignment SisdAlignmentEngine::align_sequence_with_graph(
-    const std::string& sequence, const std::unique_ptr<Graph>& graph) {
+Alignment SisdAlignmentEngine::align_sequence_with_graph(const char* sequence,
+    uint32_t sequence_size, const std::unique_ptr<Graph>& graph) {
 
-    if (graph->nodes().empty() || sequence.empty()) {
+    if (graph->nodes().empty() || sequence_size == 0) {
         return Alignment();
     }
 
-    return align(sequence, graph);
+    return align(sequence, sequence_size, graph);
 }
 
-Alignment SisdAlignmentEngine::align(const std::string& sequence,
+Alignment SisdAlignmentEngine::align(const char* sequence, uint32_t sequence_size,
     const std::unique_ptr<Graph>& graph) noexcept {
 
-    uint32_t matrix_width = sequence.size() + 1;
+    uint32_t matrix_width = sequence_size + 1;
     uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
@@ -139,7 +139,7 @@ Alignment SisdAlignmentEngine::align(const std::string& sequence,
     this->realloc(matrix_width, matrix_height, graph->num_codes());
 
     // initialize
-    this->initialize(sequence, graph);
+    this->initialize(sequence, sequence_size, graph);
 
     int32_t max_score = alignment_type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;

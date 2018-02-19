@@ -43,10 +43,10 @@ public:
 
 private:
 
-    Sequence(const char* name, uint32_t name_length, const char* data,
-        uint32_t data_length);
-    Sequence(const char* name, uint32_t name_length, const char* data,
-        uint32_t data_length, const char* quality, uint32_t quality_length);
+    Sequence(const char* name, uint32_t name_size, const char* data,
+        uint32_t data_size);
+    Sequence(const char* name, uint32_t name_size, const char* data,
+        uint32_t data_size, const char* quality, uint32_t quality_size);
     Sequence(const Sequence&) = delete;
     const Sequence& operator=(const Sequence&) = delete;
 

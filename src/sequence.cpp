@@ -8,16 +8,16 @@
 
 namespace spoa {
 
-Sequence::Sequence(const char* name, uint32_t name_length, const char* data,
-    uint32_t data_length)
-        : name_(name, name_length), data_(data, data_length), quality_(
-        data_length, 34) {
+Sequence::Sequence(const char* name, uint32_t name_size, const char* data,
+    uint32_t data_size)
+        : name_(name, name_size), data_(data, data_size), quality_(
+        data_size, 34) {
 }
 
-Sequence::Sequence(const char* name, uint32_t name_length, const char* data,
-    uint32_t data_length, const char* quality, uint32_t quality_length)
-        : name_(name, name_length), data_(data, data_length), quality_(quality,
-        quality_length) {
+Sequence::Sequence(const char* name, uint32_t name_size, const char* data,
+    uint32_t data_size, const char* quality, uint32_t quality_size)
+        : name_(name, name_size), data_(data, data_size), quality_(quality,
+        quality_size) {
 }
 
 }

@@ -418,7 +418,7 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
 }
 
 template<typename T>
-void SimdAlignmentEngine::initialize(const std::string& sequence,
+void SimdAlignmentEngine::initialize(const char* sequence,
     const std::unique_ptr<Graph>& graph, uint32_t normal_matrix_width,
     uint32_t matrix_width, uint32_t matrix_height) noexcept {
 
@@ -498,24 +498,24 @@ void SimdAlignmentEngine::initialize(const std::string& sequence,
 #endif
 }
 
-Alignment SimdAlignmentEngine::align_sequence_with_graph(
-    const std::string& sequence, const std::unique_ptr<Graph>& graph) {
+Alignment SimdAlignmentEngine::align_sequence_with_graph(const char* sequence,
+    uint32_t sequence_size, const std::unique_ptr<Graph>& graph) {
 
-    if (graph->nodes().empty() || sequence.empty()) {
+    if (graph->nodes().empty() || sequence_size == 0) {
         return Alignment();
     }
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t longest_path = graph->nodes().size() + 1 + sequence.size() +
+    uint32_t longest_path = graph->nodes().size() + 1 + sequence_size +
         InstructionSet<int16_t>::kNumVar;
 
     uint32_t max_penalty = std::max(std::max(abs(match_), abs(mismatch_)), abs(gap_));
 
     if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
-        return align<InstructionSet<int16_t>>(sequence, graph);
+        return align<InstructionSet<int16_t>>(sequence, sequence_size, graph);
     } else {
-        return align<InstructionSet<int32_t>>(sequence, graph);
+        return align<InstructionSet<int32_t>>(sequence, sequence_size, graph);
     }
 
 #else
@@ -526,14 +526,14 @@ Alignment SimdAlignmentEngine::align_sequence_with_graph(
 }
 
 template<typename T>
-Alignment SimdAlignmentEngine::align(const std::string& sequence,
+Alignment SimdAlignmentEngine::align(const char* sequence, uint32_t sequence_size,
     const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t normal_matrix_width = sequence.size();
-    uint32_t matrix_width = (sequence.size() + (sequence.size() % T::kNumVar == 0 ?
-        0 : T::kNumVar - sequence.size() % T::kNumVar)) / T::kNumVar;
+    uint32_t normal_matrix_width = sequence_size;
+    uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
+        0 : T::kNumVar - sequence_size % T::kNumVar)) / T::kNumVar;
     uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 

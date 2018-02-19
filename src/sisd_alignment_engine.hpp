@@ -28,8 +28,8 @@ public:
 
     void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) override;
 
-    Alignment align_sequence_with_graph(const std::string& sequence,
-        const std::unique_ptr<Graph>& graph) override;
+    Alignment align_sequence_with_graph(const char* sequence,
+        uint32_t sequence_size, const std::unique_ptr<Graph>& graph) override;
 
     friend std::unique_ptr<AlignmentEngine> createSisdAlignmentEngine(
         AlignmentType alignment_type, int8_t match, int8_t mismatch, int8_t gap);
@@ -39,13 +39,13 @@ private:
     SisdAlignmentEngine(const SisdAlignmentEngine&) = delete;
     const SisdAlignmentEngine& operator=(const SisdAlignmentEngine&) = delete;
 
-    Alignment align(const std::string& sequence,
+    Alignment align(const char* sequence, uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     void realloc(uint32_t matrix_width, uint32_t matrix_height,
         uint32_t num_codes);
 
-    void initialize(const std::string& sequence,
+    void initialize(const char* sequence, uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     struct Implementation;

@@ -33,8 +33,11 @@ public:
 
     virtual void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) = 0;
 
-    virtual Alignment align_sequence_with_graph(const std::string& sequence,
-        const std::unique_ptr<Graph>& graph) = 0;
+    Alignment align_sequence_with_graph(const std::string& sequence,
+        const std::unique_ptr<Graph>& graph);
+
+    virtual Alignment align_sequence_with_graph(const char* sequence,
+        uint32_t sequence_size, const std::unique_ptr<Graph>& graph) = 0;
 protected:
     AlignmentEngine(AlignmentType alignment_type, int8_t match, int8_t mismatch,
         int8_t gap);

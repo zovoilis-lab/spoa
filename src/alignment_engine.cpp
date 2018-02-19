@@ -48,4 +48,10 @@ AlignmentEngine::AlignmentEngine(AlignmentType alignment_type, int8_t match,
         gap_(gap) {
 }
 
+Alignment AlignmentEngine::align_sequence_with_graph(const std::string& sequence,
+    const std::unique_ptr<Graph>& graph) {
+
+    return this->align_sequence_with_graph(sequence.c_str(), sequence.size(), graph);
+}
+
 }

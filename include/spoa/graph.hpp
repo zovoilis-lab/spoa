@@ -50,11 +50,20 @@ public:
     void add_alignment(const Alignment& alignment, const std::string& sequence,
         uint32_t weight = 1);
 
+    void add_alignment(const Alignment& alignment, const char* sequence,
+        uint32_t sequence_size, uint32_t weight = 1);
+
     void add_alignment(const Alignment& alignment, const std::string& sequence,
         const std::string& quality);
 
-    void add_alignment(const std::vector<std::pair<int32_t, int32_t>>& alignment,
-        const std::string& sequence, const std::vector<uint32_t>& weights);
+    void add_alignment(const Alignment& alignment, const char* sequence,
+        uint32_t sequence_size, const char* quality, uint32_t quality_size);
+
+    void add_alignment(const Alignment& alignment, const std::string& sequence,
+        const std::vector<uint32_t>& weights);
+
+    void add_alignment(const Alignment& alignment, const char* sequence,
+        uint32_t sequence_size, const std::vector<uint32_t>& weights);
 
     void generate_multiple_sequence_alignment(std::vector<std::string>& dst,
         bool include_consensus = false);
@@ -86,8 +95,7 @@ private:
 
     void add_edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t weight);
 
-    int32_t add_sequence(const std::string& sequence,
-        const std::vector<uint32_t>& weights,
+    int32_t add_sequence(const char* sequence, const std::vector<uint32_t>& weights,
         uint32_t begin, uint32_t end);
 
     void topological_sort();
