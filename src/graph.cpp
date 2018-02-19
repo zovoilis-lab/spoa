@@ -163,7 +163,7 @@ void Graph::add_alignment(const Alignment& alignment, const char* sequence,
     }
 
     assert(valid_seq_ids.front() <= sequence_size);
-    assert(valid_seq_ids.back() + 1 < sequence_size);
+    assert(valid_seq_ids.back() + 1 <= sequence_size);
 
     uint32_t tmp = nodes_.size();
     int32_t begin_node_id = this->add_sequence(sequence, weights, 0,
