@@ -69,8 +69,10 @@ Usage of spoa is as following:
                     0 - consensus
                     1 - multiple sequence alignment
                     2 - 0 & 1
-            -h, --help
-                prints out the help
+            --version
+                prints the version number
+            --help
+                prints the usage
 
 ### Library
 
