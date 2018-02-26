@@ -42,8 +42,8 @@ endif(spoa_build_executable)
 
 if (spoa_build_tests)
     set(spoa_test_data_path ${PROJECT_SOURCE_DIR}/test/data/)
-    configure_file("${PROJECT_SOURCE_DIR}/test/spoa_test_config.h.in"
-        "${PROJECT_BINARY_DIR}/config/spoa_test_config.h")
+    configure_file(${PROJECT_SOURCE_DIR}/test/spoa_test_config.h.in
+        ${PROJECT_BINARY_DIR}/config/spoa_test_config.h)
     include_directories(${PROJECT_BINARY_DIR}/config)
     include_directories(${PROJECT_SOURCE_DIR}/src)
 

@@ -47,16 +47,16 @@ int main(int argc, char** argv) {
                 result = atoi(optarg);
                 break;
             case 'h':
-            default:
                 help();
-                return -1;
+                exit(0);
+            default:
+                exit(1);
         }
     }
 
     if (optind >= argc) {
         fprintf(stderr, "[spoa::] error: missing input file!\n");
-        help();
-        return -1;
+        exit(1);
     }
 
     std::string input_path = argv[optind];
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "[spoa::] error: "
             "file %s has unsupported format extension (valid extensions: "
             ".fasta, .fa, .fastq, .fq)!\n", input_path.c_str());
-        return -1;
+        exit(1);
     }
 
     auto alignment_engine = spoa::createAlignmentEngine(
@@ -146,5 +146,5 @@ void help() {
         "                1 - multiple sequence alignment\n"
         "                2 - 0 & 1\n"
         "        -h, --help\n"
-        "            prints out the help\n");
+        "            prints the usage\n");
 }
