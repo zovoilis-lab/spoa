@@ -7,12 +7,15 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
+static const char* version = "v1.0.0";
+
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
     {"mismatch", required_argument, 0, 'x'},
     {"gap", required_argument, 0, 'g'},
     {"algorithm", required_argument, 0, 'l'},
     {"result", required_argument, 0, 'r'},
+    {"version", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
@@ -29,7 +32,7 @@ int main(int argc, char** argv) {
     uint8_t result = 0;
 
     char opt;
-    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:h", options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:", options, nullptr)) != -1) {
         switch (opt) {
             case 'm':
                 match = atoi(optarg);
@@ -46,6 +49,9 @@ int main(int argc, char** argv) {
             case 'r':
                 result = atoi(optarg);
                 break;
+            case 'v':
+                printf("%s\n", version);
+                exit(0);
             case 'h':
                 help();
                 exit(0);
@@ -145,6 +151,8 @@ void help() {
         "                0 - consensus\n"
         "                1 - multiple sequence alignment\n"
         "                2 - 0 & 1\n"
-        "        -h, --help\n"
+        "        --version\n"
+        "            prints the version number\n"
+        "        --help\n"
         "            prints the usage\n");
 }
