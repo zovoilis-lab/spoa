@@ -7,7 +7,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v1.0.0";
+static const char* version = "v1.0.1";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     uint8_t result = 0;
 
     char opt;
-    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:", options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:h", options, nullptr)) != -1) {
         switch (opt) {
             case 'm':
                 match = atoi(optarg);
@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
 
     if (optind >= argc) {
         fprintf(stderr, "[spoa::] error: missing input file!\n");
+        help();
         exit(1);
     }
 
@@ -153,6 +154,6 @@ void help() {
         "                2 - 0 & 1\n"
         "        --version\n"
         "            prints the version number\n"
-        "        --help\n"
+        "        -h, --help\n"
         "            prints the usage\n");
 }

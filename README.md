@@ -72,7 +72,7 @@ Usage of spoa is as following:
                     2 - 0 & 1
             --version
                 prints the version number
-            --help
+            -h, --help
                 prints the usage
 
 ### Library
