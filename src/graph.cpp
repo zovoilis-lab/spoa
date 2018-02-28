@@ -26,6 +26,22 @@ Node::Node(uint32_t id, uint32_t code)
 Node::~Node() {
 }
 
+uint32_t Node::coverage() const {
+
+    std::unordered_set<uint32_t> label_set;
+    for (const auto& edge: in_edges_) {
+        for (const auto& label: edge->sequence_labels_) {
+            label_set.insert(label);
+        }
+    }
+    for (const auto& edge: out_edges_) {
+        for (const auto& label: edge->sequence_labels_) {
+            label_set.insert(label);
+        }
+    }
+    return label_set.size();
+}
+
 std::unique_ptr<Edge> Graph::createEdge(uint32_t begin_node_id,
     uint32_t end_node_id, uint32_t label, uint32_t weight) {
 
@@ -345,8 +361,8 @@ void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
     bool include_consensus) {
 
     // assign msa id to each node
-    std::vector<int32_t> msa_node_ids(nodes_.size(), -1);
-    int32_t base_counter = 0;
+    std::vector<uint32_t> msa_node_ids(nodes_.size(), 0);
+    uint32_t base_counter = 0;
     for (uint32_t i = 0; i < nodes_.size(); ++i) {
         uint32_t node_id = rank_to_node_id_[i];
 
@@ -412,31 +428,74 @@ std::string Graph::generate_consensus() {
     return consensus_str;
 }
 
-std::string Graph::generate_consensus(std::vector<uint32_t>& dst) {
+std::string Graph::generate_consensus(std::vector<uint32_t>& dst, bool verbose) {
 
     auto consensus_str = this->generate_consensus();
 
-    auto calculate_coverage = [&](uint32_t node_id) -> uint32_t {
-        std::unordered_set<uint32_t> label_set;
-        for (const auto& edge: nodes_[node_id]->in_edges_) {
-            for (const auto& label: edge->sequence_labels_) {
-                label_set.insert(label);
+    dst.clear();
+    if (verbose == false) {
+        for (const auto& node_id: consensus_) {
+            uint32_t total_coverage = nodes_[node_id]->coverage();
+            for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
+                total_coverage += nodes_[aid]->coverage();
             }
+            dst.emplace_back(total_coverage);
         }
-        for (const auto& edge: nodes_[node_id]->out_edges_) {
-            for (const auto& label: edge->sequence_labels_) {
-                label_set.insert(label);
-            }
-        }
-        return label_set.size();
-    };
+    } else {
+        dst.resize((num_codes_ + 1) * consensus_.size(), 0);
 
-    for (const auto& node_id: consensus_) {
-        uint32_t total_coverage = calculate_coverage(node_id);
-        for (const auto& aid: nodes_[node_id]->aligned_nodes_ids_) {
-            total_coverage += calculate_coverage(aid);
+        std::vector<uint32_t> msa_node_ids(nodes_.size(), 0);
+        uint32_t base_counter = 0;
+        for (uint32_t i = 0; i < nodes_.size(); ++i) {
+            uint32_t node_id = rank_to_node_id_[i];
+
+            msa_node_ids[node_id] = base_counter;
+            for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids_.size(); ++j) {
+                msa_node_ids[rank_to_node_id_[++i]] = base_counter;
+            }
+            ++base_counter;
         }
-        dst.emplace_back(total_coverage);
+
+        std::vector<uint32_t> consensus_msa_ids;
+        for (const auto& node_id: consensus_) {
+            consensus_msa_ids.emplace_back(msa_node_ids[node_id]);
+        }
+
+        for (uint32_t i = 0; i < num_sequences_; ++i) {
+            auto curr_node_id = sequences_begin_nodes_ids_[i];
+
+            uint32_t c = 0;
+            while (true) {
+                auto msa_id = msa_node_ids[curr_node_id];
+
+                for (; c < consensus_.size() && consensus_msa_ids[c] < msa_id; ++c) {
+                    ++dst[num_codes_ * consensus_.size() + c];
+                }
+                if (c >= consensus_.size()) {
+                    continue;
+                }
+                if (consensus_msa_ids[c] == msa_id) {
+                    ++dst[nodes_[curr_node_id]->code_ * consensus_.size() + c];
+                    ++c;
+                }
+
+                uint32_t prev_node_id = curr_node_id;
+                for (const auto& edge: nodes_[prev_node_id]->out_edges_) {
+                    for (const auto& label: edge->sequence_labels_) {
+                        if (label == i) {
+                            curr_node_id = edge->end_node_id_;
+                            break;
+                        }
+                    }
+                    if (prev_node_id != curr_node_id) {
+                        break;
+                    }
+                }
+                if (prev_node_id == curr_node_id) {
+                    break;
+                }
+            }
+        }
     }
 
     return consensus_str;

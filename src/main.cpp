@@ -7,7 +7,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v1.0.1";
+static const char* version = "v1.1.0";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},

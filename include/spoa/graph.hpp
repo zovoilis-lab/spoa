@@ -69,8 +69,8 @@ public:
         bool include_consensus = false);
 
     std::string generate_consensus();
-    // returns coverages
-    std::string generate_consensus(std::vector<uint32_t>& dst);
+    // returns  base coverages or complete summary matrix if verbose equals true
+    std::string generate_consensus(std::vector<uint32_t>& dst, bool verbose = false);
 
     std::unique_ptr<Graph> subgraph(uint32_t begin_node_id, uint32_t end_node_id,
         std::vector<int32_t>& subgraph_to_graph_mapping) const;
@@ -145,6 +145,8 @@ public:
         return aligned_nodes_ids_;
     }
 
+    uint32_t coverage() const;
+
     friend Graph;
 private:
     Node(uint32_t id, uint32_t code);
@@ -171,6 +173,7 @@ public:
     }
 
     friend Graph;
+    friend Node;
 private:
     Edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t label,
         uint32_t weight);
