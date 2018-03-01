@@ -4,6 +4,7 @@
  * @brief AlignmentEngine class source file
  */
 
+#include <stdlib.h>
 #include <limits>
 #include <algorithm>
 

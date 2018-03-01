@@ -4,6 +4,7 @@
  * @brief Graph class source file
  */
 
+#include <stdlib.h>
 #include <assert.h>
 #include <algorithm>
 #include <stack>

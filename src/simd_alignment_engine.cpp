@@ -4,7 +4,6 @@
  * @brief SimdAlignmentEngine class source file
  */
 
-#include <stdlib.h>
 #include <algorithm>
 #include <limits>
 
