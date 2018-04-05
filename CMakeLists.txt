@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
-project(spoa)
+project(spoa LANGUAGES CXX VERSION 1.1.1)
+
+include(GNUInstallDirs)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
@@ -8,11 +10,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -march=native")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(spoa_build_executable "Build spoa standalone tool" OFF)
 option(spoa_build_tests "Build spoa unit tests" OFF)
 
-add_library(spoa STATIC
+# build SPOA as a static library by default
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
+
+add_library(spoa
     src/alignment_engine.cpp
     src/graph.cpp
     src/simd_alignment_engine.cpp
@@ -22,8 +28,17 @@ target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-install(TARGETS spoa DESTINATION lib)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION include)
+set_target_properties(spoa
+    PROPERTIES
+    VERSION ${spoa_VERSION}
+    SOVERSION ${spoa_VERSION})
+
+install(TARGETS spoa DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# configure and install pkg-config file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/spoa.pc.in ${CMAKE_CURRENT_BINARY_DIR}/spoa-1.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/spoa-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if (spoa_build_executable)
     add_executable(spoa_bin
@@ -37,7 +52,7 @@ if (spoa_build_executable)
     target_link_libraries(spoa_bin spoa bioparser)
     set_target_properties(spoa_bin PROPERTIES OUTPUT_NAME spoa)
 
-    install(TARGETS spoa_bin DESTINATION bin)
+    install(TARGETS spoa_bin DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif(spoa_build_executable)
 
 if (spoa_build_tests)
