@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 project(spoa)
 
+include(GNUInstallDirs)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -23,8 +25,8 @@ target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-install(TARGETS spoa DESTINATION lib)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION include)
+install(TARGETS spoa DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if (spoa_build_executable)
     add_executable(spoa_bin
@@ -38,7 +40,7 @@ if (spoa_build_executable)
     target_link_libraries(spoa_bin spoa bioparser)
     set_target_properties(spoa_bin PROPERTIES OUTPUT_NAME spoa)
 
-    install(TARGETS spoa_bin DESTINATION bin)
+    install(TARGETS spoa_bin DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif(spoa_build_executable)
 
 if (spoa_build_tests)
