@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(spoa LANGUAGES CXX)
+project(spoa LANGUAGES CXX VERSION 1.1.1)
 
 include(GNUInstallDirs)
 
@@ -30,6 +30,10 @@ target_include_directories(spoa PUBLIC
 
 install(TARGETS spoa DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# configure and install pkg-config file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/spoa.pc.in ${CMAKE_CURRENT_BINARY_DIR}/spoa-1.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/spoa-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if (spoa_build_executable)
     add_executable(spoa_bin
