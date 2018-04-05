@@ -15,7 +15,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(spoa_build_executable "Build spoa standalone tool" OFF)
 option(spoa_build_tests "Build spoa unit tests" OFF)
 
-add_library(spoa STATIC
+# build SPOA as a static library by default
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
+
+add_library(spoa
     src/alignment_engine.cpp
     src/graph.cpp
     src/simd_alignment_engine.cpp
