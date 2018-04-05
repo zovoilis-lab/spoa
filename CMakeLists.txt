@@ -28,6 +28,11 @@ target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+set_target_properties(spoa
+    PROPERTIES
+    VERSION ${spoa_VERSION}
+    SOVERSION ${spoa_VERSION})
+
 install(TARGETS spoa DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
