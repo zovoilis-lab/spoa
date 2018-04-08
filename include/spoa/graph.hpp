@@ -111,6 +111,8 @@ private:
     void extract_subgraph_nodes(std::vector<bool>& dst, uint32_t current_node_id,
         uint32_t end_node_id) const;
 
+    uint32_t initialize_multiple_sequence_alignment(std::vector<uint32_t>& dst) const;
+
     uint32_t num_sequences_;
     uint32_t num_codes_;
     std::vector<int32_t> coder_;
@@ -144,6 +146,8 @@ public:
     const std::vector<uint32_t>& aligned_nodes_ids() const {
         return aligned_nodes_ids_;
     }
+
+    bool successor(uint32_t& dst, uint32_t label) const;
 
     uint32_t coverage() const;
 

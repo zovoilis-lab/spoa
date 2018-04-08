@@ -27,6 +27,19 @@ Node::Node(uint32_t id, uint32_t code)
 Node::~Node() {
 }
 
+bool Node::successor(uint32_t& dst, uint32_t label) const {
+
+    for (const auto& edge: out_edges_) {
+        for (const auto& l: edge->sequence_labels_) {
+            if (l == label) {
+                dst = edge->end_node_id_;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 uint32_t Node::coverage() const {
 
     std::unordered_set<uint32_t> label_set;
@@ -358,46 +371,42 @@ bool Graph::is_topologically_sorted() const {
     return true;
 }
 
+uint32_t Graph::initialize_multiple_sequence_alignment(std::vector<uint32_t>& dst) const {
+
+    dst.resize(nodes_.size(), 0);
+
+    uint32_t msa_id = 0;
+    for (uint32_t i = 0; i < nodes_.size(); ++i) {
+        uint32_t node_id = rank_to_node_id_[i];
+
+        dst[node_id] = msa_id;
+        for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids_.size(); ++j) {
+            dst[rank_to_node_id_[++i]] = msa_id;
+        }
+        ++msa_id;
+    }
+
+    return msa_id;
+}
+
 void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
     bool include_consensus) {
 
     // assign msa id to each node
-    std::vector<uint32_t> msa_node_ids(nodes_.size(), 0);
-    uint32_t base_counter = 0;
-    for (uint32_t i = 0; i < nodes_.size(); ++i) {
-        uint32_t node_id = rank_to_node_id_[i];
-
-        msa_node_ids[node_id] = base_counter;
-        for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids_.size(); ++j) {
-            msa_node_ids[rank_to_node_id_[++i]] = base_counter;
-        }
-        ++base_counter;
-    }
+    std::vector<uint32_t> node_id_to_msa_id;
+    auto msa_length = initialize_multiple_sequence_alignment(node_id_to_msa_id);
 
     // extract sequences from graph and create msa strings (add indels(-) where
     // necessary)
     for (uint32_t i = 0; i < num_sequences_; ++i) {
-        std::string alignment_str(base_counter, '-');
-        uint32_t curr_node_id = sequences_begin_nodes_ids_[i];
+        std::string alignment_str(msa_length, '-');
+        uint32_t node_id = sequences_begin_nodes_ids_[i];
 
         while (true) {
-            alignment_str[msa_node_ids[curr_node_id]] =
-                decoder_[nodes_[curr_node_id]->code_];
+            alignment_str[node_id_to_msa_id[node_id]] =
+                decoder_[nodes_[node_id]->code_];
 
-            uint32_t prev_node_id = curr_node_id;
-            for (const auto& edge: nodes_[prev_node_id]->out_edges_) {
-                for (const auto& label: edge->sequence_labels_) {
-                    if (label == i) {
-                        curr_node_id = edge->end_node_id_;
-                        break;
-                    }
-                }
-                if (prev_node_id != curr_node_id) {
-                    break;
-                }
-            }
-
-            if (prev_node_id == curr_node_id) {
+            if (!nodes_[node_id]->successor(node_id, i)) {
                 break;
             }
         }
@@ -409,9 +418,9 @@ void Graph::generate_multiple_sequence_alignment(std::vector<std::string>& dst,
         // do the same for consensus sequence
         this->traverse_heaviest_bundle();
 
-        std::string alignment_str(base_counter, '-');
+        std::string alignment_str(msa_length, '-');
         for (const auto& node_id: consensus_) {
-            alignment_str[msa_node_ids[node_id]] =
+            alignment_str[node_id_to_msa_id[node_id]] =
                 decoder_[nodes_[node_id]->code_];
         }
         dst.emplace_back(alignment_str);
@@ -445,54 +454,34 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& dst, bool verbose) 
     } else {
         dst.resize((num_codes_ + 1) * consensus_.size(), 0);
 
-        std::vector<uint32_t> msa_node_ids(nodes_.size(), 0);
-        uint32_t base_counter = 0;
-        for (uint32_t i = 0; i < nodes_.size(); ++i) {
-            uint32_t node_id = rank_to_node_id_[i];
-
-            msa_node_ids[node_id] = base_counter;
-            for (uint32_t j = 0; j < nodes_[node_id]->aligned_nodes_ids_.size(); ++j) {
-                msa_node_ids[rank_to_node_id_[++i]] = base_counter;
-            }
-            ++base_counter;
-        }
-
-        std::vector<uint32_t> consensus_msa_ids;
-        for (const auto& node_id: consensus_) {
-            consensus_msa_ids.emplace_back(msa_node_ids[node_id]);
-        }
+        std::vector<uint32_t> node_id_to_msa_id;
+        initialize_multiple_sequence_alignment(node_id_to_msa_id);
 
         for (uint32_t i = 0; i < num_sequences_; ++i) {
-            auto curr_node_id = sequences_begin_nodes_ids_[i];
+            auto node_id = sequences_begin_nodes_ids_[i];
 
-            uint32_t c = 0;
+            bool count_indels = false;
+            uint32_t c = 0, l;
             while (true) {
-                auto msa_id = msa_node_ids[curr_node_id];
-
-                for (; c < consensus_.size() && consensus_msa_ids[c] < msa_id; ++c) {
-                    ++dst[num_codes_ * consensus_.size() + c];
-                }
+                for (; c < consensus_.size() &&
+                    node_id_to_msa_id[consensus_[c]] < node_id_to_msa_id[node_id]; ++c);
                 if (c >= consensus_.size()) {
-                    continue;
-                }
-                if (consensus_msa_ids[c] == msa_id) {
-                    ++dst[nodes_[curr_node_id]->code_ * consensus_.size() + c];
-                    ++c;
+                    break;
                 }
 
-                uint32_t prev_node_id = curr_node_id;
-                for (const auto& edge: nodes_[prev_node_id]->out_edges_) {
-                    for (const auto& label: edge->sequence_labels_) {
-                        if (label == i) {
-                            curr_node_id = edge->end_node_id_;
-                            break;
+                if (node_id_to_msa_id[consensus_[c]] == node_id_to_msa_id[node_id]) {
+                    if (count_indels) {
+                        for (uint32_t j = l + 1; j < c; ++j) {
+                            ++dst[num_codes_ * consensus_.size() + j];
                         }
                     }
-                    if (prev_node_id != curr_node_id) {
-                        break;
-                    }
+                    count_indels = true;
+                    l = c;
+
+                    ++dst[nodes_[node_id]->code_ * consensus_.size() + c];
                 }
-                if (prev_node_id == curr_node_id) {
+
+                if (!nodes_[node_id]->successor(node_id, i)) {
                     break;
                 }
             }
