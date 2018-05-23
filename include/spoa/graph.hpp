@@ -78,7 +78,7 @@ public:
     void update_alignment(Alignment& alignment,
         const std::vector<int32_t>& subgraph_to_graph_mapping) const;
 
-    void print_csv() const;
+    void print_graphviz() const;
 
     friend std::unique_ptr<Graph> createGraph();
 private:
@@ -104,7 +104,7 @@ private:
 
     void traverse_heaviest_bundle();
 
-    uint32_t branch_completion(std::vector<int32_t>& scores,
+    uint32_t branch_completion(std::vector<int64_t>& scores,
         std::vector<int32_t>& predecessors,
         uint32_t rank);
 
@@ -189,8 +189,7 @@ private:
     uint32_t begin_node_id_;
     uint32_t end_node_id_;
     std::vector<uint32_t> sequence_labels_;
-    std::vector<int32_t> sequence_weights_;
-    int32_t total_weight_;
+    int64_t total_weight_;
 };
 
 }

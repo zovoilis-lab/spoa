@@ -66,8 +66,7 @@ std::unique_ptr<Edge> Graph::createEdge(uint32_t begin_node_id,
 Edge::Edge(uint32_t begin_node_id, uint32_t end_node_id, uint32_t label,
     uint32_t weight)
         : begin_node_id_(begin_node_id), end_node_id_(end_node_id),
-        sequence_labels_(1, label), sequence_weights_(1, weight),
-        total_weight_(weight) {
+        sequence_labels_(1, label), total_weight_(weight) {
 }
 
 Edge::~Edge() {
@@ -75,7 +74,6 @@ Edge::~Edge() {
 
 void Edge::add_sequence(uint32_t label, uint32_t weight) {
     sequence_labels_.emplace_back(label);
-    sequence_weights_.emplace_back(weight);
     total_weight_ += weight;
 }
 
@@ -494,7 +492,7 @@ std::string Graph::generate_consensus(std::vector<uint32_t>& dst, bool verbose) 
 void Graph::traverse_heaviest_bundle() {
 
     std::vector<int32_t> predecessors(nodes_.size(), -1);
-    std::vector<int32_t> scores(nodes_.size(), -1);
+    std::vector<int64_t> scores(nodes_.size(), -1);
 
     uint32_t max_score_id = 0;
     for (const auto& node_id: rank_to_node_id_) {
@@ -541,7 +539,7 @@ void Graph::traverse_heaviest_bundle() {
     std::reverse(consensus_.begin(), consensus_.end());
 }
 
-uint32_t Graph::branch_completion(std::vector<int32_t>& scores,
+uint32_t Graph::branch_completion(std::vector<int64_t>& scores,
     std::vector<int32_t>& predecessors, uint32_t rank) {
 
     uint32_t node_id = rank_to_node_id_[rank];
@@ -553,7 +551,7 @@ uint32_t Graph::branch_completion(std::vector<int32_t>& scores,
         }
     }
 
-    float max_score = 0;
+    int64_t max_score = 0;
     uint32_t max_score_id = 0;
     for (uint32_t i = rank + 1; i < rank_to_node_id_.size(); ++i) {
 
@@ -681,7 +679,7 @@ void Graph::update_alignment(Alignment& alignment,
     }
 }
 
-void Graph::print_csv() const {
+void Graph::print_graphviz() const {
 
     std::vector<int32_t> in_consensus(nodes_.size(), -1);
     int32_t rank = 0;
@@ -689,17 +687,17 @@ void Graph::print_csv() const {
         in_consensus[id] = rank++;
     }
 
-    printf("digraph %d {\n", num_sequences_);
+    printf("digraph %u {\n", num_sequences_);
     printf("    graph [rankdir=LR]\n");
     for (uint32_t i = 0; i < nodes_.size(); ++i) {
-        printf("    %d [label = \"%d - %c\"", i, i, decoder_[nodes_[i]->code_]);
+        printf("    %u [label = \"%u - %c\"", i, i, decoder_[nodes_[i]->code_]);
         if (in_consensus[i] != -1) {
             printf(", style=filled, fillcolor=goldenrod1");
         }
         printf("]\n");
 
         for (const auto& edge: nodes_[i]->out_edges_) {
-            printf("    %d -> %d [label = \"%d\"", i, edge->end_node_id_,
+            printf("    %u -> %u [label = \"%lu\"", i, edge->end_node_id_,
                 edge->total_weight_);
             if (in_consensus[i] + 1 == in_consensus[edge->end_node_id_]) {
                 printf(", color=goldenrod1");
@@ -708,8 +706,7 @@ void Graph::print_csv() const {
         }
         for (const auto& aid: nodes_[i]->aligned_nodes_ids_) {
             if (aid > i) {
-                printf("    %d -> %d [style = dotted, arrowhead = none]\n",
-                    i, aid);
+                printf("    %u -> %u [style = dotted, arrowhead = none]\n", i, aid);
             }
         }
     }
