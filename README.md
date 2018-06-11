@@ -39,6 +39,8 @@ Optionally, you can run `sudo make install` to install spoa library (and executa
 
 ***Note***: if you omitted `--recursive` from `git clone`, run `git submodule init` and `git submodule update` before proceeding with compilation.
 
+To build unit tests add `-Dspoa_build_tests=ON` while running `cmake`. After installation, an executable named `spoa_test` will be created in `build/bin`.
+
 ## Usage
 
 Usage of spoa is as following:
