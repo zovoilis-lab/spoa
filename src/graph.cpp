@@ -698,7 +698,7 @@ void Graph::print_dot(const std::string& path) const {
     out << "    graph [rankdir=LR]" << std::endl;
     for (uint32_t i = 0; i < nodes_.size(); ++i) {
         out << "    " << i << " [label = \"" << i << " - ";
-        out << decoder_[nodes_[i]->code_] << "\"";
+        out << static_cast<char>(decoder_[nodes_[i]->code_]) << "\"";
         if (in_consensus[i] != -1) {
             out << ", style=filled, fillcolor=goldenrod1";
         }
