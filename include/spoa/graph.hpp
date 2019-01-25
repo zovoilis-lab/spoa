@@ -78,7 +78,7 @@ public:
     void update_alignment(Alignment& alignment,
         const std::vector<int32_t>& subgraph_to_graph_mapping) const;
 
-    void print_graphviz() const;
+    void print_dot(const std::string& path) const;
 
     friend std::unique_ptr<Graph> createGraph();
 private:

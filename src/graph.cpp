@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <stack>
+#include <fstream>
 
 #include "spoa/graph.hpp"
 
@@ -679,7 +680,13 @@ void Graph::update_alignment(Alignment& alignment,
     }
 }
 
-void Graph::print_graphviz() const {
+void Graph::print_dot(const std::string& path) const {
+
+    if (path.empty()) {
+        return;
+    }
+
+    std::ofstream out(path);
 
     std::vector<int32_t> in_consensus(nodes_.size(), -1);
     int32_t rank = 0;
@@ -687,30 +694,34 @@ void Graph::print_graphviz() const {
         in_consensus[id] = rank++;
     }
 
-    printf("digraph %u {\n", num_sequences_);
-    printf("    graph [rankdir=LR]\n");
+    out << "digraph " << num_sequences_ << " {" << std::endl;
+    out << "    graph [rankdir=LR]" << std::endl;
     for (uint32_t i = 0; i < nodes_.size(); ++i) {
-        printf("    %u [label = \"%u - %c\"", i, i, decoder_[nodes_[i]->code_]);
+        out << "    " << i << " [label = \"" << i << " - ";
+        out << decoder_[nodes_[i]->code_] << "\"";
         if (in_consensus[i] != -1) {
-            printf(", style=filled, fillcolor=goldenrod1");
+            out << ", style=filled, fillcolor=goldenrod1";
         }
-        printf("]\n");
+        out << "]" << std::endl;
 
         for (const auto& edge: nodes_[i]->out_edges_) {
-            printf("    %u -> %u [label = \"%lu\"", i, edge->end_node_id_,
-                edge->total_weight_);
+            out << "    " << i << " -> " << edge->end_node_id_;
+            out << " [label = \"" << edge->total_weight_ << "\"";
             if (in_consensus[i] + 1 == in_consensus[edge->end_node_id_]) {
-                printf(", color=goldenrod1");
+                out << ", color=goldenrod1";
             }
-            printf("]\n");
+            out << "]" << std::endl;
         }
         for (const auto& aid: nodes_[i]->aligned_nodes_ids_) {
             if (aid > i) {
-                printf("    %u -> %u [style = dotted, arrowhead = none]\n", i, aid);
+                out << "    " << i << " -> " << aid;
+                out << " [style = dotted, arrowhead = none]" << std::endl;
             }
         }
     }
-    printf("}\n");
+    out << "}" << std::endl;
+
+    out.close();
 }
 
 }

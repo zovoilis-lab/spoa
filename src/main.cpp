@@ -7,7 +7,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v1.1.3";
+static const char* version = "v1.1.4";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
@@ -15,6 +15,7 @@ static struct option options[] = {
     {"gap", required_argument, 0, 'g'},
     {"algorithm", required_argument, 0, 'l'},
     {"result", required_argument, 0, 'r'},
+    {"dot", required_argument, 0, 'd'},
     {"version", no_argument, 0, 'v'},
     {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
@@ -31,8 +32,10 @@ int main(int argc, char** argv) {
     uint8_t algorithm = 0;
     uint8_t result = 0;
 
+    std::string dot_path = "";
+
     char opt;
-    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:h", options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:d:h", options, nullptr)) != -1) {
         switch (opt) {
             case 'm':
                 match = atoi(optarg);
@@ -48,6 +51,9 @@ int main(int argc, char** argv) {
                 break;
             case 'r':
                 result = atoi(optarg);
+                break;
+            case 'd':
+                dot_path = optarg;
                 break;
             case 'v':
                 printf("%s\n", version);
@@ -119,6 +125,8 @@ int main(int argc, char** argv) {
             fprintf(stdout, "%s\n", it.c_str());
         }
     }
+
+    graph->print_dot(dot_path);
 
     return 0;
 }
