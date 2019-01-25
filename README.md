@@ -72,6 +72,8 @@ Usage of spoa is as following:
                     0 - consensus
                     1 - multiple sequence alignment
                     2 - 0 & 1
+            -d, --dot <file>
+                output file for the final POA graph in DOT format
             --version
                 prints the version number
             -h, --help

@@ -160,6 +160,8 @@ void help() {
         "                0 - consensus\n"
         "                1 - multiple sequence alignment\n"
         "                2 - 0 & 1\n"
+        "        -d, --dot <file>\n"
+        "            output file for the final POA graph in DOT format\n"
         "        --version\n"
         "            prints the version number\n"
         "        -h, --help\n"
