@@ -48,7 +48,8 @@ Usage of spoa is as following:
     spoa [options ...] <sequences>
 
         <sequences>
-            input file in FASTA/FASTQ format containing sequences
+            input file in FASTA/FASTQ format (can be compressed with gzip)
+            containing sequences
 
         options:
             -m, --match <int>

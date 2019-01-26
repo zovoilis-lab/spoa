@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(spoa LANGUAGES CXX VERSION 1.1.4)
+project(spoa LANGUAGES CXX VERSION 1.1.5)
 
 include(GNUInstallDirs)
 

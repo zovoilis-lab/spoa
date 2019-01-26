@@ -7,7 +7,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v1.1.4";
+static const char* version = "v1.1.5";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
@@ -72,22 +72,30 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    std::string input_path = argv[optind];
-    auto extension = input_path.substr(std::min(input_path.rfind('.'),
-        input_path.size()));
+    std::string sequences_path = argv[optind];
+
+    auto is_suffix = [](const std::string& src, const std::string& suffix) -> bool {
+        if (src.size() < suffix.size()) {
+            return false;
+        }
+        return src.compare(src.size() - suffix.size(), suffix.size(), suffix) == 0;
+    };
 
     std::unique_ptr<bioparser::Parser<spoa::Sequence>> sparser = nullptr;
 
-    if (extension == ".fasta" || extension == ".fa") {
+    if (is_suffix(sequences_path, ".fasta") || is_suffix(sequences_path, ".fa") ||
+        is_suffix(sequences_path, ".fasta.gz") || is_suffix(sequences_path, ".fa.gz")) {
         sparser = bioparser::createParser<bioparser::FastaParser, spoa::Sequence>(
-            input_path);
-    } else if (extension == ".fastq" || extension == ".fq") {
+            sequences_path);
+    } else if (is_suffix(sequences_path, ".fastq") || is_suffix(sequences_path, ".fq") ||
+        is_suffix(sequences_path, ".fastq.gz") || is_suffix(sequences_path, ".fq.gz")) {
         sparser = bioparser::createParser<bioparser::FastqParser, spoa::Sequence>(
-            input_path);
+            sequences_path);
     } else {
         fprintf(stderr, "[spoa::] error: "
             "file %s has unsupported format extension (valid extensions: "
-            ".fasta, .fa, .fastq, .fq)!\n", input_path.c_str());
+            ".fasta, .fasta.gz, .fa, .fa.gz, .fastq, .fastq.gz, .fq, .fq.gz)!\n",
+            sequences_path.c_str());
         exit(1);
     }
 
@@ -136,7 +144,8 @@ void help() {
         "usage: spoa [options ...] <sequences>\n"
         "\n"
         "    <sequences>\n"
-        "        input file in FASTA/FASTQ format containing sequences\n"
+        "        input file in FASTA/FASTQ format (can be compressed with gzip)\n"
+        "        containing sequences\n"
         "\n"
         "    options:\n"
         "        -m, --match <int>\n"
