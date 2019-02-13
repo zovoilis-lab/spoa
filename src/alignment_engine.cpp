@@ -14,45 +14,58 @@
 
 namespace spoa {
 
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(
-    AlignmentType alignment_type, int8_t match, int8_t mismatch,
-    int8_t gap) {
+std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
+    int8_t match, int8_t mismatch, int8_t gap_open) {
 
-    if (alignment_type != AlignmentType::kSW &&
-        alignment_type != AlignmentType::kNW &&
-        alignment_type != AlignmentType::kOV) {
+    return createAlignmentEngine(type, match, mismatch, gap_open, gap_open);
+}
+
+std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
+    int8_t match, int8_t mismatch, int8_t gap_open, int8_t gap_extend) {
+
+    if (type != AlignmentType::kSW && type != AlignmentType::kNW &&
+        type != AlignmentType::kOV) {
 
         fprintf(stderr, "[spoa::createAlignmentEngine] error: "
             "invalid alignment type!\n");
         exit(1);
     }
 
-    if (gap >= 0) {
+    if (gap_open >= 0) {
         fprintf(stderr, "[spoa::createAlignmentEngine] error: "
-            "gap penalty must be negative!\n");
+            "gap opening penalty must be negative!\n");
+        exit(1);
+    }
+    if (gap_extend >= 0) {
+        fprintf(stderr, "[spoa::createAlignmentEngine] error: "
+            "gap extension penalty must be negative!\n");
         exit(1);
     }
 
-    auto alignment_engine = createSimdAlignmentEngine(alignment_type, match,
-        mismatch, gap);
+    AlignmentSubtype subtype = gap_open == gap_extend ?
+        AlignmentSubtype::kLinear : AlignmentSubtype::kAffine;
+
+    auto alignment_engine = createSimdAlignmentEngine(type, subtype,
+        match, mismatch, gap_open);
 
     if (alignment_engine == nullptr) {
-        return createSisdAlignmentEngine(alignment_type, match, mismatch, gap);
+        return createSisdAlignmentEngine(type, subtype, match, mismatch,
+            gap_open, gap_extend);
     }
 
     return alignment_engine;
 }
 
-AlignmentEngine::AlignmentEngine(AlignmentType alignment_type, int8_t match,
-    int8_t mismatch, int8_t gap)
-        : alignment_type_(alignment_type), match_(match), mismatch_(mismatch),
-        gap_(gap) {
+AlignmentEngine::AlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
+    int8_t match, int8_t mismatch, int8_t gap_open, int8_t gap_extend)
+        : type_(type), subtype_(subtype), match_(match), mismatch_(mismatch),
+        gap_open_(gap_open), gap_extend_(gap_extend) {
 }
 
-Alignment AlignmentEngine::align_sequence_with_graph(const std::string& sequence,
+Alignment AlignmentEngine::operator()(const std::string& sequence,
     const std::unique_ptr<Graph>& graph) {
 
-    return this->align_sequence_with_graph(sequence.c_str(), sequence.size(), graph);
+    return this->operator()(sequence.c_str(), sequence.size(), graph);
 }
 
 }

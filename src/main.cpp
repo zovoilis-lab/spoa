@@ -7,12 +7,13 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v1.1.5";
+static const char* version = "v1.2.0";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
     {"mismatch", required_argument, 0, 'x'},
-    {"gap", required_argument, 0, 'g'},
+    {"gap-open", required_argument, 0, 'g'},
+    {"gap-extend", required_argument, 0, 'e'},
     {"algorithm", required_argument, 0, 'l'},
     {"result", required_argument, 0, 'r'},
     {"dot", required_argument, 0, 'd'},
@@ -27,7 +28,8 @@ int main(int argc, char** argv) {
 
     int8_t match = 5;
     int8_t mismatch = -4;
-    int8_t gap = -8;
+    int8_t gap_open = -8;
+    int8_t gap_extend = -6;
 
     uint8_t algorithm = 0;
     uint8_t result = 0;
@@ -35,7 +37,7 @@ int main(int argc, char** argv) {
     std::string dot_path = "";
 
     char opt;
-    while ((opt = getopt_long(argc, argv, "m:x:g:l:r:d:h", options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "m:x:g:e:l:r:d:h", options, nullptr)) != -1) {
         switch (opt) {
             case 'm':
                 match = atoi(optarg);
@@ -44,7 +46,10 @@ int main(int argc, char** argv) {
                 mismatch = atoi(optarg);
                 break;
             case 'g':
-                gap = atoi(optarg);
+                gap_open = atoi(optarg);
+                break;
+            case 'e':
+                gap_extend = atoi(optarg);
                 break;
             case 'l':
                 algorithm = atoi(optarg);
@@ -100,7 +105,8 @@ int main(int argc, char** argv) {
     }
 
     auto alignment_engine = spoa::createAlignmentEngine(
-        static_cast<spoa::AlignmentType>(algorithm), match, mismatch, gap);
+        static_cast<spoa::AlignmentType>(algorithm), match, mismatch, gap_open,
+        gap_extend);
 
     auto graph = spoa::createGraph();
 
@@ -114,8 +120,7 @@ int main(int argc, char** argv) {
     alignment_engine->prealloc(max_sequence_size, 4);
 
     for (const auto& it: sequences) {
-        auto alignment = alignment_engine->align_sequence_with_graph(it->data(),
-            graph);
+        auto alignment = (*alignment_engine)(it->data(), graph);
         graph->add_alignment(alignment, it->data(), it->quality());
     }
 
@@ -154,9 +159,12 @@ void help() {
         "        -x, --mismatch <int>\n"
         "            default: -4\n"
         "            score for mismatching bases\n"
-        "        -g, --gap <int>\n"
+        "        -g, --gap-open <int>\n"
         "            default: -8\n"
-        "            gap penalty (must be negative)\n"
+        "            gap opening penalty (must be negative)\n"
+        "        -e, --gap-extend <int>\n"
+        "            default: -6\n"
+        "            gap extension penalty (must be negative)\n"
         "        -l, --algorithm <int>\n"
         "            default: 0\n"
         "            alignment mode:\n"

@@ -19,8 +19,8 @@ namespace spoa {
 class Graph;
 
 class SimdAlignmentEngine;
-std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
-    AlignmentType alignment_type, int8_t match, int8_t mismatch, int8_t gap);
+std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
+    AlignmentSubtype subtype, int8_t match, int8_t mismatch, int8_t gap);
 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
@@ -28,19 +28,24 @@ public:
 
     void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) override;
 
-    Alignment align_sequence_with_graph(const char* sequence,
-        uint32_t sequence_size, const std::unique_ptr<Graph>& graph) override;
+    Alignment operator()(const char* sequence, uint32_t sequence_size,
+        const std::unique_ptr<Graph>& graph) override;
 
     friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
-        AlignmentType alignment_type, int8_t match, int8_t mismatch, int8_t gap);
-private:
-    SimdAlignmentEngine(AlignmentType alignment_type, int8_t match,
+        AlignmentType type, AlignmentSubtype subtype, int8_t match,
         int8_t mismatch, int8_t gap);
+private:
+    SimdAlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
+        int8_t match, int8_t mismatch, int8_t gap);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 
     template<typename T>
-    Alignment align(const char* sequence, uint32_t sequence_size,
+    Alignment linear(const char* sequence, uint32_t sequence_size,
+        const std::unique_ptr<Graph>& graph) noexcept;
+
+    template<typename T>
+    Alignment affine(const char* sequence, uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     void realloc(uint32_t matrix_width, uint32_t matrix_height,
