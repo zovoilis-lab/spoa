@@ -20,7 +20,8 @@ class Graph;
 
 class SimdAlignmentEngine;
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t match, int8_t mismatch, int8_t gap);
+    AlignmentSubtype subtype, int8_t match, int8_t mismatch, int8_t gap_open,
+    int8_t gap_extend);
 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
@@ -33,10 +34,10 @@ public:
 
     friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
         AlignmentType type, AlignmentSubtype subtype, int8_t match,
-        int8_t mismatch, int8_t gap);
+        int8_t mismatch, int8_t gap_open, int8_t gap_extend);
 private:
     SimdAlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-        int8_t match, int8_t mismatch, int8_t gap);
+        int8_t match, int8_t mismatch, int8_t gap_open, int8_t gap_extend);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 

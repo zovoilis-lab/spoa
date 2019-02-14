@@ -46,7 +46,7 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
         AlignmentSubtype::kLinear : AlignmentSubtype::kAffine;
 
     auto alignment_engine = createSimdAlignmentEngine(type, subtype,
-        match, mismatch, gap_open);
+        match, mismatch, gap_open, gap_extend);
 
     if (alignment_engine == nullptr) {
         return createSisdAlignmentEngine(type, subtype, match, mismatch,

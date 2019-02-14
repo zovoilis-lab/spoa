@@ -251,8 +251,8 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     uint32_t prev_j = 0;
 
     while ((type_ == AlignmentType::kSW && sw_condition()) ||
-        (type_ == AlignmentType::kNW && nw_condition()) ||
-        (type_ == AlignmentType::kOV && ov_condition())) {
+           (type_ == AlignmentType::kNW && nw_condition()) ||
+           (type_ == AlignmentType::kOV && ov_condition())) {
 
         auto H_ij = pimpl_->H[i * matrix_width + j];
         bool predecessor_found = false;
@@ -455,8 +455,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     uint32_t prev_j = 0;
 
     while ((type_ == AlignmentType::kSW && sw_condition()) ||
-        (type_ == AlignmentType::kNW && nw_condition()) ||
-        (type_ == AlignmentType::kOV && ov_condition())) {
+           (type_ == AlignmentType::kNW && nw_condition()) ||
+           (type_ == AlignmentType::kOV && ov_condition())) {
 
         auto H_ij = pimpl_->H[i * matrix_width + j];
         bool predecessor_found = false, extend_left = false, extend_up = false;
@@ -467,12 +467,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-            if (H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
-                prev_i = pred_i;
-                prev_j = j;
-                predecessor_found = true;
-                extend_up = true;
-            } else if (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
+            if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
+                             H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
                 prev_i = pred_i;
                 prev_j = j;
                 predecessor_found = true;
@@ -481,14 +477,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 for (uint32_t p = 1; p < edges.size(); ++p) {
                     pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
-                    if (H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
-                        prev_i = pred_i;
-                        prev_j = j;
-                        predecessor_found = true;
-                        extend_up = true;
-                        break;
-                    }
-                    if (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
+                    if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
+                                     H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
                         prev_i = pred_i;
                         prev_j = j;
                         predecessor_found = true;
@@ -499,12 +489,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         }
 
         if (!predecessor_found && j != 0) {
-            if (H_ij == pimpl_->E[i * matrix_width + j - 1] + gap_extend_) {
-                prev_i = i;
-                prev_j = j - 1;
-                predecessor_found = true;
-                extend_left = true;
-            } else if (H_ij == pimpl_->H[i * matrix_width + j - 1] + gap_open_) {
+            if ((extend_left = H_ij == pimpl_->E[i * matrix_width + j - 1] + gap_extend_) ||
+                               H_ij == pimpl_->H[i * matrix_width + j - 1] + gap_open_) {
                 prev_i = i;
                 prev_j = j - 1;
                 predecessor_found = true;
@@ -551,34 +537,23 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                     break;
                 }
             }
-        }
-        if (extend_up) {
+        } else if (extend_up) {
             bool stop = false;
             while (true) {
                 const auto& edges = graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
                 uint32_t pred_i = edges.empty() ? 0 :
                     pimpl_->node_id_to_rank[edges[0]->begin_node_id()] + 1;
 
-                if (pimpl_->F[pred_i * matrix_width + j] + gap_extend_ ==
-                    pimpl_->F[i * matrix_width + j]) {
+                if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + gap_open_) ||
+                            pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
                     prev_i = pred_i;
-                } else if (pimpl_->H[pred_i * matrix_width + j] + gap_open_ ==
-                    pimpl_->F[i * matrix_width + j]) {
-                    prev_i = pred_i;
-                    stop = true;
                 } else {
                     for (uint32_t p = 1; p < edges.size(); ++p) {
                         pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
-                        if (pimpl_->F[pred_i * matrix_width + j] + gap_extend_ ==
-                            pimpl_->F[i * matrix_width + j]) {
+                        if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + gap_open_) ||
+                                    pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
                             prev_i = pred_i;
-                            break;
-                        }
-                        if (pimpl_->H[pred_i * matrix_width + j] + gap_open_ ==
-                            pimpl_->F[i * matrix_width + j]) {
-                            prev_i = pred_i;
-                            stop = true;
                             break;
                         }
                     }

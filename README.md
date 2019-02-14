@@ -99,12 +99,12 @@ int main(int argc, char** argv) {
     };
 
     auto alignment_engine = spoa::createAlignmentEngine(static_cast<spoa::AlignmentType>(atoi(argv[1])),
-        atoi(argv[2]), atoi(argv[3]), atoi(argv[4]));
+        atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
 
     auto graph = spoa::createGraph();
 
     for (const auto& it: sequences) {
-        auto alignment = alignment_engine->align_sequence_with_graph(it, graph);
+        auto alignment = (*alignment_engine)(it, graph);
         graph->add_alignment(alignment, it);
     }
 
@@ -136,7 +136,7 @@ g++ example.cpp -std=c++11 -lspoa -o example
 
 The executable can be run with:
 ```bash
-./example 0 5 -4 -8
+./example 0 5 -4 -8 -6
 ```
 
 On the other hand, if you are using `cmake` you can add spoa to your project by adding commands `add_subdirectory(vendor/spoa EXCLUDE_FROM_ALL)` and `target_link_libraries(your_exe spoa)` to your main CMakeLists file.
