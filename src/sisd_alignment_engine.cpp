@@ -538,31 +538,22 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 }
             }
         } else if (extend_up) {
-            bool stop = false;
             while (true) {
-                const auto& edges = graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                uint32_t pred_i = edges.empty() ? 0 :
-                    pimpl_->node_id_to_rank[edges[0]->begin_node_id()] + 1;
+                bool stop = false;
+                for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
+                    uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 
-                if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + gap_open_) ||
-                            pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
-                    prev_i = pred_i;
-                } else {
-                    for (uint32_t p = 1; p < edges.size(); ++p) {
-                        pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
-
-                        if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + gap_open_) ||
-                                    pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
-                            prev_i = pred_i;
-                            break;
-                        }
+                    if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + gap_open_) ||
+                                pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
+                        prev_i = pred_i;
+                        break;
                     }
                 }
 
                 alignment.emplace_back(rank_to_node_id[i - 1], -1);
                 i = prev_i;
 
-                if (stop) {
+                if (stop || i == 0) {
                     break;
                 }
             }

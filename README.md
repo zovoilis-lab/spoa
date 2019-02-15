@@ -4,7 +4,7 @@
 [![Build status for c++/clang++](https://travis-ci.org/rvaser/spoa.svg?branch=master)](https://travis-ci.org/rvaser/spoa)
 [![Published in Genome Research](https://img.shields.io/badge/published%20in-Genome%20Research-blue.svg)](https://doi.org/10.1101/gr.214270.116)
 
-Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alignment modes: local (Smith-Waterman), global (Needleman-Wunsch) and semi-global alignment (overlap). It supports Intel SSE4.1+ and AVX2 vectorization (marginally faster due to high latency shifts).
+Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alignment modes: local (Smith-Waterman), global (Needleman-Wunsch) and semi-global alignment (overlap), and two gap modes: linear and affine. It supports Intel SSE4.1+ and AVX2 vectorization (marginally faster due to high latency shifts).
 
 ## Dependencies
 
@@ -58,9 +58,12 @@ Usage of spoa is as following:
             -x, --mismatch <int>
                 default: -4
                 score for mismatching bases
-            -g, --gap <int>
+            -g, --gap-open <int>
                 default: -8
-                gap penalty (must be negative)
+                gap opening penalty (must be negative)
+            -e, --gap-extend <int>
+                default: -6
+                gap extension penalty (must be negative)
             -l, --algorithm <int>
                 default: 0
                 alignment mode:
