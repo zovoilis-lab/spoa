@@ -570,21 +570,21 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     this->initialize<T>(sequence, graph, normal_matrix_width, matrix_width,
         matrix_height);
 
-    typename T::type negative_infinity =
+    typename T::type kNegativeInfinity =
         std::numeric_limits<typename T::type>::min() + 1024;
 
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         unpacked[T::kNumVar] = {0};
 
     for (uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
-        unpacked[i] = negative_infinity;
+        unpacked[i] = kNegativeInfinity;
         if ((i & (i + 1)) == 0) {
             pimpl_->masks[j++] =
                 _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
         }
     }
     pimpl_->masks[T::kLogNumVar] = _mmxxx_slli_si(T::_mmxxx_set1_epi(
-        negative_infinity), T::kLSS);
+        kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(gap_open_);
     for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
@@ -592,7 +592,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             pimpl_->penalties[i - 1]);
     }
 
-    typename T::type max_score = type_ == AlignmentType::kSW ? 0 : negative_infinity;
+    typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;
     int32_t max_j = -1;
     uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
@@ -648,7 +648,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             }
         }
 
-        __mxxxi score = T::_mmxxx_set1_epi(negative_infinity);
+        __mxxxi score = T::_mmxxx_set1_epi(kNegativeInfinity);
         x = _mmxxx_srli_si(T::_mmxxx_add_epi(T::_mmxxx_set1_epi(
             pimpl_->first_column[i]), penalty), T::kRSS);
 
@@ -813,6 +813,21 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
 
         if (i != 0) {
             for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                if ((j_mod == 0 && H[j_mod] ==
+                        H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
+                    (j_mod != 0 && H[j_mod] ==
+                        H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
+
+                    prev_i = predecessors[p];
+                    prev_j = j - 1;
+                    predecessor_found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
+            for (uint32_t p = 0; p < predecessors.size(); ++p) {
                 if (H[j_mod] == H_pred[p * T::kNumVar + j_mod] + gap_open_) {
                     prev_i = predecessors[p];
                     prev_j = j;
@@ -828,21 +843,6 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                 prev_i = i;
                 prev_j = j - 1;
                 predecessor_found = true;
-            }
-        }
-
-        if (!predecessor_found && i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
-                if ((j_mod == 0 && H[j_mod] ==
-                        H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
-                    (j_mod != 0 && H[j_mod] ==
-                        H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
-
-                    prev_i = predecessors[p];
-                    prev_j = j - 1;
-                    predecessor_found = true;
-                    break;
-                }
             }
         }
 
@@ -911,21 +911,21 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
-    this->realloc(matrix_height, graph->num_codes(), matrix_width);
+    this->realloc(matrix_width, matrix_height, graph->num_codes());
 
     // initialize
     this->initialize<T>(sequence, graph, normal_matrix_width, matrix_width,
         matrix_height);
 
-    typename T::type negative_infinity =
+    typename T::type kNegativeInfinity =
         std::numeric_limits<typename T::type>::min() + 1024;
 
-    __mxxxi negative_infinities = T::_mmxxx_set1_epi(negative_infinity);
+    __mxxxi negative_infinities = T::_mmxxx_set1_epi(kNegativeInfinity);
     for (uint32_t j = 0; j < matrix_width; ++j) {
         pimpl_->F[j] = negative_infinities;
     }
 
-    typename T::type max_score = type_ == AlignmentType::kSW ? 0 : negative_infinity;
+    typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;
     int32_t max_j = -1;
     uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
@@ -937,14 +937,14 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         unpacked[T::kNumVar] = {0};
 
     for (uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
-        unpacked[i] = negative_infinity;
+        unpacked[i] = kNegativeInfinity;
         if ((i & (i + 1)) == 0) {
             pimpl_->masks[j++] =
                 _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
         }
     }
     pimpl_->masks[T::kLogNumVar] = _mmxxx_slli_si(T::_mmxxx_set1_epi(
-        negative_infinity), T::kLSS);
+        kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(gap_extend_);
     for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
@@ -1190,6 +1190,18 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
         if (i != 0) {
             for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                if ((j_mod == 0 && H[j_mod] == H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
+                    (j_mod != 0 && H[j_mod] == H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
+                    prev_i = predecessors[p];
+                    prev_j = j - 1;
+                    predecessor_found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
+            for (uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((extend_up = H[j_mod] == F_pred[p * T::kNumVar + j_mod] + gap_extend_) ||
                                  H[j_mod] == H_pred[p * T::kNumVar + j_mod] + gap_open_) {
                     prev_i = predecessors[p];
@@ -1208,18 +1220,6 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 prev_i = i;
                 prev_j = j - 1;
                 predecessor_found = true;
-            }
-        }
-
-        if (!predecessor_found && i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
-                if ((j_mod == 0 && H[j_mod] == H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
-                    (j_mod != 0 && H[j_mod] == H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
-                    prev_i = predecessors[p];
-                    prev_j = j - 1;
-                    predecessor_found = true;
-                    break;
-                }
             }
         }
 
@@ -1265,6 +1265,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(F),
                     pimpl_->F[i * matrix_width + j_div]);
 
+                prev_i = 0;
                 predecessors.clear();
                 uint32_t store_pos = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {

@@ -257,19 +257,45 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         auto H_ij = pimpl_->H[i * matrix_width + j];
         bool predecessor_found = false;
 
-        if (i != 0) {
+        if (i != 0 && j != 0) {
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
+            int32_t match_cost =
+                pimpl_->sequence_profile[node->code() * matrix_width + j];
+
+            uint32_t pred_i = node->in_edges().empty() ? 0 :
+                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+            if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                prev_i = pred_i;
+                prev_j = j - 1;
+                predecessor_found = true;
+            } else {
+                const auto& edges = node->in_edges();
+                for (uint32_t p = 1; p < edges.size(); ++p) {
+                    uint32_t pred_i =
+                        pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
+
+                    if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                        prev_i = pred_i;
+                        prev_j = j - 1;
+                        predecessor_found = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
-               prev_i = pred_i;
-               prev_j = j;
-               predecessor_found = true;
-           }
-
-            if (!predecessor_found) {
+                prev_i = pred_i;
+                prev_j = j;
+                predecessor_found = true;
+            } else {
                 const auto& edges = node->in_edges();
                 for (uint32_t p = 1; p < edges.size(); ++p) {
                     uint32_t pred_i =
@@ -289,36 +315,6 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             prev_i = i;
             prev_j = j - 1;
             predecessor_found = true;
-        }
-
-        if (!predecessor_found && i != 0 && j != 0) {
-            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
-            int32_t match_cost =
-                pimpl_->sequence_profile[node->code() * matrix_width + j];
-
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
-                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
-
-            if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
-                prev_i = pred_i;
-                prev_j = j - 1;
-                predecessor_found = true;
-            }
-
-            if (!predecessor_found) {
-                const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
-                    uint32_t pred_i =
-                        pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
-
-                    if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
-                        prev_i = pred_i;
-                        prev_j = j - 1;
-                        predecessor_found = true;
-                        break;
-                    }
-                }
-            }
         }
 
         alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
@@ -461,7 +457,34 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         auto H_ij = pimpl_->H[i * matrix_width + j];
         bool predecessor_found = false, extend_left = false, extend_up = false;
 
-        if (i != 0) {
+        if (i != 0 && j != 0) {
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
+            int32_t match_cost =
+                pimpl_->sequence_profile[node->code() * matrix_width + j];
+
+            uint32_t pred_i = node->in_edges().empty() ? 0 :
+                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+            if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                prev_i = pred_i;
+                prev_j = j - 1;
+                predecessor_found = true;
+            } else {
+                const auto& edges = node->in_edges();
+                for (uint32_t p = 1; p < edges.size(); ++p) {
+                    pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
+
+                    if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                        prev_i = pred_i;
+                        prev_j = j - 1;
+                        predecessor_found = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
             uint32_t pred_i = node->in_edges().empty() ? 0 :
@@ -497,31 +520,6 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             }
         }
 
-        if (!predecessor_found && i != 0 && j != 0) {
-            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
-            int32_t match_cost =
-                pimpl_->sequence_profile[node->code() * matrix_width + j];
-
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
-                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
-
-            if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
-                prev_i = pred_i;
-                prev_j = j - 1;
-            } else {
-                const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
-                    pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
-
-                    if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
-                        prev_i = pred_i;
-                        prev_j = j - 1;
-                        break;
-                    }
-                }
-            }
-        }
-
         alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
             j == prev_j ? -1 : j - 1);
 
@@ -540,6 +538,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         } else if (extend_up) {
             while (true) {
                 bool stop = false;
+                prev_i = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
                     uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 

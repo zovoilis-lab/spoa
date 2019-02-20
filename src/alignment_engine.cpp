@@ -42,8 +42,12 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
         exit(1);
     }
 
-    AlignmentSubtype subtype = gap_open == gap_extend ?
+    AlignmentSubtype subtype = gap_open >= gap_extend ?
         AlignmentSubtype::kLinear : AlignmentSubtype::kAffine;
+
+    if (subtype == AlignmentSubtype::kLinear) {
+        gap_extend = gap_open;
+    }
 
     auto alignment_engine = createSimdAlignmentEngine(type, subtype,
         match, mismatch, gap_open, gap_extend);
