@@ -80,6 +80,8 @@ public:
 
     void print_dot(const std::string& path) const;
 
+    void clear();
+
     friend std::unique_ptr<Graph> createGraph();
 private:
     Graph();

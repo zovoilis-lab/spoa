@@ -68,6 +68,23 @@ TEST(SpoaTest, EmptyInputError) {
     EXPECT_TRUE(alignment.empty());
 }
 
+TEST_F(SpoaAlignmentTest, GraphClear) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kSW,
+        5, -4, -8, -8);
+
+    initialize();
+    construct_partial_order_graph(false);
+
+    auto consensus = graph->generate_consensus();
+
+    graph->clear();
+    construct_partial_order_graph(false);
+
+    auto test = graph->generate_consensus();
+
+    EXPECT_TRUE(consensus.compare(test) == 0);
+}
+
 TEST_F(SpoaAlignmentTest, LocalConsensus) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kSW,
         5, -4, -8, -8);

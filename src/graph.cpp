@@ -724,4 +724,13 @@ void Graph::print_dot(const std::string& path) const {
     out.close();
 }
 
+void Graph::clear() {
+    std::fill(coder_.begin(), coder_.end(), -1);
+    std::fill(decoder_.begin(), decoder_.end(), -1);
+    nodes_.clear();
+    rank_to_node_id_.clear();
+    sequences_begin_nodes_ids_.clear();
+    consensus_.clear();
+}
+
 }
