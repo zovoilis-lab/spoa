@@ -60,10 +60,10 @@ Usage of spoa is as following:
                 score for mismatching bases
             -g, --gap-open <int>
                 default: -8
-                gap opening penalty (must be negative)
+                gap opening penalty (must be non-positive)
             -e, --gap-extend <int>
                 default: -6
-                gap extension penalty (must be negative)
+                gap extension penalty (must be non-positive)
             -l, --algorithm <int>
                 default: 0
                 alignment mode:

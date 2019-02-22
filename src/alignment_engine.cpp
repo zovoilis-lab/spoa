@@ -31,14 +31,14 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
         exit(1);
     }
 
-    if (gap_open >= 0) {
+    if (gap_open > 0) {
         fprintf(stderr, "[spoa::createAlignmentEngine] error: "
-            "gap opening penalty must be negative!\n");
+            "gap opening penalty must be non-positive!\n");
         exit(1);
     }
-    if (gap_extend >= 0) {
+    if (gap_extend > 0) {
         fprintf(stderr, "[spoa::createAlignmentEngine] error: "
-            "gap extension penalty must be negative!\n");
+            "gap extension penalty must be non-positive!\n");
         exit(1);
     }
 

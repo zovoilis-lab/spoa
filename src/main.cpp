@@ -7,7 +7,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v2.0.2";
+static const char* version = "v2.0.3";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
@@ -161,10 +161,10 @@ void help() {
         "            score for mismatching bases\n"
         "        -g, --gap-open <int>\n"
         "            default: -8\n"
-        "            gap opening penalty (must be negative)\n"
+        "            gap opening penalty (must be non-positive)\n"
         "        -e, --gap-extend <int>\n"
         "            default: -6\n"
-        "            gap extension penalty (must be negative)\n"
+        "            gap extension penalty (must be non-positive)\n"
         "        -l, --algorithm <int>\n"
         "            default: 0\n"
         "            alignment mode:\n"
