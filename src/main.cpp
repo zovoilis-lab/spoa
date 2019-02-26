@@ -1,13 +1,13 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <getopt.h>
+#include <exception>
 
 #include "sequence.hpp"
 
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v2.0.3";
+static const char* version = "v2.0.4";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
@@ -62,19 +62,19 @@ int main(int argc, char** argv) {
                 break;
             case 'v':
                 printf("%s\n", version);
-                exit(0);
+                return 0;
             case 'h':
                 help();
-                exit(0);
+                return 0;
             default:
-                exit(1);
+                return 1;
         }
     }
 
     if (optind >= argc) {
         fprintf(stderr, "[spoa::] error: missing input file!\n");
         help();
-        exit(1);
+        return 1;
     }
 
     std::string sequences_path = argv[optind];
@@ -101,12 +101,18 @@ int main(int argc, char** argv) {
             "file %s has unsupported format extension (valid extensions: "
             ".fasta, .fasta.gz, .fa, .fa.gz, .fastq, .fastq.gz, .fq, .fq.gz)!\n",
             sequences_path.c_str());
-        exit(1);
+        return 1;
     }
 
-    auto alignment_engine = spoa::createAlignmentEngine(
-        static_cast<spoa::AlignmentType>(algorithm), match, mismatch, gap_open,
-        gap_extend);
+    std::unique_ptr<spoa::AlignmentEngine> alignment_engine;
+    try {
+        alignment_engine = spoa::createAlignmentEngine(
+            static_cast<spoa::AlignmentType>(algorithm), match, mismatch,
+            gap_open, gap_extend);
+    } catch(std::invalid_argument& exception) {
+        fprintf(stderr, "%s\n", exception.what());
+        return 1;
+    }
 
     auto graph = spoa::createGraph();
 
@@ -121,7 +127,12 @@ int main(int argc, char** argv) {
 
     for (const auto& it: sequences) {
         auto alignment = (*alignment_engine)(it->data(), graph);
-        graph->add_alignment(alignment, it->data(), it->quality());
+        try {
+            graph->add_alignment(alignment, it->data(), it->quality());
+        } catch(std::invalid_argument& exception) {
+            fprintf(stderr, "%s\n", exception.what());
+            return 1;
+        }
     }
 
     if (result == 0 || result == 2) {

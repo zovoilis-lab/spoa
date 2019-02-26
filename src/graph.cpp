@@ -4,7 +4,6 @@
  * @brief Graph class source file
  */
 
-#include <stdlib.h>
 #include <assert.h>
 #include <algorithm>
 #include <stack>
@@ -155,14 +154,11 @@ void Graph::add_alignment(const Alignment& alignment, const char* sequence,
     uint32_t sequence_size, const std::vector<uint32_t>& weights) {
 
     if (sequence_size == 0) {
-        fprintf(stderr, "[spoa::Graph::add_alignment] error: "
-            "empty sequence!\n");
-        exit(1);
+        return;
     }
     if (sequence_size != weights.size()) {
-        fprintf(stderr, "[spoa::Graph::add_alignment] error: "
+        throw std::invalid_argument("[spoa::Graph::add_alignment] error: "
             "sequence and weights are of unequal size!");
-        exit(1);
     }
 
     for (uint32_t i = 0; i < sequence_size; ++i) {

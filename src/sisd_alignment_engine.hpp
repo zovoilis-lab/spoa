@@ -10,7 +10,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <utility>
 
 #include "spoa/alignment_engine.hpp"
 

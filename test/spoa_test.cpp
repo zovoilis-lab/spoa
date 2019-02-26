@@ -55,8 +55,13 @@ public:
 };
 
 TEST(SpoaTest, AlignmentTypeError) {
-    EXPECT_DEATH((spoa::createAlignmentEngine(static_cast<spoa::AlignmentType>(4),
-        1, 1, -1, -1)), ".spoa::createAlignmentEngine. error: invalid alignment type!");
+    try {
+        auto alignment_engine = spoa::createAlignmentEngine(
+            static_cast<spoa::AlignmentType>(4), 1, 1, -1, -1);
+    } catch(std::invalid_argument& exception) {
+        EXPECT_STREQ(exception.what(), "[spoa::createAlignmentEngine] error: "
+            "invalid alignment type!");
+    }
 }
 
 TEST(SpoaTest, EmptyInputError) {
