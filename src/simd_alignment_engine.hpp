@@ -19,8 +19,7 @@ class Graph;
 
 class SimdAlignmentEngine;
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t match, int8_t mismatch, int8_t gap_open,
-    int8_t gap_extend);
+    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e);
 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
@@ -28,15 +27,15 @@ public:
 
     void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) override;
 
-    Alignment operator()(const char* sequence, uint32_t sequence_size,
+    Alignment align(const char* sequence, uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) override;
 
     friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
-        AlignmentType type, AlignmentSubtype subtype, int8_t match,
-        int8_t mismatch, int8_t gap_open, int8_t gap_extend);
+        AlignmentType type, AlignmentSubtype subtype, int8_t m, int8_t n,
+        int8_t g, int8_t e);
 private:
     SimdAlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-        int8_t match, int8_t mismatch, int8_t gap_open, int8_t gap_extend);
+        int8_t m, int8_t n, int8_t g, int8_t e);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 

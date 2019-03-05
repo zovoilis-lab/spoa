@@ -15,11 +15,11 @@ namespace spoa {
 constexpr int32_t kNegativeInfinity = std::numeric_limits<int32_t>::min() + 1024;
 
 std::unique_ptr<AlignmentEngine> createSisdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t match, int8_t mismatch, int8_t gap_open,
-    int8_t gap_extend) {
+    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e, int8_t q,
+    int8_t c) {
 
     return std::unique_ptr<AlignmentEngine>(new SisdAlignmentEngine(type,
-        subtype, match, mismatch, gap_open, gap_extend));
+        subtype, m, n, g, e, q, c));
 }
 
 struct SisdAlignmentEngine::Implementation {
@@ -29,17 +29,19 @@ struct SisdAlignmentEngine::Implementation {
     int32_t* H;
     int32_t* F;
     int32_t* E;
+    int32_t* O;
+    int32_t* Q;
 
     Implementation()
             : node_id_to_rank(), sequence_profile(), M(), H(nullptr), F(nullptr),
-            E(nullptr) {
+            E(nullptr), O(nullptr), Q(nullptr) {
     }
 };
 
 SisdAlignmentEngine::SisdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t match, int8_t mismatch, int8_t gap_open,
-    int8_t gap_extend)
-        : AlignmentEngine(type, subtype, match, mismatch, gap_open, gap_extend),
+    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e,
+    int8_t q, int8_t c)
+        : AlignmentEngine(type, subtype, m, n, g, e, q, c),
         pimpl_(new Implementation()) {
 }
 
@@ -49,7 +51,7 @@ SisdAlignmentEngine::~SisdAlignmentEngine() {
 void SisdAlignmentEngine::prealloc(uint32_t max_sequence_size,
     uint32_t alphabet_size) {
 
-    this->realloc(max_sequence_size, alphabet_size * max_sequence_size,
+    realloc(max_sequence_size, alphabet_size * max_sequence_size,
         alphabet_size);
 }
 
@@ -76,6 +78,15 @@ void SisdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
             pimpl_->F = pimpl_->H + matrix_width * matrix_height;
             pimpl_->E = pimpl_->F + matrix_width * matrix_height;
         }
+    } else if (subtype_ == AlignmentSubtype::kConvex) {
+        if (pimpl_->M.size() < 5 * matrix_height * matrix_width) {
+            pimpl_->M.resize(5 * matrix_width * matrix_height, 0);
+            pimpl_->H = pimpl_->M.data();
+            pimpl_->F = pimpl_->H + matrix_width * matrix_height;
+            pimpl_->E = pimpl_->F + matrix_width * matrix_height;
+            pimpl_->O = pimpl_->E + matrix_width * matrix_height;
+            pimpl_->Q = pimpl_->O + matrix_width * matrix_height;
+        }
     }
 }
 
@@ -90,7 +101,7 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
         pimpl_->sequence_profile[i * matrix_width] = 0;
         for (uint32_t j = 0; j < sequence_size; ++j) {
             pimpl_->sequence_profile[i * matrix_width + (j + 1)] =
-                (c == sequence[j] ? match_ : mismatch_);
+                (c == sequence[j] ? m_ : n_);
         }
     }
 
@@ -100,43 +111,135 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
         pimpl_->node_id_to_rank[rank_to_node_id[i]] = i;
     }
 
-    // vertical conditions
-    if (type_ == AlignmentType::kSW || type_ == AlignmentType::kOV) {
-        for (uint32_t i = 0; i < matrix_height; ++i) {
-            pimpl_->H[i * matrix_width] = 0;
-        }
-    } else if (type_ == AlignmentType::kNW) {
-        pimpl_->H[0] = 0;
-        for (const auto& node_id: rank_to_node_id) {
-            uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
-            const auto& node = graph->nodes()[node_id];
-            if (node->in_edges().empty()) {
-                pimpl_->H[i * matrix_width] = gap_open_;
-            } else {
-                int32_t penalty = kNegativeInfinity;
-                for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i =
-                        pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
-                    penalty = std::max(penalty, pimpl_->H[pred_i * matrix_width]);
-                }
-                pimpl_->H[i * matrix_width] = penalty + gap_extend_;
+    // initialize secondary matrices
+    switch (subtype_) {
+        case AlignmentSubtype::kConvex:
+            pimpl_->O[0] = 0;
+            pimpl_->Q[0] = 0;
+            for (uint32_t j = 1; j < matrix_width; ++j) {
+                pimpl_->O[j] = kNegativeInfinity;
+                pimpl_->Q[j] = q_ + (j - 1) * c_;
             }
-        }
+            for (uint32_t i = 1; i < matrix_height; ++i) {
+                const auto& edges =
+                    graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
+                int32_t penalty = edges.empty() ? q_ - c_ : kNegativeInfinity;
+                for (const auto& edge: edges) {
+                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                        edge->begin_node_id()] + 1;
+                    penalty = std::max(penalty,
+                        pimpl_->O[pred_i * matrix_width]);
+                }
+                pimpl_->O[i * matrix_width] = penalty + c_;
+                pimpl_->Q[i * matrix_width] = kNegativeInfinity;
+            }
+        case AlignmentSubtype::kAffine:
+            pimpl_->F[0] = 0;
+            pimpl_->E[0] = 0;
+            for (uint32_t j = 1; j < matrix_width; ++j) {
+                pimpl_->F[j] = kNegativeInfinity;
+                pimpl_->E[j] = g_ + (j - 1) * e_;
+            }
+            for (uint32_t i = 1; i < matrix_height; ++i) {
+                const auto& edges =
+                    graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
+                int32_t penalty = edges.empty() ? g_ - e_ : kNegativeInfinity;
+                for (const auto& edge: edges) {
+                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                        edge->begin_node_id()] + 1;
+                    penalty = std::max(penalty,
+                        pimpl_->F[pred_i * matrix_width]);
+                }
+                pimpl_->F[i * matrix_width] = penalty + e_;
+                pimpl_->E[i * matrix_width] = kNegativeInfinity;
+            }
+        case AlignmentSubtype::kLinear:
+            pimpl_->H[0] = 0;
+        default:
+            break;
     }
 
-    // horizontal conditions
-    if (type_ == AlignmentType::kSW) {
-        for (uint32_t j = 0; j < matrix_width; ++j) {
-            pimpl_->H[j] = 0;
-        }
-    } else if (type_ == AlignmentType::kOV || type_ == AlignmentType::kNW) {
-        for (uint32_t j = 1; j < matrix_width; ++j) {
-            pimpl_->H[j] = gap_open_ + (j - 1) * gap_extend_;
-        }
+    // initialize primary matrix
+    switch (type_) {
+        case AlignmentType::kSW:
+            for (uint32_t j = 1; j < matrix_width; ++j) {
+                pimpl_->H[j] = 0;
+            }
+            for (uint32_t i = 1; i < matrix_height; ++i) {
+                pimpl_->H[i * matrix_width] = 0;
+            }
+            break;
+        case AlignmentType::kNW:
+            switch (subtype_) {
+                case AlignmentSubtype::kConvex:
+                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                        pimpl_->H[j] = std::max(pimpl_->Q[j], pimpl_->E[j]);
+                    }
+                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                        pimpl_->H[i * matrix_width] = std::max(
+                            pimpl_->O[i * matrix_width],
+                            pimpl_->F[i * matrix_width]);
+                    }
+                    break;
+                case AlignmentSubtype::kAffine:
+                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                        pimpl_->H[j] = pimpl_->E[j];
+                    }
+                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                        pimpl_->H[i * matrix_width] =
+                            pimpl_->F[i * matrix_width];
+                    }
+                    break;
+                case AlignmentSubtype::kLinear:
+                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                        pimpl_->H[j] = j * g_;
+                    }
+                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                        const auto& edges =
+                            graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
+                        int32_t penalty = edges.empty() ? 0 : kNegativeInfinity;
+                        for (const auto& edge: edges) {
+                            uint32_t pred_i = pimpl_->node_id_to_rank[
+                                edge->begin_node_id()] + 1;
+                            penalty = std::max(penalty,
+                                pimpl_->H[pred_i * matrix_width]);
+                        }
+                        pimpl_->H[i * matrix_width] = penalty + g_;
+                    }
+                default:
+                    break;
+            }
+            break;
+        case AlignmentType::kOV:
+            switch (subtype_) {
+                case AlignmentSubtype::kConvex:
+                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                        pimpl_->H[j] = std::max(pimpl_->Q[j], pimpl_->E[j]);
+                    }
+                    break;
+                case AlignmentSubtype::kAffine:
+                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                        pimpl_->H[j] = pimpl_->E[j];
+                    }
+                    break;
+                case AlignmentSubtype::kLinear:
+                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                        pimpl_->H[j] = j * g_;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            for (uint32_t i = 1; i < matrix_height; ++i) {
+                pimpl_->H[i * matrix_width] = 0;
+            }
+            break;
+        default:
+            break;
     }
 }
 
-Alignment SisdAlignmentEngine::operator()(const char* sequence,
+Alignment SisdAlignmentEngine::align(const char* sequence,
     uint32_t sequence_size, const std::unique_ptr<Graph>& graph) {
 
     if (graph->nodes().empty() || sequence_size == 0) {
@@ -147,6 +250,8 @@ Alignment SisdAlignmentEngine::operator()(const char* sequence,
         return linear(sequence, sequence_size, graph);
     } else if (subtype_ == AlignmentSubtype::kAffine) {
         return affine(sequence, sequence_size, graph);
+    } else if (subtype_ == AlignmentSubtype::kConvex) {
+        return convex(sequence, sequence_size, graph);
     }
     return Alignment();
 }
@@ -159,10 +264,10 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
-    this->realloc(matrix_width, matrix_height, graph->num_codes());
+    realloc(matrix_width, matrix_height, graph->num_codes());
 
     // initialize
-    this->initialize(sequence, sequence_size, graph);
+    initialize(sequence, sequence_size, graph);
 
     int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;
@@ -196,7 +301,7 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         for (uint32_t j = 1; j < matrix_width; ++j) {
             // update H
             H_row[j] = std::max(H_pred_row[j - 1] + char_profile[j],
-                H_pred_row[j] + gap_open_);
+                H_pred_row[j] + g_);
         }
 
         // check other predeccessors
@@ -208,13 +313,13 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             for (uint32_t j = 1; j < matrix_width; ++j) {
                 // update H
                 H_row[j] = std::max(H_pred_row[j - 1] + char_profile[j],
-                    std::max(H_row[j], H_pred_row[j] + gap_open_));
+                    std::max(H_row[j], H_pred_row[j] + g_));
             }
         }
 
         for (uint32_t j = 1; j < matrix_width; ++j) {
             // update H
-            H_row[j] = std::max(H_row[j - 1] + gap_open_, H_row[j]);
+            H_row[j] = std::max(H_row[j - 1] + g_, H_row[j]);
 
             if (type_ == AlignmentType::kSW) {
                 H_row[j] = std::max(H_row[j], 0);
@@ -291,7 +396,7 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-            if (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
+            if (H_ij == pimpl_->H[pred_i * matrix_width + j] + g_) {
                 prev_i = pred_i;
                 prev_j = j;
                 predecessor_found = true;
@@ -301,7 +406,7 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                     uint32_t pred_i =
                         pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
-                    if (H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
+                    if (H_ij == pimpl_->H[pred_i * matrix_width + j] + g_) {
                         prev_i = pred_i;
                         prev_j = j;
                         predecessor_found = true;
@@ -311,7 +416,7 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             }
         }
 
-        if (!predecessor_found && H_ij == pimpl_->H[i * matrix_width + j - 1] + gap_open_) {
+        if (!predecessor_found && H_ij == pimpl_->H[i * matrix_width + j - 1] + g_) {
             prev_i = i;
             prev_j = j - 1;
             predecessor_found = true;
@@ -336,21 +441,10 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
-    this->realloc(matrix_width, matrix_height, graph->num_codes());
+    realloc(matrix_width, matrix_height, graph->num_codes());
 
     // initialize
-    this->initialize(sequence, sequence_size, graph);
-
-    for (uint32_t i = 0; i < matrix_height; ++i) {
-        pimpl_->E[i * matrix_width] = kNegativeInfinity;
-        // needed for easier NW backtrack
-        pimpl_->F[i * matrix_width] = pimpl_->H[i * matrix_width];
-    }
-    for (uint32_t j = 0; j < matrix_width; ++j) {
-        pimpl_->F[j] = kNegativeInfinity;
-        // needed for easier NW backtrack
-        pimpl_->E[j] = pimpl_->H[j];
-    }
+    initialize(sequence, sequence_size, graph);
 
     int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;
@@ -385,8 +479,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
         for (uint32_t j = 1; j < matrix_width; ++j) {
             // update F
-            F_row[j] = std::max(H_pred_row[j] + gap_open_,
-                F_pred_row[j] + gap_extend_);
+            F_row[j] = std::max(H_pred_row[j] + g_, F_pred_row[j] + e_);
             // update H
             H_row[j] = H_pred_row[j - 1] + char_profile[j];
         }
@@ -400,8 +493,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
             for (uint32_t j = 1; j < matrix_width; ++j) {
                 // update F
-                F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + gap_open_,
-                    F_pred_row[j] + gap_extend_));
+                F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + g_,
+                    F_pred_row[j] + e_));
                 // update H
                 H_row[j] = std::max(H_row[j], H_pred_row[j - 1] + char_profile[j]);
             }
@@ -411,8 +504,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
         for (uint32_t j = 1; j < matrix_width; ++j) {
             // update E
-            E_row[j] = std::max(H_row[j - 1] + gap_open_,
-                E_row[j - 1] + gap_extend_);
+            E_row[j] = std::max(H_row[j - 1] + g_, E_row[j - 1] + e_);
             // update H
             H_row[j] = std::max(H_row[j], std::max(F_row[j], E_row[j]));
 
@@ -490,8 +582,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-            if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
-                             H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
+            if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
+                             H_ij == pimpl_->H[pred_i * matrix_width + j] + g_) {
                 prev_i = pred_i;
                 prev_j = j;
                 predecessor_found = true;
@@ -500,8 +592,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 for (uint32_t p = 1; p < edges.size(); ++p) {
                     pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
-                    if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) ||
-                                     H_ij == pimpl_->H[pred_i * matrix_width + j] + gap_open_) {
+                    if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
+                                     H_ij == pimpl_->H[pred_i * matrix_width + j] + g_) {
                         prev_i = pred_i;
                         prev_j = j;
                         predecessor_found = true;
@@ -512,8 +604,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         }
 
         if (!predecessor_found && j != 0) {
-            if ((extend_left = H_ij == pimpl_->E[i * matrix_width + j - 1] + gap_extend_) ||
-                               H_ij == pimpl_->H[i * matrix_width + j - 1] + gap_open_) {
+            if ((extend_left = H_ij == pimpl_->E[i * matrix_width + j - 1] + e_) ||
+                               H_ij == pimpl_->H[i * matrix_width + j - 1] + g_) {
                 prev_i = i;
                 prev_j = j - 1;
                 predecessor_found = true;
@@ -530,7 +622,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             while (true) {
                 alignment.emplace_back(-1, j - 1);
                 --j;
-                if (pimpl_->E[i * matrix_width + j] + gap_extend_ !=
+                if (pimpl_->E[i * matrix_width + j] + e_ !=
                     pimpl_->E[i * matrix_width + j + 1]) {
                     break;
                 }
@@ -542,8 +634,251 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
                     uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 
-                    if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + gap_open_) ||
-                                pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + gap_extend_) {
+                    if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + g_) ||
+                                pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + e_) {
+                        prev_i = pred_i;
+                        break;
+                    }
+                }
+
+                alignment.emplace_back(rank_to_node_id[i - 1], -1);
+                i = prev_i;
+
+                if (stop || i == 0) {
+                    break;
+                }
+            }
+        }
+    }
+
+    std::reverse(alignment.begin(), alignment.end());
+    return alignment;
+}
+
+Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_size,
+    const std::unique_ptr<Graph>& graph) noexcept {
+
+    uint32_t matrix_width = sequence_size + 1;
+    uint32_t matrix_height = graph->nodes().size() + 1;
+    const auto& rank_to_node_id = graph->rank_to_node_id();
+
+    // realloc
+    realloc(matrix_width, matrix_height, graph->num_codes());
+
+    // initialize
+    initialize(sequence, sequence_size, graph);
+
+    int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
+    int32_t max_i = -1;
+    int32_t max_j = -1;
+    auto update_max_score = [&max_score, &max_i, &max_j](int32_t* H_row,
+        uint32_t i, uint32_t j) -> void {
+
+        if (max_score < H_row[j]) {
+            max_score = H_row[j];
+            max_i = i;
+            max_j = j;
+        }
+        return;
+    };
+
+    // alignment
+    for (uint32_t node_id: rank_to_node_id) {
+        const auto& node = graph->nodes()[node_id];
+        const auto& char_profile =
+            &(pimpl_->sequence_profile[node->code() * matrix_width]);
+
+        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+
+        int32_t* H_row = &(pimpl_->H[i * matrix_width]);
+        int32_t* F_row = &(pimpl_->F[i * matrix_width]);
+        int32_t* O_row = &(pimpl_->O[i * matrix_width]);
+
+        uint32_t pred_i = node->in_edges().empty() ? 0 :
+            pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+        int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+        int32_t* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
+        int32_t* O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
+
+        for (uint32_t j = 1; j < matrix_width; ++j) {
+            // update F
+            F_row[j] = std::max(H_pred_row[j] + g_, F_pred_row[j] + e_);
+            // update O
+            O_row[j] = std::max(H_pred_row[j] + q_, O_pred_row[j] + c_);
+            // update H
+            H_row[j] = H_pred_row[j - 1] + char_profile[j];
+        }
+
+        // check other predeccessors
+        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+            pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
+
+            H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+            F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
+            O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
+
+            for (uint32_t j = 1; j < matrix_width; ++j) {
+                // update F
+                F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + g_,
+                    F_pred_row[j] + e_));
+                // update O
+                O_row[j] = std::max(O_row[j], std::max(H_pred_row[j] + q_,
+                    O_pred_row[j] + c_));
+                // update H
+                H_row[j] = std::max(H_row[j], H_pred_row[j - 1] + char_profile[j]);
+            }
+        }
+
+        int32_t* E_row = &(pimpl_->E[i * matrix_width]);
+        int32_t* Q_row = &(pimpl_->Q[i * matrix_width]);
+
+        for (uint32_t j = 1; j < matrix_width; ++j) {
+            // update E
+            E_row[j] = std::max(H_row[j - 1] + g_, E_row[j - 1] + e_);
+            // update Q
+            Q_row[j] = std::max(H_row[j - 1] + q_, Q_row[j - 1] + c_);
+            // update H
+            H_row[j] = std::max(H_row[j], std::max(
+                std::max(F_row[j], E_row[j]),
+                std::max(O_row[j], Q_row[j])));
+
+            if (type_ == AlignmentType::kSW) {
+                H_row[j] = std::max(H_row[j], 0);
+                update_max_score(H_row, i, j);
+
+            } else if (type_ == AlignmentType::kNW &&
+                (j == matrix_width - 1 && node->out_edges().empty())) {
+                update_max_score(H_row, i, j);
+
+            } else if (type_ == AlignmentType::kOV &&
+                (node->out_edges().empty())) {
+                update_max_score(H_row, i, j);
+            }
+        }
+    }
+
+    // backtrack
+    Alignment alignment;
+
+    uint32_t i = max_i;
+    uint32_t j = max_j;
+
+    auto sw_condition = [this, &i, &j, &matrix_width]() {
+        return (pimpl_->H[i * matrix_width + j] == 0) ? false : true;
+    };
+    auto nw_condition = [&i, &j]() {
+        return (i == 0 && j == 0) ? false : true;
+    };
+    auto ov_condition = [&i, &j]() {
+        return (i == 0 || j == 0) ? false : true;
+    };
+
+    uint32_t prev_i = 0;
+    uint32_t prev_j = 0;
+
+    while ((type_ == AlignmentType::kSW && sw_condition()) ||
+           (type_ == AlignmentType::kNW && nw_condition()) ||
+           (type_ == AlignmentType::kOV && ov_condition())) {
+
+        auto H_ij = pimpl_->H[i * matrix_width + j];
+        bool predecessor_found = false, extend_left = false, extend_up = false;
+
+        if (i != 0 && j != 0) {
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
+            int32_t match_cost =
+                pimpl_->sequence_profile[node->code() * matrix_width + j];
+
+            uint32_t pred_i = node->in_edges().empty() ? 0 :
+                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+            if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                prev_i = pred_i;
+                prev_j = j - 1;
+                predecessor_found = true;
+            } else {
+                const auto& edges = node->in_edges();
+                for (uint32_t p = 1; p < edges.size(); ++p) {
+                    pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
+
+                    if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
+                        prev_i = pred_i;
+                        prev_j = j - 1;
+                        predecessor_found = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!predecessor_found && i != 0) {
+            const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
+
+            uint32_t pred_i = node->in_edges().empty() ? 0 :
+                pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
+
+            if ((extend_up |= H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
+                              H_ij == pimpl_->H[pred_i * matrix_width + j] + g_  ||
+                (extend_up |= H_ij == pimpl_->O[pred_i * matrix_width + j] + c_) ||
+                              H_ij == pimpl_->H[pred_i * matrix_width + j] + q_) {
+                prev_i = pred_i;
+                prev_j = j;
+                predecessor_found = true;
+            } else {
+                const auto& edges = node->in_edges();
+                for (uint32_t p = 1; p < edges.size(); ++p) {
+                    pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
+
+                    if ((extend_up |= H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
+                                      H_ij == pimpl_->H[pred_i * matrix_width + j] + g_  ||
+                        (extend_up |= H_ij == pimpl_->O[pred_i * matrix_width + j] + c_) ||
+                                      H_ij == pimpl_->H[pred_i * matrix_width + j] + q_) {
+                        prev_i = pred_i;
+                        prev_j = j;
+                        predecessor_found = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!predecessor_found && j != 0) {
+            if ((extend_left |= H_ij == pimpl_->E[i * matrix_width + j - 1] + e_) ||
+                                H_ij == pimpl_->H[i * matrix_width + j - 1] + g_  ||
+                (extend_left |= H_ij == pimpl_->Q[i * matrix_width + j - 1] + c_) ||
+                                H_ij == pimpl_->H[i * matrix_width + j - 1] + q_) {
+                prev_i = i;
+                prev_j = j - 1;
+                predecessor_found = true;
+            }
+        }
+
+        alignment.emplace_back(i == prev_i ? -1 : rank_to_node_id[i - 1],
+            j == prev_j ? -1 : j - 1);
+
+        i = prev_i;
+        j = prev_j;
+
+        if (extend_left) {
+            while (true) {
+                alignment.emplace_back(-1, j - 1);
+                --j;
+                if (pimpl_->E[i * matrix_width + j] + e_ != pimpl_->E[i * matrix_width + j + 1] &&
+                    pimpl_->Q[i * matrix_width + j] + c_ != pimpl_->Q[i * matrix_width + j + 1]) {
+                    break;
+                }
+            }
+        } else if (extend_up) {
+            while (true) {
+                bool stop = false;
+                prev_i = 0;
+                for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
+                    uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
+
+                    if ((stop |= pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + g_) ||
+                                 pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + e_  ||
+                        (stop |= pimpl_->O[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + q_) ||
+                                 pimpl_->O[i * matrix_width + j] == pimpl_->O[pred_i * matrix_width + j] + c_) {
                         prev_i = pred_i;
                         break;
                     }

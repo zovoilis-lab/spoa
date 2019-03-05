@@ -7,13 +7,15 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v2.0.4";
+static const char* version = "v3.0.0";
 
 static struct option options[] = {
     {"match", required_argument, 0, 'm'},
-    {"mismatch", required_argument, 0, 'x'},
+    {"mismatch", required_argument, 0, 'n'},
     {"gap-open", required_argument, 0, 'g'},
     {"gap-extend", required_argument, 0, 'e'},
+    {"gopn", required_argument, 0, 'q'},
+    {"gext", required_argument, 0, 'c'},
     {"algorithm", required_argument, 0, 'l'},
     {"result", required_argument, 0, 'r'},
     {"dot", required_argument, 0, 'd'},
@@ -26,10 +28,12 @@ void help();
 
 int main(int argc, char** argv) {
 
-    int8_t match = 5;
-    int8_t mismatch = -4;
-    int8_t gap_open = -8;
-    int8_t gap_extend = -6;
+    int8_t m = 5;
+    int8_t n = -4;
+    int8_t g = -8;
+    int8_t e = -6;
+    int8_t q = -10;
+    int8_t c = -4;
 
     uint8_t algorithm = 0;
     uint8_t result = 0;
@@ -37,19 +41,25 @@ int main(int argc, char** argv) {
     std::string dot_path = "";
 
     char opt;
-    while ((opt = getopt_long(argc, argv, "m:x:g:e:l:r:d:h", options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "m:n:g:e:q:c:l:r:d:h", options, nullptr)) != -1) {
         switch (opt) {
             case 'm':
-                match = atoi(optarg);
+                m = atoi(optarg);
                 break;
-            case 'x':
-                mismatch = atoi(optarg);
+            case 'n':
+                n = atoi(optarg);
                 break;
             case 'g':
-                gap_open = atoi(optarg);
+                g = atoi(optarg);
                 break;
             case 'e':
-                gap_extend = atoi(optarg);
+                e = atoi(optarg);
+                break;
+            case 'q':
+                q = atoi(optarg);
+                break;
+            case 'c':
+                c = atoi(optarg);
                 break;
             case 'l':
                 algorithm = atoi(optarg);
@@ -107,8 +117,7 @@ int main(int argc, char** argv) {
     std::unique_ptr<spoa::AlignmentEngine> alignment_engine;
     try {
         alignment_engine = spoa::createAlignmentEngine(
-            static_cast<spoa::AlignmentType>(algorithm), match, mismatch,
-            gap_open, gap_extend);
+            static_cast<spoa::AlignmentType>(algorithm), m, n, g, e, q, c);
     } catch(std::invalid_argument& exception) {
         fprintf(stderr, "%s\n", exception.what());
         return 1;
@@ -126,7 +135,7 @@ int main(int argc, char** argv) {
     alignment_engine->prealloc(max_sequence_size, 4);
 
     for (const auto& it: sequences) {
-        auto alignment = (*alignment_engine)(it->data(), graph);
+        auto alignment = alignment_engine->align(it->data(), graph);
         try {
             graph->add_alignment(alignment, it->data(), it->quality());
         } catch(std::invalid_argument& exception) {
@@ -176,6 +185,14 @@ void help() {
         "        -e, --gap-extend <int>\n"
         "            default: -6\n"
         "            gap extension penalty (must be non-positive)\n"
+        "        -q, --gopn <int>\n"
+        "            default: -10\n"
+        "            gap opening penalty of the second affine function\n"
+        "            (must be non-positive)\n"
+        "        -c, --gext <int>\n"
+        "            default: -4\n"
+        "            gap extension penalty of the second affine function\n"
+        "            (must be non-positive)\n"
         "        -l, --algorithm <int>\n"
         "            default: 0\n"
         "            alignment mode:\n"

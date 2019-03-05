@@ -38,7 +38,7 @@ public:
 
     void construct_partial_order_graph(bool use_qualities) {
         for (const auto& it: sequences) {
-            auto alignment = (*alignment_engine)(it->data(), graph);
+            auto alignment = alignment_engine->align(it->data(), graph);
 
             if (use_qualities) {
                 graph->add_alignment(alignment, it->data(), it->quality());
@@ -68,7 +68,7 @@ TEST(SpoaTest, EmptyInputError) {
     auto alignment_engine = spoa::createAlignmentEngine(
         static_cast<spoa::AlignmentType>(0), 1, 1, -1, -1);
     auto graph = spoa::createGraph();
-    auto alignment = (*alignment_engine)("", graph);
+    auto alignment = alignment_engine->align("", graph);
 
     EXPECT_TRUE(alignment.empty());
 }
