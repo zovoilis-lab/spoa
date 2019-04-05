@@ -52,18 +52,26 @@ Usage of spoa is as following:
             containing sequences
 
         options:
-            -m, --match <int>
+            -m <int>
                 default: 5
                 score for matching bases
-            -x, --mismatch <int>
+            -n <int>
                 default: -4
                 score for mismatching bases
-            -g, --gap-open <int>
+            -g <int>
                 default: -8
                 gap opening penalty (must be non-positive)
-            -e, --gap-extend <int>
+            -e <int>
                 default: -6
                 gap extension penalty (must be non-positive)
+            -q <int>
+                default: -10
+                gap opening penalty of the second affine function
+                (must be non-positive)
+            -c <int>
+                default: -4
+                gap extension penalty of the second affine function
+                (must be non-positive)
             -l, --algorithm <int>
                 default: 0
                 alignment mode:

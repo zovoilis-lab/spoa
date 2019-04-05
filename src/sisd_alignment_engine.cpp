@@ -870,17 +870,27 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
             }
         } else if (extend_up) {
             while (true) {
-                bool stop = false;
+                bool stop = true;
                 prev_i = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
                     uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 
-                    if ((stop |= pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + g_) ||
-                                 pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + e_  ||
-                        (stop |= pimpl_->O[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + q_) ||
-                                 pimpl_->O[i * matrix_width + j] == pimpl_->O[pred_i * matrix_width + j] + c_) {
+                    if (pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + e_ ||
+                        pimpl_->O[i * matrix_width + j] == pimpl_->O[pred_i * matrix_width + j] + c_) {
                         prev_i = pred_i;
+                        stop = false;
                         break;
+                    }
+                }
+                if (stop == true) {
+                    for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
+                        uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
+
+                        if (pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + g_ ||
+                            pimpl_->O[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + q_) {
+                            prev_i = pred_i;
+                            break;
+                        }
                     }
                 }
 

@@ -19,7 +19,8 @@ class Graph;
 
 class SimdAlignmentEngine;
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e);
+    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e, int8_t q,
+    int8_t c);
 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
@@ -32,10 +33,10 @@ public:
 
     friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
         AlignmentType type, AlignmentSubtype subtype, int8_t m, int8_t n,
-        int8_t g, int8_t e);
+        int8_t g, int8_t e, int8_t q, int8_t c);
 private:
     SimdAlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-        int8_t m, int8_t n, int8_t g, int8_t e);
+        int8_t m, int8_t n, int8_t g, int8_t e, int8_t q, int8_t c);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 
@@ -45,6 +46,10 @@ private:
 
     template<typename T>
     Alignment affine(const char* sequence, uint32_t sequence_size,
+        const std::unique_ptr<Graph>& graph) noexcept;
+
+    template<typename T>
+    Alignment convex(const char* sequence, uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     void realloc(uint32_t matrix_width, uint32_t matrix_height,

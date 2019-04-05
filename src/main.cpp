@@ -1,5 +1,7 @@
-#include <stdio.h>
 #include <getopt.h>
+
+#include <string>
+#include <iostream>
 #include <exception>
 
 #include "sequence.hpp"
@@ -7,21 +9,15 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const char* version = "v3.0.0";
+static const std::string version = "v3.0.0";
 
 static struct option options[] = {
-    {"match", required_argument, 0, 'm'},
-    {"mismatch", required_argument, 0, 'n'},
-    {"gap-open", required_argument, 0, 'g'},
-    {"gap-extend", required_argument, 0, 'e'},
-    {"gopn", required_argument, 0, 'q'},
-    {"gext", required_argument, 0, 'c'},
-    {"algorithm", required_argument, 0, 'l'},
-    {"result", required_argument, 0, 'r'},
-    {"dot", required_argument, 0, 'd'},
-    {"version", no_argument, 0, 'v'},
-    {"help", no_argument, 0, 'h'},
-    {0, 0, 0, 0}
+    {"algorithm", required_argument, nullptr, 'l'},
+    {"result", required_argument, nullptr, 'r'},
+    {"dot", required_argument, nullptr, 'd'},
+    {"version", no_argument, nullptr, 'v'},
+    {"help", no_argument, nullptr, 'h'},
+    {nullptr, 0, nullptr, 0}
 };
 
 void help();
@@ -43,46 +39,23 @@ int main(int argc, char** argv) {
     char opt;
     while ((opt = getopt_long(argc, argv, "m:n:g:e:q:c:l:r:d:h", options, nullptr)) != -1) {
         switch (opt) {
-            case 'm':
-                m = atoi(optarg);
-                break;
-            case 'n':
-                n = atoi(optarg);
-                break;
-            case 'g':
-                g = atoi(optarg);
-                break;
-            case 'e':
-                e = atoi(optarg);
-                break;
-            case 'q':
-                q = atoi(optarg);
-                break;
-            case 'c':
-                c = atoi(optarg);
-                break;
-            case 'l':
-                algorithm = atoi(optarg);
-                break;
-            case 'r':
-                result = atoi(optarg);
-                break;
-            case 'd':
-                dot_path = optarg;
-                break;
-            case 'v':
-                printf("%s\n", version);
-                return 0;
-            case 'h':
-                help();
-                return 0;
-            default:
-                return 1;
+            case 'm': m = atoi(optarg); break;
+            case 'n': n = atoi(optarg); break;
+            case 'g': g = atoi(optarg); break;
+            case 'e': e = atoi(optarg); break;
+            case 'q': q = atoi(optarg); break;
+            case 'c': c = atoi(optarg); break;
+            case 'l': algorithm = atoi(optarg); break;
+            case 'r': result = atoi(optarg); break;
+            case 'd': dot_path = optarg; break;
+            case 'v': std::cout << version << std::endl; return 0;
+            case 'h': help(); return 0;
+            default: return 1;
         }
     }
 
     if (optind >= argc) {
-        fprintf(stderr, "[spoa::] error: missing input file!\n");
+        std::cerr << "[spoa::] error: missing input file!" << std::endl;
         help();
         return 1;
     }
@@ -107,10 +80,10 @@ int main(int argc, char** argv) {
         sparser = bioparser::createParser<bioparser::FastqParser, spoa::Sequence>(
             sequences_path);
     } else {
-        fprintf(stderr, "[spoa::] error: "
-            "file %s has unsupported format extension (valid extensions: "
-            ".fasta, .fasta.gz, .fa, .fa.gz, .fastq, .fastq.gz, .fq, .fq.gz)!\n",
-            sequences_path.c_str());
+        std::cerr << "[spoa::] error: file " << sequences_path <<
+            " has unsupported format extension (valid extensions: .fasta, "
+            ".fasta.gz, .fa, .fa.gz, .fastq, .fastq.gz, .fq, .fq.gz)!" <<
+            std::endl;
         return 1;
     }
 
@@ -119,7 +92,7 @@ int main(int argc, char** argv) {
         alignment_engine = spoa::createAlignmentEngine(
             static_cast<spoa::AlignmentType>(algorithm), m, n, g, e, q, c);
     } catch(std::invalid_argument& exception) {
-        fprintf(stderr, "%s\n", exception.what());
+        std::cerr << exception.what() << std::endl;
         return 1;
     }
 
@@ -139,23 +112,23 @@ int main(int argc, char** argv) {
         try {
             graph->add_alignment(alignment, it->data(), it->quality());
         } catch(std::invalid_argument& exception) {
-            fprintf(stderr, "%s\n", exception.what());
+            std::cerr << exception.what() << std::endl;
             return 1;
         }
     }
 
     if (result == 0 || result == 2) {
         std::string consensus = graph->generate_consensus();
-        fprintf(stdout, "Consensus (%zu)\n", consensus.size());
-        fprintf(stdout, "%s\n", consensus.c_str());
+        std::cout << "Consensus (" << consensus.size() << ")" << std::endl;
+        std::cout << consensus << std::endl;
     }
 
     if (result == 1 || result == 2) {
         std::vector<std::string> msa;
         graph->generate_multiple_sequence_alignment(msa);
-        fprintf(stdout, "Multiple sequence alignment\n");
+        std::cout << "Multiple sequence alignment" << std::endl;
         for (const auto& it: msa) {
-            fprintf(stdout, "%s\n", it.c_str());
+            std::cout << it << std::endl;
         }
     }
 
@@ -165,7 +138,7 @@ int main(int argc, char** argv) {
 }
 
 void help() {
-    printf(
+    std::cout <<
         "usage: spoa [options ...] <sequences>\n"
         "\n"
         "    <sequences>\n"
@@ -173,23 +146,23 @@ void help() {
         "        containing sequences\n"
         "\n"
         "    options:\n"
-        "        -m, --match <int>\n"
+        "        -m <int>\n"
         "            default: 5\n"
         "            score for matching bases\n"
-        "        -x, --mismatch <int>\n"
+        "        -n <int>\n"
         "            default: -4\n"
         "            score for mismatching bases\n"
-        "        -g, --gap-open <int>\n"
+        "        -g <int>\n"
         "            default: -8\n"
         "            gap opening penalty (must be non-positive)\n"
-        "        -e, --gap-extend <int>\n"
+        "        -e <int>\n"
         "            default: -6\n"
         "            gap extension penalty (must be non-positive)\n"
-        "        -q, --gopn <int>\n"
+        "        -q <int>\n"
         "            default: -10\n"
         "            gap opening penalty of the second affine function\n"
         "            (must be non-positive)\n"
-        "        -c, --gext <int>\n"
+        "        -c <int>\n"
         "            default: -4\n"
         "            gap extension penalty of the second affine function\n"
         "            (must be non-positive)\n"
@@ -210,5 +183,5 @@ void help() {
         "        --version\n"
         "            prints the version number\n"
         "        -h, --help\n"
-        "            prints the usage\n");
+        "            prints the usage\n";
 }

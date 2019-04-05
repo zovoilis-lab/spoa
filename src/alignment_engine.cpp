@@ -56,11 +56,12 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
         c = e;
     }
 
-    auto alignment_engine = createSimdAlignmentEngine(type, subtype, m, n, g, e);
+    auto alignment_engine = createSimdAlignmentEngine(type, subtype, m, n, g, e,
+        q, c);
 
-    //if (alignment_engine == nullptr) {
+    // if (alignment_engine == nullptr) {
         return createSisdAlignmentEngine(type, subtype, m, n, g, e, q, c);
-    //}
+    // }
 
     return alignment_engine;
 }
