@@ -183,5 +183,10 @@ void help() {
         "        --version\n"
         "            prints the version number\n"
         "        -h, --help\n"
-        "            prints the usage\n";
+        "            prints the usage\n"
+        "\n"
+        "    gap mode:\n"
+        "        linear if g >= e\n"
+        "        affine if g <= q or e >= c\n"
+        "        convex otherwise (default)\n";
 }

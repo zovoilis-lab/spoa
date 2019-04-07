@@ -4,7 +4,7 @@
 [![Build status for c++/clang++](https://travis-ci.org/rvaser/spoa.svg?branch=master)](https://travis-ci.org/rvaser/spoa)
 [![Published in Genome Research](https://img.shields.io/badge/published%20in-Genome%20Research-blue.svg)](https://doi.org/10.1101/gr.214270.116)
 
-Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alignment modes: local (Smith-Waterman), global (Needleman-Wunsch) and semi-global alignment (overlap), and two gap modes: linear and affine. It supports Intel SSE4.1+ and AVX2 vectorization (marginally faster due to high latency shifts).
+Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) algorithm (as described in 10.1093/bioinformatics/18.3.452) which is used to generate consensus sequences (as described in 10.1093/bioinformatics/btg109). It supports three alignment modes: local (Smith-Waterman), global (Needleman-Wunsch) and semi-global alignment (overlap), and three gap modes: linear, affine and convex (piecewise affine). It supports Intel SSE4.1+ and AVX2 vectorization (marginally faster due to high latency shifts).
 
 ## Dependencies
 
@@ -45,51 +45,58 @@ To build unit tests add `-Dspoa_build_tests=ON` while running `cmake`. After ins
 
 Usage of spoa is as following:
 
-    spoa [options ...] <sequences>
+```bash
+spoa [options ...] <sequences>
 
-        <sequences>
-            input file in FASTA/FASTQ format (can be compressed with gzip)
-            containing sequences
+    <sequences>
+        input file in FASTA/FASTQ format (can be compressed with gzip)
+        containing sequences
 
-        options:
-            -m <int>
-                default: 5
-                score for matching bases
-            -n <int>
-                default: -4
-                score for mismatching bases
-            -g <int>
-                default: -8
-                gap opening penalty (must be non-positive)
-            -e <int>
-                default: -6
-                gap extension penalty (must be non-positive)
-            -q <int>
-                default: -10
-                gap opening penalty of the second affine function
-                (must be non-positive)
-            -c <int>
-                default: -4
-                gap extension penalty of the second affine function
-                (must be non-positive)
-            -l, --algorithm <int>
-                default: 0
-                alignment mode:
-                    0 - local (Smith-Waterman)
-                    1 - global (Needleman-Wunsch)
-                    2 - semi-global
-            -r, --result <int>
-                default: 0
-                result mode:
-                    0 - consensus
-                    1 - multiple sequence alignment
-                    2 - 0 & 1
-            -d, --dot <file>
-                output file for the final POA graph in DOT format
-            --version
-                prints the version number
-            -h, --help
-                prints the usage
+    options:
+        -m <int>
+            default: 5
+            score for matching bases
+        -n <int>
+            default: -4
+            score for mismatching bases
+        -g <int>
+            default: -8
+            gap opening penalty (must be non-positive)
+        -e <int>
+            default: -6
+            gap extension penalty (must be non-positive)
+        -q <int>
+            default: -10
+            gap opening penalty of the second affine function
+            (must be non-positive)
+        -c <int>
+            default: -4
+            gap extension penalty of the second affine function
+            (must be non-positive)
+        -l, --algorithm <int>
+            default: 0
+            alignment mode:
+                0 - local (Smith-Waterman)
+                1 - global (Needleman-Wunsch)
+                2 - semi-global
+        -r, --result <int>
+            default: 0
+            result mode:
+                0 - consensus
+                1 - multiple sequence alignment
+                2 - 0 & 1
+        -d, --dot <file>
+            output file for the final POA graph in DOT format
+        --version
+            prints the version number
+        -h, --help
+            prints the usage
+
+    gap mode:
+        linear if g >= e
+        affine if g <= q or e >= c
+        convex otherwise (default)
+```
 
 ### Library
 
@@ -115,7 +122,7 @@ int main(int argc, char** argv) {
     auto graph = spoa::createGraph();
 
     for (const auto& it: sequences) {
-        auto alignment = (*alignment_engine)(it, graph);
+        auto alignment = alignment_engine->align(it, graph);
         graph->add_alignment(alignment, it);
     }
 
