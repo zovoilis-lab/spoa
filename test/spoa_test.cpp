@@ -141,14 +141,14 @@ TEST_F(SpoaAlignmentTest, LocalConvexConsensus) {
 
     auto consensus = graph->generate_consensus();
 
-    std::string valid_result = "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGA"
+    std::string valid_result =  "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGA"
         "CCTCTGGCAACCACTTTTCCATGACAGGAGTTGAATATGGCATTCAGTAATCCCTTCGATGATCCGCAGG"
         "GAGCGTTTTACATATTGCGCAATGCGCAGGGGCAATTCAGTCTGTGGCCGCAACAATGCGTCTTACCGGC"
         "AGGCTGGGACATTGTGTGTCAGCCGCAGTCACAGGCGTCCTGCCAGCAGTGGCTGGAAGCCCACTGGCGT"
-        "ACTCTGACACCGACGAATTTTACCCAGTTGCAGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCGC"
-        "ACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGTT"
-        "GAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGATA"
-        "CGCTTTACACGCGCAACCAAGGATTTCGG";
+        "ACTCTGACACCGACGAATTTTACCCAGTTGCAGGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCG"
+        "CACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGT"
+        "TGAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAAGCAGA"
+        "TACGCTG";
 
     EXPECT_TRUE(consensus.compare(valid_result) == 0);
 }
@@ -208,10 +208,10 @@ TEST_F(SpoaAlignmentTest, LocalConvexConsensusWithQualities) {
         "CCTCTGGCAACCACTTTTCCATGACAGGAGTTGAATATGGCATTCAGTAATCCCTTCGATGATCCGCAGG"
         "GAGCGTTTTACATATTGCGCAATGCGCAGGGGCAATTCAGTCTGTGGCCGCAACAATGCGTCTTACCGGC"
         "AGGCTGGGACATTGTGTGTCAGCCGCAGTCACAGGCGTCCTGCCAGCAGTGGCTGGAAGCCCACTGGCGT"
-        "ACTCTGACACCGACGAATTTTACCCAGTTGCAGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCGC"
-        "ACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGTT"
-        "GAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGATA"
-        "CGCTTTACACGCGCAACCAAGGATTTCGG";
+        "ACTCTGACACCGACGAATTTTACCCAGTTGCAGGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCG"
+        "CACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGT"
+        "TGAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGAT"
+        "ACGCTG";
 
     EXPECT_TRUE(consensus.compare(valid_result) == 0);
 }
@@ -271,10 +271,10 @@ TEST_F(SpoaAlignmentTest, GlobalConvexConsensus) {
         "CTCTGGCAACCACTTTTCCATGACAGGAGTTGAATATGGCATTCAGTAATCCCTTCGATGATCCGCAGGG"
         "AGCGTTTTACATATTGCGCAATGCGCAGGGGCAATTCAGTCTGTGGCCGCAACAATGCGTCTTACCGGCA"
         "GGCTGGGACATTGTGTGTCAGCCGCAGTCACAGGCGTCCTGCCAGCAGTGGCTGGAAGCCCACTGGCGTA"
-        "CTCTGACACCGACGAATTTTACCCAGTTGCAGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCGCA"
-        "CAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGTTG"
-        "AGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGATAC"
-        "GC";
+        "CTCTGACACCGACGAATTTTACCCAGTTGCAGGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCGC"
+        "ACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGTT"
+        "GAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAAGCAGAT"
+        "ACGC";
 
     EXPECT_TRUE(consensus.compare(valid_result) == 0);
 }
@@ -334,10 +334,10 @@ TEST_F(SpoaAlignmentTest, GlobalConvexConsensusWithQualities) {
         "CTCTGGCAACCACTTTTCCATGACAGGAGTTGAATATGGCATTCAGTAATCCCTTCGATGATCCGCAGGG"
         "AGCGTTTTACATATTGCGCAATGCGCAGGGGCAATTCAGTCTGTGGCCGCAACAATGCGTCTTACCGGCA"
         "GGCTGGGACATTGTGTGTCAGCCGCAGTCACAGGCGTCCTGCCAGCAGTGGCTGGAAGCCCACTGGCGTA"
-        "CTCTGACACCGACGAATTTTACCCAGTTGCAGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCGCA"
-        "CAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGTTG"
-        "AGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGATAC"
-        "GC";
+        "CTCTGACACCGACGAATTTTACCCAGTTGCAGGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCGC"
+        "ACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGTT"
+        "GAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAAGCAGAT"
+        "ACGC";
 
     EXPECT_TRUE(consensus.compare(valid_result) == 0);
 }
@@ -397,10 +397,10 @@ TEST_F(SpoaAlignmentTest, SemiGlobalConvexConsensus) {
         "ACCTCTGGCAACCACTTTTCCATGACAGGAGTTGAATATGGCATTCAGTAATCCCTTCGATGATCCGCAG"
         "GGAGCGTTTTACATATTGCGCAATGCGCAGGGGCAATTCAGTCTGTGGCCGCAACAATGCGTCTTACCGG"
         "CAGGCTGGGACATTGTGTGTCAGCCGCAGTCACAGGCGTCCTGCCAGCAGTGGCTGGAAGCCCACTGGCG"
-        "TACTCTGACACCGACGAATTTTACCCAGTTGCAGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCG"
-        "CACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGT"
-        "TGAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGAT"
-        "ACGCGTTTTACACGCGCAACCAAGGATTTCGG";
+        "TACTCTGACACCGACGAATTTTACCCAGTTGCAGGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCC"
+        "GCACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACG"
+        "TTGAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAAGCAG"
+        "ATACGC";
 
     EXPECT_TRUE(consensus.compare(valid_result) == 0);
 }
@@ -456,14 +456,14 @@ TEST_F(SpoaAlignmentTest, SemiGlobalConvexConsensusWithQualities) {
 
     auto consensus = graph->generate_consensus();
 
-    std::string valid_result = "ACATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCG"
+    std::string valid_result = "GTATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCG"
         "ACCTCTGGCAACCACTTTTCCATGACAGGAGTTGAATATGGCATTCAGTAATCCCTTCGATGATCCGCAG"
         "GGAGCGTTTTACATATTGCGCAATGCGCAGGGGCAATTCAGTCTGTGGCCGCAACAATGCGTCTTACCGG"
         "CAGGCTGGGACATTGTGTGTCAGCCGCAGTCACAGGCGTCCTGCCAGCAGTGGCTGGAAGCCCACTGGCG"
-        "TACTCTGACACCGACGAATTTTACCCAGTTGCAGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCCG"
-        "CACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACGT"
-        "TGAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAGCAGAT"
-        "ACGCGTTTTACACGCGCAACCAAGGATTTCGG";
+        "TACTCTGACACCGACGAATTTTACCCAGTTGCAGGGAGGCACAATGAGCCAGCATTTACCTTTGGTCGCC"
+        "GCACAGCCCGGCATCTGGATGGCAGAAAAACTGTCAGAATTACCCTCCGCCTGGAGCGTGGCGCATTACG"
+        "TTGAGTTAACCGGAGAGGTTGATTCGCCATTACTGGCCCGCGCGGTGGTTGCCGGACTAGCGCAAAGCAG"
+        "ATACGC";
 
     EXPECT_TRUE(consensus.compare(valid_result) == 0);
 }
@@ -494,6 +494,29 @@ TEST_F(SpoaAlignmentTest, LocalMSA) {
 TEST_F(SpoaAlignmentTest, LocalAffineMSA) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kSW,
         5, -4, -8, -6, -8, -6);
+
+    initialize();
+    construct_partial_order_graph(false);
+
+    std::vector<std::string> msa;
+    graph->generate_multiple_sequence_alignment(msa);
+
+    EXPECT_TRUE(msa.size() == sequences.size());
+
+    for (uint32_t i = 0; i < msa.size(); ++i) {
+        std::string tmp = "";
+        for (const auto& c: msa[i]) {
+            if (c != '-') tmp += c;
+        }
+
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
+    }
+}
+
+TEST_F(SpoaAlignmentTest, LocalConvexMSA) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kSW,
+        5, -4, -8, -6, -10, -2);
 
     initialize();
     construct_partial_order_graph(false);
@@ -560,6 +583,29 @@ TEST_F(SpoaAlignmentTest, LocalAffineMSAWithQualities) {
     }
 }
 
+TEST_F(SpoaAlignmentTest, LocalConvexMSAWithQualities) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kSW,
+        5, -4, -8, -6, -10, -2);
+
+    initialize();
+    construct_partial_order_graph(true);
+
+    std::vector<std::string> msa;
+    graph->generate_multiple_sequence_alignment(msa);
+
+    EXPECT_TRUE(msa.size() == sequences.size());
+
+    for (uint32_t i = 0; i < msa.size(); ++i) {
+        std::string tmp = "";
+        for (const auto& c: msa[i]) {
+            if (c != '-') tmp += c;
+        }
+
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
+    }
+}
+
 TEST_F(SpoaAlignmentTest, GlobalMSA) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kNW,
         5, -4, -8, -8, -8, -8);
@@ -586,6 +632,29 @@ TEST_F(SpoaAlignmentTest, GlobalMSA) {
 TEST_F(SpoaAlignmentTest, GlobalAffineMSA) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kNW,
         5, -4, -8, -6, -8, -6);
+
+    initialize();
+    construct_partial_order_graph(false);
+
+    std::vector<std::string> msa;
+    graph->generate_multiple_sequence_alignment(msa);
+
+    EXPECT_TRUE(msa.size() == sequences.size());
+
+    for (uint32_t i = 0; i < msa.size(); ++i) {
+        std::string tmp = "";
+        for (const auto& c: msa[i]) {
+            if (c != '-') tmp += c;
+        }
+
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
+    }
+}
+
+TEST_F(SpoaAlignmentTest, GlobalConvexMSA) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kNW,
+        5, -4, -8, -6, -10, -2);
 
     initialize();
     construct_partial_order_graph(false);
@@ -652,6 +721,29 @@ TEST_F(SpoaAlignmentTest, GlobalAffineMSAWithQualities) {
     }
 }
 
+TEST_F(SpoaAlignmentTest, GlobalConvexMSAWithQualities) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kNW,
+        5, -4, -8, -6, -10, -2);
+
+    initialize();
+    construct_partial_order_graph(true);
+
+    std::vector<std::string> msa;
+    graph->generate_multiple_sequence_alignment(msa);
+
+    EXPECT_TRUE(msa.size() == sequences.size());
+
+    for (uint32_t i = 0; i < msa.size(); ++i) {
+        std::string tmp = "";
+        for (const auto& c: msa[i]) {
+            if (c != '-') tmp += c;
+        }
+
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
+    }
+}
+
 TEST_F(SpoaAlignmentTest, SemiGlobalMSA) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kOV,
         5, -4, -8, -8, -8, -8);
@@ -698,6 +790,29 @@ TEST_F(SpoaAlignmentTest, SemiGlobalAffineMSA) {
     }
 }
 
+TEST_F(SpoaAlignmentTest, SemiGlobalConvexMSA) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kOV,
+        5, -4, -8, -6, -10, -2);
+
+    initialize();
+    construct_partial_order_graph(false);
+
+    std::vector<std::string> msa;
+    graph->generate_multiple_sequence_alignment(msa);
+
+    EXPECT_TRUE(msa.size() == sequences.size());
+
+    for (uint32_t i = 0; i < msa.size(); ++i) {
+        std::string tmp = "";
+        for (const auto& c: msa[i]) {
+            if (c != '-') tmp += c;
+        }
+
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
+    }
+}
+
 TEST_F(SpoaAlignmentTest, SemiGlobalMSAWithQualities) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kOV,
         5, -4, -8, -8, -8, -8);
@@ -724,6 +839,29 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSAWithQualities) {
 TEST_F(SpoaAlignmentTest, SemiGlobalAffineMSAWithQualities) {
     SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kOV,
         5, -4, -8, -6, -8, -6);
+
+    initialize();
+    construct_partial_order_graph(true);
+
+    std::vector<std::string> msa;
+    graph->generate_multiple_sequence_alignment(msa);
+
+    EXPECT_TRUE(msa.size() == sequences.size());
+
+    for (uint32_t i = 0; i < msa.size(); ++i) {
+        std::string tmp = "";
+        for (const auto& c: msa[i]) {
+            if (c != '-') tmp += c;
+        }
+
+        EXPECT_TRUE(tmp.size() == sequences[i]->data().size());
+        EXPECT_TRUE(tmp.compare(sequences[i]->data()) == 0);
+    }
+}
+
+TEST_F(SpoaAlignmentTest, SemiGlobalConvexMSAWithQualities) {
+    SetUp(spoa_test_data_path + "sample.fastq", spoa::AlignmentType::kOV,
+        5, -4, -8, -6, -10, -2);
 
     initialize();
     construct_partial_order_graph(true);

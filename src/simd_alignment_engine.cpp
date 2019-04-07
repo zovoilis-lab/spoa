@@ -392,10 +392,10 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
         pimpl_->sequence_profile_storage.reset();
         pimpl_->sequence_profile_storage = std::unique_ptr<__mxxxi[]>(storage);
     }
-    if (pimpl_->first_column.size() < matrix_height) {
-        pimpl_->first_column.resize(matrix_height, 0);
-    }
     if (subtype_ == AlignmentSubtype::kLinear) {
+        if (pimpl_->first_column.size() < matrix_height) {
+            pimpl_->first_column.resize(matrix_height, 0);
+        }
         if (pimpl_->M_size < matrix_height * matrix_width) {
             __mxxxi* storage = nullptr;
             pimpl_->M_size = matrix_height * matrix_width;
@@ -405,6 +405,9 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
             pimpl_->M_storage = std::unique_ptr<__mxxxi[]>(storage);
         }
     } else if (subtype_ == AlignmentSubtype::kAffine) {
+        if (pimpl_->first_column.size() < 2 * matrix_height) {
+            pimpl_->first_column.resize(2 * matrix_height, 0);
+        }
         if (pimpl_->M_size < 3 * matrix_height * matrix_width) {
             __mxxxi* storage = nullptr;
             pimpl_->M_size = 3 * matrix_height * matrix_width;
@@ -416,6 +419,9 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
             pimpl_->M_storage = std::unique_ptr<__mxxxi[]>(storage);
         }
     } else if (subtype_ == AlignmentSubtype::kConvex) {
+        if (pimpl_->first_column.size() < 3 * matrix_height) {
+            pimpl_->first_column.resize(3 * matrix_height, 0);
+        }
         if (pimpl_->M_size < 5 * matrix_height * matrix_width) {
             __mxxxi* storage = nullptr;
             pimpl_->M_size = 5 * matrix_height * matrix_width;
@@ -481,50 +487,159 @@ void SimdAlignmentEngine::initialize(const char* sequence,
         pimpl_->node_id_to_rank[rank_to_node_id[i]] = i;
     }
 
-    typename T::type negative_infinity =
+    typename T::type kNegativeInfinity =
         std::numeric_limits<typename T::type>::min() + 1024;
 
+    __mxxxi negative_infinities = T::_mmxxx_set1_epi(kNegativeInfinity);
     __mxxxi zeroes = T::_mmxxx_set1_epi(0);
 
-    // vertical conditions
-    if (type_ == AlignmentType::kSW || type_ == AlignmentType::kOV) {
-        for (uint32_t i = 0; i < matrix_height; ++i) {
-            pimpl_->first_column[i] = 0;
-        }
-    } else if (type_ == AlignmentType::kNW) {
-        pimpl_->first_column[0] = 0;
-        for (const auto& node_id: rank_to_node_id) {
-            uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
-            const auto& node = graph->nodes()[node_id];
-            if (node->in_edges().empty()) {
-                pimpl_->first_column[i] = g_;
-            } else {
-                int32_t penalty = negative_infinity;
-                for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i =
-                        pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
-                    penalty = std::max(penalty, pimpl_->first_column[pred_i]);
+    // initialize secondary matrices
+    switch (subtype_) {
+        case AlignmentSubtype::kConvex:
+            for (uint32_t j = 0; j < matrix_width; ++j) {
+                pimpl_->O[j] = negative_infinities;
+                pimpl_->Q[j] = T::_mmxxx_set1_epi(q_ + j * T::kNumVar * c_);
+
+                __mxxxi c = T::_mmxxx_set1_epi(c_);
+                for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                    c = _mmxxx_slli_si(c, T::kLSS);
+                    pimpl_->Q[j] = T::_mmxxx_add_epi(pimpl_->Q[j], c);
                 }
-                pimpl_->first_column[i] = penalty + e_;
             }
-        }
+            pimpl_->first_column[2 * matrix_height] = 0;
+            for (uint32_t i = 1; i < matrix_height; ++i) {
+                const auto& edges =
+                    graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
+                int32_t penalty = edges.empty() ? q_ - c_ : kNegativeInfinity;
+                for (const auto& edge: edges) {
+                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                        edge->begin_node_id()] + 1;
+                    penalty = std::max(penalty,
+                        pimpl_->first_column[2 * matrix_height + pred_i]);
+                }
+                pimpl_->first_column[2 * matrix_height + i] = penalty + c_;
+            }
+        case AlignmentSubtype::kAffine:
+            for (uint32_t j = 0; j < matrix_width; ++j) {
+                pimpl_->F[j] = negative_infinities;
+                pimpl_->E[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * e_);
+
+                __mxxxi e = T::_mmxxx_set1_epi(e_);
+                for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                    e = _mmxxx_slli_si(e, T::kLSS);
+                    pimpl_->E[j] = T::_mmxxx_add_epi(pimpl_->E[j], e);
+                }
+            }
+            pimpl_->first_column[matrix_height] = 0;
+            for (uint32_t i = 1; i < matrix_height; ++i) {
+                const auto& edges =
+                    graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
+                int32_t penalty = edges.empty() ? g_ - e_ : kNegativeInfinity;
+                for (const auto& edge: edges) {
+                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                        edge->begin_node_id()] + 1;
+                    penalty = std::max(penalty,
+                        pimpl_->first_column[matrix_height + pred_i]);
+                }
+                pimpl_->first_column[matrix_height + i] = penalty + e_;
+            }
+        case AlignmentSubtype::kLinear:
+        default:
+            break;
     }
 
-    // horizontal conditions
-    if (type_ == AlignmentType::kSW) {
-        for (uint32_t j = 0; j < matrix_width; ++j) {
-            pimpl_->H[j] = zeroes;
-        }
-    } else if (type_ == AlignmentType::kOV || type_ == AlignmentType::kNW) {
-        for (uint32_t j = 0; j < matrix_width; ++j) {
-            pimpl_->H[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * e_);
-            __mxxxi penalty = T::_mmxxx_set1_epi(e_);
-
-            for (uint32_t k = 1; k < T::kNumVar; ++k) {
-                penalty = _mmxxx_slli_si(penalty, T::kLSS);
-                pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], penalty);
+    // initialize primary matrix
+    switch (type_) {
+        case AlignmentType::kSW:
+            for (uint32_t j = 0; j < matrix_width; ++j) {
+                pimpl_->H[j] = zeroes;
             }
-        }
+            for (uint32_t i = 0; i < matrix_height; ++i) {
+                pimpl_->first_column[i] = 0;
+            }
+            break;
+        case AlignmentType::kNW:
+            switch (subtype_) {
+                case AlignmentSubtype::kConvex:
+                    for (uint32_t i = 0; i < matrix_height; ++i) {
+                        pimpl_->first_column[i] = std::max(
+                            pimpl_->first_column[matrix_height + i],
+                            pimpl_->first_column[2 * matrix_height + i]);
+                    }
+                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                        pimpl_->H[j] = T::_mmxxx_max_epi(pimpl_->E[j],
+                            pimpl_->Q[j]);
+                    }
+                    break;
+                case AlignmentSubtype::kAffine:
+                    for (uint32_t i = 0; i < matrix_height; ++i) {
+                        pimpl_->first_column[i] =
+                            pimpl_->first_column[matrix_height + i];
+                    }
+                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                        pimpl_->H[j] = pimpl_->E[j];
+                    }
+                    break;
+                case AlignmentSubtype::kLinear:
+                    pimpl_->first_column[0] = 0;
+                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                        const auto& edges =
+                            graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
+                        int32_t penalty = edges.empty() ? 0 : kNegativeInfinity;
+                        for (const auto& edge: edges) {
+                            uint32_t pred_i = pimpl_->node_id_to_rank[
+                                edge->begin_node_id()] + 1;
+                            penalty = std::max(penalty,
+                                pimpl_->first_column[pred_i]);
+                        }
+                        pimpl_->first_column[i] = penalty + g_;
+                    }
+                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                        pimpl_->H[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * g_);
+                        __mxxxi g = T::_mmxxx_set1_epi(g_);
+
+                        for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                            g = _mmxxx_slli_si(g, T::kLSS);
+                            pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], g);
+                        }
+                    }
+                default:
+                    break;
+            }
+            break;
+        case AlignmentType::kOV:
+            switch (subtype_) {
+                case AlignmentSubtype::kConvex:
+                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                        pimpl_->H[j] = T::_mmxxx_max_epi(pimpl_->E[j],
+                            pimpl_->Q[j]);
+                    }
+                    break;
+                case AlignmentSubtype::kAffine:
+                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                        pimpl_->H[j] = pimpl_->E[j];
+                    }
+                    break;
+                case AlignmentSubtype::kLinear:
+                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                        pimpl_->H[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * g_);
+                        __mxxxi g = T::_mmxxx_set1_epi(g_);
+
+                        for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                            g = _mmxxx_slli_si(g, T::kLSS);
+                            pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], g);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            for (uint32_t i = 0; i < matrix_height; ++i) {
+                pimpl_->first_column[i] = 0;
+            }
+            break;
+        default:
+            break;
     }
 
 #endif
@@ -940,11 +1055,6 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     typename T::type kNegativeInfinity =
         std::numeric_limits<typename T::type>::min() + 1024;
 
-    __mxxxi negative_infinities = T::_mmxxx_set1_epi(kNegativeInfinity);
-    for (uint32_t j = 0; j < matrix_width; ++j) {
-        pimpl_->F[j] = negative_infinities;
-    }
-
     typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;
     int32_t max_j = -1;
@@ -963,8 +1073,8 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
         }
     }
-    pimpl_->masks[T::kLogNumVar] = _mmxxx_slli_si(T::_mmxxx_set1_epi(
-        kNegativeInfinity), T::kLSS);
+    pimpl_->masks[T::kLogNumVar] =
+        _mmxxx_slli_si(T::_mmxxx_set1_epi(kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(e_);
     for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
@@ -997,14 +1107,10 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             F_row[j] = T::_mmxxx_add_epi(T::_mmxxx_max_epi(T::_mmxxx_add_epi(
                 H_pred_row[j], g), F_pred_row[j]), e);
 
-            // get diagonal
-            __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
-            H_row[j] = _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x);
-            x = t1;
-
             // update H
-            H_row[j] = T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_row[j],
-                char_profile[j]), F_row[j]);
+            H_row[j] = T::_mmxxx_add_epi(_mmxxx_or_si(_mmxxx_slli_si(
+                H_pred_row[j], T::kLSS), x), char_profile[j]);
+            x = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
         }
 
         // check other predecessors
@@ -1023,14 +1129,11 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                     T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_pred_row[j], g),
                     F_pred_row[j]), e));
 
-                // get diagonal
-                __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
-                __mxxxi h = _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x);
-                x = t1;
-
-                // updage H
-                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(
-                    T::_mmxxx_add_epi(h, char_profile[j]), F_row[j]));
+                // update H
+                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_add_epi(
+                    _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x),
+                    char_profile[j]));
+                x = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
             }
         }
 
@@ -1039,6 +1142,8 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
 
         for (uint32_t j = 0; j < matrix_width; ++j) {
+            H_row[j] = T::_mmxxx_max_epi(H_row[j], F_row[j]);
+
             E_row[j] = T::_mmxxx_add_epi(T::_mmxxx_add_epi(_mmxxx_or_si(
                 _mmxxx_slli_si(H_row[j], T::kLSS), _mmxxx_srli_si(x, T::kRSS)), g), e);
 
@@ -1380,11 +1485,6 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     typename T::type kNegativeInfinity =
         std::numeric_limits<typename T::type>::min() + 1024;
 
-    __mxxxi negative_infinities = T::_mmxxx_set1_epi(kNegativeInfinity);
-    for (uint32_t j = 0; j < matrix_width; ++j) {
-        pimpl_->F[j] = negative_infinities;
-    }
-
     typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
     int32_t max_i = -1;
     int32_t max_j = -1;
@@ -1405,8 +1505,8 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 _mmxxx_load_si(reinterpret_cast<const __mxxxi*>(unpacked));
         }
     }
-    pimpl_->masks[T::kLogNumVar] = _mmxxx_slli_si(T::_mmxxx_set1_epi(
-        kNegativeInfinity), T::kLSS);
+    pimpl_->masks[T::kLogNumVar] =
+        _mmxxx_slli_si(T::_mmxxx_set1_epi(kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(e_);
     for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
@@ -1429,12 +1529,14 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
         __mxxxi* H_row = &(pimpl_->H[i * matrix_width]);
         __mxxxi* F_row = &(pimpl_->F[i * matrix_width]);
+        __mxxxi* O_row = &(pimpl_->O[i * matrix_width]);
 
         uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
         __mxxxi* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
         __mxxxi* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
+        __mxxxi* O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
 
         __mxxxi x = _mmxxx_srli_si(T::_mmxxx_set1_epi(
             pimpl_->first_column[pred_i]), T::kRSS);
@@ -1444,14 +1546,14 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
             F_row[j] = T::_mmxxx_add_epi(T::_mmxxx_max_epi(T::_mmxxx_add_epi(
                 H_pred_row[j], g), F_pred_row[j]), e);
 
-            // get diagonal
-            __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
-            H_row[j] = _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x);
-            x = t1;
+            // update O
+            O_row[j] = T::_mmxxx_add_epi(T::_mmxxx_max_epi(T::_mmxxx_add_epi(
+                H_pred_row[j], q), O_pred_row[j]), c);
 
             // update H
-            H_row[j] = T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_row[j],
-                char_profile[j]), F_row[j]);
+            H_row[j] = T::_mmxxx_add_epi(_mmxxx_or_si(_mmxxx_slli_si(
+                H_pred_row[j], T::kLSS), x), char_profile[j]);
+            x = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
         }
 
         // check other predecessors
@@ -1460,6 +1562,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
             F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
+            O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
 
             x = _mmxxx_srli_si(T::_mmxxx_set1_epi(
                 pimpl_->first_column[pred_i]), T::kRSS);
@@ -1470,29 +1573,49 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_pred_row[j],
                     g), F_pred_row[j]), e));
 
-                // get diagonal
-                __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
-                __mxxxi h = _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x);
-                x = t1;
+                // update O
+                O_row[j] = T::_mmxxx_max_epi(O_row[j], T::_mmxxx_add_epi(
+                    T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_pred_row[j],
+                    q), O_pred_row[j]), c));
 
-                // updage H
-                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(
-                    T::_mmxxx_add_epi(h, char_profile[j]), F_row[j]));
+                // update H
+                H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_add_epi(
+                    _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x),
+                    char_profile[j]));
+                x = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
             }
         }
 
         __mxxxi* E_row = &(pimpl_->E[i * matrix_width]);
-        __mxxxi score = zeroes;
+        __mxxxi* Q_row = &(pimpl_->Q[i * matrix_width]);
+
         x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
+        __mxxxi y = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
+
+        __mxxxi score = zeroes;
 
         for (uint32_t j = 0; j < matrix_width; ++j) {
+            H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(F_row[j],
+                O_row[j]));
+
             E_row[j] = T::_mmxxx_add_epi(T::_mmxxx_add_epi(_mmxxx_or_si(
-                _mmxxx_slli_si(H_row[j], T::kLSS), _mmxxx_srli_si(x, T::kRSS)), g), e);
+                _mmxxx_slli_si(H_row[j], T::kLSS), _mmxxx_srli_si(x, T::kRSS)),
+                g), e);
 
             T::_mmxxx_prefix_max(E_row[j], pimpl_->masks, pimpl_->penalties);
 
-            H_row[j] = T::_mmxxx_max_epi(H_row[j], E_row[j]);
+            Q_row[j] = T::_mmxxx_add_epi(T::_mmxxx_add_epi(_mmxxx_or_si(
+                _mmxxx_slli_si(H_row[j], T::kLSS), _mmxxx_srli_si(y, T::kRSS)),
+                q), c);
+
+            T::_mmxxx_prefix_max(Q_row[j], pimpl_->masks,
+                &pimpl_->penalties[T::kLogNumVar]);
+
+            H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(E_row[j],
+                Q_row[j]));
+
             x = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_sub_epi(E_row[j], g));
+            y = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_sub_epi(Q_row[j], q));
 
             if (type_ == AlignmentType::kSW) {
                 H_row[j] = T::_mmxxx_max_epi(H_row[j], zeroes);
@@ -1557,15 +1680,19 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
     typename T::type* backtrack_storage = nullptr;
     typename T::type* H = allocateAlignedMemory(&backtrack_storage,
-        6 * T::kNumVar + 3 * T::kNumVar * max_num_predecessors, kRegisterSize / 8);
+        9 * T::kNumVar + 4 * T::kNumVar * max_num_predecessors, kRegisterSize / 8);
     typename T::type* H_pred = H + T::kNumVar;
     typename T::type* H_diag_pred = H_pred + T::kNumVar * max_num_predecessors;
     typename T::type* H_left = H_diag_pred + T::kNumVar * max_num_predecessors;
     typename T::type* F = H_left + T::kNumVar;
     typename T::type* F_pred = F + T::kNumVar;
-    typename T::type* E = F_pred + T::kNumVar * max_num_predecessors;
+    typename T::type* O = F_pred + T::kNumVar * max_num_predecessors;
+    typename T::type* O_pred = O + T::kNumVar;
+    typename T::type* E = O_pred + T::kNumVar * max_num_predecessors;
     typename T::type* E_left = E + T::kNumVar;
-    typename T::type* profile = E_left + T::kNumVar;
+    typename T::type* Q = E_left + T::kNumVar;
+    typename T::type* Q_left = Q + T::kNumVar;
+    typename T::type* profile = Q_left + T::kNumVar;
 
     std::vector<uint32_t> predecessors;
 
@@ -1596,6 +1723,8 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 pimpl_->H[i * matrix_width + j_div]);
             _mmxxx_store_si(reinterpret_cast<__mxxxi*>(E),
                 pimpl_->E[i * matrix_width + j_div]);
+            _mmxxx_store_si(reinterpret_cast<__mxxxi*>(Q),
+                pimpl_->Q[i * matrix_width + j_div]);
 
             // load predecessors cells
             if (node->in_edges().empty()) {
@@ -1604,6 +1733,8 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     pimpl_->H[j_div]);
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(F_pred),
                     pimpl_->F[j_div]);
+                _mmxxx_store_si(reinterpret_cast<__mxxxi*>(O_pred),
+                    pimpl_->O[j_div]);
 
             } else {
                 uint32_t store_pos = 0;
@@ -1616,6 +1747,9 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     _mmxxx_store_si(
                         reinterpret_cast<__mxxxi*>(&F_pred[store_pos * T::kNumVar]),
                         pimpl_->F[predecessors.back() * matrix_width + j_div]);
+                    _mmxxx_store_si(
+                        reinterpret_cast<__mxxxi*>(&O_pred[store_pos * T::kNumVar]),
+                        pimpl_->O[predecessors.back() * matrix_width + j_div]);
                     ++store_pos;
                 }
             }
@@ -1642,6 +1776,8 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     pimpl_->H[i * matrix_width + j_div - 1]);
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(E_left),
                     pimpl_->E[i * matrix_width + j_div - 1]);
+                _mmxxx_store_si(reinterpret_cast<__mxxxi*>(Q_left),
+                    pimpl_->Q[i * matrix_width + j_div - 1]);
             } else {
                 for (uint32_t p = 0; p < predecessors.size(); ++p) {
                     H_diag_pred[(p + 1) * T::kNumVar - 1] =
@@ -1649,6 +1785,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 }
                 H_left[T::kNumVar - 1] = pimpl_->first_column[i];
                 E_left[T::kNumVar - 1] = pimpl_->first_column[i];
+                Q_left[T::kNumVar - 1] = pimpl_->first_column[i];
             }
         }
 
@@ -1670,7 +1807,9 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         if (!predecessor_found && i != 0) {
             for (uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((extend_up = H[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_) ||
-                                 H[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_) {
+                                 H[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_  ||
+                    (extend_up = H[j_mod] == O_pred[p * T::kNumVar + j_mod] + c_) ||
+                                 H[j_mod] == H_pred[p * T::kNumVar + j_mod] + q_) {
                     prev_i = predecessors[p];
                     prev_j = j;
                     predecessor_found = true;
@@ -1680,10 +1819,14 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         }
 
         if (!predecessor_found) {
-            if ((j_mod != 0 && ((extend_left = H[j_mod] == E[j_mod - 1] + e_) ||
-                                               H[j_mod] == H[j_mod - 1] + g_)) ||
-                (j_mod == 0 && ((extend_left = H[j_mod] == E_left[T::kNumVar - 1] + e_ ) ||
-                                               H[j_mod] == H_left[T::kNumVar - 1] + g_))) {
+            if ((j_mod != 0 && ((extend_left = H[j_mod] == E[j_mod - 1] + e_)  ||
+                                               H[j_mod] == H[j_mod - 1] + g_   ||
+                                (extend_left = H[j_mod] == Q[j_mod - 1] + c_)  ||
+                                               H[j_mod] == H[j_mod - 1] + q_)) ||
+                (j_mod == 0 && ((extend_left = H[j_mod] == E_left[T::kNumVar - 1] + e_) ||
+                                               H[j_mod] == H_left[T::kNumVar - 1] + g_  ||
+                                (extend_left = H[j_mod] == Q_left[T::kNumVar - 1] + c_) ||
+                                               H[j_mod] == H_left[T::kNumVar - 1] + q_))) {
                 prev_i = i;
                 prev_j = j - 1;
                 predecessor_found = true;
@@ -1708,10 +1851,14 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 if (j_mod == T::kNumVar - 1) {
                     _mmxxx_store_si(reinterpret_cast<__mxxxi*>(E),
                         pimpl_->E[i * matrix_width + j_div]);
+                    _mmxxx_store_si(reinterpret_cast<__mxxxi*>(Q),
+                        pimpl_->Q[i * matrix_width + j_div]);
                 } else if (j_mod == 0) { // boarder case
                     if (j_div > 0) {
                         _mmxxx_store_si(reinterpret_cast<__mxxxi*>(E_left),
                             pimpl_->E[i * matrix_width + j_div - 1]);
+                        _mmxxx_store_si(reinterpret_cast<__mxxxi*>(Q_left),
+                            pimpl_->Q[i * matrix_width + j_div - 1]);
                     }
                 }
 
@@ -1720,8 +1867,10 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 j_div = j / T::kNumVar;
                 j_mod = j % T::kNumVar;
                 if (j == -1 ||
-                    (j_mod != T::kNumVar - 1 && E[j_mod] + e_ != E[j_mod + 1]) ||
-                    (j_mod == T::kNumVar - 1 && E_left[j_mod] + e_ != E[0])) {
+                    (j_mod != T::kNumVar - 1 &&      E[j_mod] + e_ != E[j_mod + 1]) ||
+                    (j_mod == T::kNumVar - 1 && E_left[j_mod] + e_ != E[0])         ||
+                    (j_mod != T::kNumVar - 1 &&      Q[j_mod] + c_ != Q[j_mod + 1]) ||
+                    (j_mod == T::kNumVar - 1 && Q_left[j_mod] + c_ != Q[0])) {
                     break;
                 }
             }
@@ -1731,8 +1880,9 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 // load
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(F),
                     pimpl_->F[i * matrix_width + j_div]);
+                _mmxxx_store_si(reinterpret_cast<__mxxxi*>(O),
+                    pimpl_->O[i * matrix_width + j_div]);
 
-                prev_i = 0;
                 predecessors.clear();
                 uint32_t store_pos = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
@@ -1744,15 +1894,29 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     _mmxxx_store_si(
                         reinterpret_cast<__mxxxi*>(&F_pred[store_pos * T::kNumVar]),
                         pimpl_->F[predecessors.back() * matrix_width + j_div]);
+                    _mmxxx_store_si(
+                        reinterpret_cast<__mxxxi*>(&O_pred[store_pos * T::kNumVar]),
+                        pimpl_->O[predecessors.back() * matrix_width + j_div]);
                     ++store_pos;
                 }
 
-                bool stop = false;
+                bool stop = true;
+                prev_i = 0;
                 for (uint32_t p = 0; p < predecessors.size(); ++p) {
-                    if ((stop = F[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_) ||
-                                F[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_) {
+                    if (F[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_ ||
+                        O[j_mod] == O_pred[p * T::kNumVar + j_mod] + c_) {
                         prev_i = predecessors[p];
+                        stop = false;
                         break;
+                    }
+                }
+                if (stop == true) {
+                    for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                        if (F[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_ ||
+                            O[j_mod] == H_pred[p * T::kNumVar + j_mod] + q_) {
+                            prev_i = predecessors[p];
+                            break;
+                        }
                     }
                 }
 
@@ -1785,8 +1949,8 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 for (const auto& edge: node->in_edges()) {
                     uint32_t pred_i =
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
-                    if (pimpl_->first_column[i] ==
-                        pimpl_->first_column[pred_i] + e_) {
+                    if (pimpl_->first_column[matrix_height + i]     == pimpl_->first_column[matrix_height + pred_i] + e_ ||
+                        pimpl_->first_column[2 * matrix_height + i] == pimpl_->first_column[2 * matrix_height + pred_i] + c_ ) {
                         i = pred_i;
                         break;
                     }
@@ -1797,7 +1961,6 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
     std::reverse(alignment.begin(), alignment.end());
     return alignment;
-
 #else
 
     return Alignment();
