@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
     auto graph = spoa::createGraph();
 
     std::vector<std::unique_ptr<spoa::Sequence>> sequences;
-    sparser->parse_objects(sequences, -1);
+    sparser->parse(sequences, -1);
 
     size_t max_sequence_size = 0;
     for (const auto& it: sequences) {

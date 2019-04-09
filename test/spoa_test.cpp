@@ -27,7 +27,7 @@ public:
     void TearDown() {}
 
     void initialize() {
-        parser->parse_objects(sequences, -1);
+        parser->parse(sequences, -1);
 
         size_t max_sequence_size = 0;
         for (const auto& it: sequences) {
