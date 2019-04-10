@@ -15,19 +15,20 @@
 namespace spoa {
 
 std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    int8_t m, int8_t n, int8_t g) {
+    std::int8_t m, std::int8_t n, std::int8_t g) {
 
     return createAlignmentEngine(type, m, n, g, g);
 }
 
 std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    int8_t m, int8_t n, int8_t g, int8_t e) {
+    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e) {
 
     return createAlignmentEngine(type, m, n, g, e, g, e);
 }
 
 std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    int8_t m, int8_t n, int8_t g, int8_t e, int8_t q, int8_t c) {
+    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
+    std::int8_t q, std::int8_t c) {
 
     if (type != AlignmentType::kSW &&
         type != AlignmentType::kNW &&
@@ -67,7 +68,8 @@ std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
 }
 
 AlignmentEngine::AlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-    int8_t m, int8_t n, int8_t g, int8_t e, int8_t q, int8_t c)
+    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
+    std::int8_t q, std::int8_t c)
         : type_(type), subtype_(subtype), m_(m), n_(n), g_(g), e_(e), q_(q), c_(c) {
 }
 

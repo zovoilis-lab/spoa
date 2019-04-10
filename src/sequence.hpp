@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <string>
@@ -23,7 +23,6 @@ namespace spoa {
 
 class Sequence {
 public:
-
     ~Sequence() = default;
 
     const std::string& name() const {
@@ -42,11 +41,11 @@ public:
     friend bioparser::FastqParser<Sequence>;
 
 private:
-
-    Sequence(const char* name, uint32_t name_size, const char* data,
-        uint32_t data_size);
-    Sequence(const char* name, uint32_t name_size, const char* data,
-        uint32_t data_size, const char* quality, uint32_t quality_size);
+    Sequence(const char* name, std::uint32_t name_size,
+        const char* data, std::uint32_t data_size);
+    Sequence(const char* name, std::uint32_t name_size,
+        const char* data, std::uint32_t data_size,
+        const char* quality, std::uint32_t quality_size);
     Sequence(const Sequence&) = delete;
     const Sequence& operator=(const Sequence&) = delete;
 

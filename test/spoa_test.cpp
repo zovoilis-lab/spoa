@@ -15,7 +15,8 @@
 class SpoaAlignmentTest: public ::testing::Test {
 public:
     void SetUp(const std::string& file_name, spoa::AlignmentType alignment_type,
-        int8_t m, int8_t n, int8_t g, int8_t e, int8_t q, int8_t c) {
+        std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
+        std::int8_t q, std::int8_t c) {
 
         parser = bioparser::createParser<bioparser::FastqParser, spoa::Sequence>(
             file_name);
@@ -29,7 +30,7 @@ public:
     void initialize() {
         parser->parse(sequences, -1);
 
-        size_t max_sequence_size = 0;
+        std::size_t max_sequence_size = 0;
         for (const auto& it: sequences) {
             max_sequence_size = std::max(max_sequence_size, it->data().size());
         }
@@ -480,7 +481,7 @@ TEST_F(SpoaAlignmentTest, LocalMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -503,7 +504,7 @@ TEST_F(SpoaAlignmentTest, LocalAffineMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -526,7 +527,7 @@ TEST_F(SpoaAlignmentTest, LocalConvexMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -549,7 +550,7 @@ TEST_F(SpoaAlignmentTest, LocalMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -572,7 +573,7 @@ TEST_F(SpoaAlignmentTest, LocalAffineMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -595,7 +596,7 @@ TEST_F(SpoaAlignmentTest, LocalConvexMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -618,7 +619,7 @@ TEST_F(SpoaAlignmentTest, GlobalMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -641,7 +642,7 @@ TEST_F(SpoaAlignmentTest, GlobalAffineMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -664,7 +665,7 @@ TEST_F(SpoaAlignmentTest, GlobalConvexMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -687,7 +688,7 @@ TEST_F(SpoaAlignmentTest, GlobalMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -710,7 +711,7 @@ TEST_F(SpoaAlignmentTest, GlobalAffineMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -733,7 +734,7 @@ TEST_F(SpoaAlignmentTest, GlobalConvexMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -756,7 +757,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -779,7 +780,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalAffineMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -802,7 +803,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalConvexMSA) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -825,7 +826,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -848,7 +849,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalAffineMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;
@@ -871,7 +872,7 @@ TEST_F(SpoaAlignmentTest, SemiGlobalConvexMSAWithQualities) {
 
     EXPECT_TRUE(msa.size() == sequences.size());
 
-    for (uint32_t i = 0; i < msa.size(); ++i) {
+    for (std::uint32_t i = 0; i < msa.size(); ++i) {
         std::string tmp = "";
         for (const auto& c: msa[i]) {
             if (c != '-') tmp += c;

@@ -4,6 +4,7 @@
  * @brief SimdAlignmentEngine class source file
  */
 
+#include <iostream>
 #include <algorithm>
 #include <limits>
 
@@ -17,8 +18,8 @@ extern "C" {
 namespace spoa {
 
 // Taken from https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=216149
-inline void* align(size_t __align, size_t __size, void*& __ptr,
-    size_t& __space) noexcept {
+inline void* align(std::size_t __align, std::size_t __size, void*& __ptr,
+    std::size_t& __space) noexcept {
 
     const auto __intptr = reinterpret_cast<uintptr_t>(__ptr);
     const auto __aligned = (__intptr - 1u + __align) & -__align;
@@ -32,10 +33,10 @@ inline void* align(size_t __align, size_t __size, void*& __ptr,
 }
 
 template<typename T>
-T* allocateAlignedMemory(T** storage, uint32_t size, uint32_t alignment) {
+T* allocateAlignedMemory(T** storage, std::uint32_t size, std::uint32_t alignment) {
     *storage = new T[size + alignment - 1];
     void* ptr = static_cast<void*>(*storage);
-    size_t storage_size = (size + alignment - 1) * sizeof(T);
+    std::size_t storage_size = (size + alignment - 1) * sizeof(T);
     return static_cast<T*>(align(alignment, size * sizeof(T), ptr, storage_size));
 }
 
@@ -44,7 +45,7 @@ struct InstructionSet;
 
 #if defined(__AVX2__)
 
-constexpr uint32_t kRegisterSize = 256;
+constexpr std::uint32_t kRegisterSize = 256;
 using __mxxxi = __m256i;
 
 inline __mxxxi _mmxxx_load_si(__mxxxi const* mem_addr) {
@@ -69,12 +70,12 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
         _MM_SHUFFLE(2, 0, 0, 1)), n - 16)
 
 template<>
-struct InstructionSet<int16_t> {
-    using type = int16_t;
-    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
-    static constexpr uint32_t kLogNumVar = 4;
-    static constexpr uint32_t kLSS = 2; // Left Shift Size
-    static constexpr uint32_t kRSS = 30; // Right Shift Size
+struct InstructionSet<std::int16_t> {
+    using type = std::int16_t;
+    static constexpr std::uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    static constexpr std::uint32_t kLogNumVar = 4;
+    static constexpr std::uint32_t kLSS = 2; // Left Shift Size
+    static constexpr std::uint32_t kRSS = 30; // Right Shift Size
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm256_add_epi16(a, b);
     }
@@ -105,12 +106,12 @@ struct InstructionSet<int16_t> {
 };
 
 template<>
-struct InstructionSet<int32_t> {
-    using type = int32_t;
-    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
-    static constexpr uint32_t kLogNumVar = 3;
-    static constexpr uint32_t kLSS = 4;
-    static constexpr uint32_t kRSS = 28;
+struct InstructionSet<std::int32_t> {
+    using type = std::int32_t;
+    static constexpr std::uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    static constexpr std::uint32_t kLogNumVar = 3;
+    static constexpr std::uint32_t kLSS = 4;
+    static constexpr std::uint32_t kRSS = 28;
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm256_add_epi32(a, b);
     }
@@ -140,7 +141,7 @@ struct InstructionSet<int32_t> {
 
 #elif defined(__SSE4_1__)
 
-constexpr uint32_t kRegisterSize = 128;
+constexpr std::uint32_t kRegisterSize = 128;
 using __mxxxi = __m128i;
 
 inline __mxxxi _mmxxx_load_si(__mxxxi const* mem_addr) {
@@ -162,12 +163,12 @@ inline __mxxxi _mmxxx_or_si(const __mxxxi& a, const __mxxxi& b) {
     _mm_srli_si128(a, n)
 
 template<>
-struct InstructionSet<int16_t> {
-    using type = int16_t;
-    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
-    static constexpr uint32_t kLogNumVar = 3;
-    static constexpr uint32_t kLSS = 2;
-    static constexpr uint32_t kRSS = 14;
+struct InstructionSet<std::int16_t> {
+    using type = std::int16_t;
+    static constexpr std::uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    static constexpr std::uint32_t kLogNumVar = 3;
+    static constexpr std::uint32_t kLSS = 2;
+    static constexpr std::uint32_t kRSS = 14;
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm_add_epi16(a, b);
     }
@@ -196,12 +197,12 @@ struct InstructionSet<int16_t> {
 };
 
 template<>
-struct InstructionSet<int32_t> {
-    using type = int32_t;
-    static constexpr uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
-    static constexpr uint32_t kLogNumVar = 2;
-    static constexpr uint32_t kLSS = 4;
-    static constexpr uint32_t kRSS = 12;
+struct InstructionSet<std::int32_t> {
+    using type = std::int32_t;
+    static constexpr std::uint32_t kNumVar = kRegisterSize / (8 * sizeof(type));
+    static constexpr std::uint32_t kLogNumVar = 2;
+    static constexpr std::uint32_t kLSS = 4;
+    static constexpr std::uint32_t kRSS = 12;
     static inline __mxxxi _mmxxx_add_epi(const __mxxxi& a, const __mxxxi& b) {
         return _mm_add_epi32(a, b);
     }
@@ -238,8 +239,8 @@ void _mmxxx_print(const __mxxxi& a) {
         unpacked[T::kNumVar];
     _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), a);
 
-    for (uint32_t i = 0; i < T::kNumVar; i++) {
-        printf("%d ", unpacked[i]);
+    for (std::uint32_t i = 0; i < T::kNumVar; i++) {
+        std::cout << unpacked[i] << " ";
     }
 }
 
@@ -251,7 +252,7 @@ typename T::type _mmxxx_max_value(const __mxxxi& a) {
         unpacked[T::kNumVar];
     _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), a);
 
-    for (uint32_t i = 0; i < T::kNumVar; i++) {
+    for (std::uint32_t i = 0; i < T::kNumVar; i++) {
         max_score = std::max(max_score, unpacked[i]);
     }
 
@@ -259,7 +260,7 @@ typename T::type _mmxxx_max_value(const __mxxxi& a) {
 }
 
 template<typename T>
-typename T::type _mmxxx_value_at(const __mxxxi& a, uint32_t i) {
+typename T::type _mmxxx_value_at(const __mxxxi& a, std::uint32_t i) {
 
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         unpacked[T::kNumVar];
@@ -269,15 +270,15 @@ typename T::type _mmxxx_value_at(const __mxxxi& a, uint32_t i) {
 }
 
 template<typename T>
-int32_t _mmxxx_index_of(const __mxxxi* row, uint32_t row_width,
+std::int32_t _mmxxx_index_of(const __mxxxi* row, std::uint32_t row_width,
     typename T::type value) {
 
-    for (uint32_t i = 0; i < row_width; ++i) {
+    for (std::uint32_t i = 0; i < row_width; ++i) {
         __attribute__((aligned(kRegisterSize / 8))) typename T::type
             unpacked[T::kNumVar];
         _mmxxx_store_si(reinterpret_cast<__mxxxi*>(unpacked), row[i]);
 
-        for (uint32_t j = 0; j < T::kNumVar; j++) {
+        for (std::uint32_t j = 0; j < T::kNumVar; j++) {
             if (unpacked[j] == value) {
                 return i * T::kNumVar + j;
             }
@@ -290,8 +291,8 @@ int32_t _mmxxx_index_of(const __mxxxi* row, uint32_t row_width,
 #endif
 
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e, int8_t q,
-    int8_t c) {
+    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
+    std::int8_t e, std::int8_t q, std::int8_t c) {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
@@ -309,15 +310,15 @@ struct SimdAlignmentEngine::Implementation {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    std::vector<uint32_t> node_id_to_rank;
+    std::vector<std::uint32_t> node_id_to_rank;
 
     std::unique_ptr<__mxxxi[]> sequence_profile_storage;
-    uint32_t sequence_profile_size;
+    std::uint32_t sequence_profile_size;
     __mxxxi* sequence_profile;
 
-    std::vector<int32_t> first_column;
+    std::vector<std::int32_t> first_column;
     std::unique_ptr<__mxxxi[]> M_storage;
-    uint32_t M_size;
+    std::uint32_t M_size;
     __mxxxi* H;
     __mxxxi* F;
     __mxxxi* E;
@@ -325,11 +326,11 @@ struct SimdAlignmentEngine::Implementation {
     __mxxxi* Q;
 
     std::unique_ptr<__mxxxi[]> masks_storage;
-    uint32_t masks_size;
+    std::uint32_t masks_size;
     __mxxxi* masks;
 
     std::unique_ptr<__mxxxi[]> penalties_storage;
-    uint32_t penalties_size;
+    std::uint32_t penalties_size;
     __mxxxi* penalties;
 
     Implementation()
@@ -345,8 +346,8 @@ struct SimdAlignmentEngine::Implementation {
 };
 
 SimdAlignmentEngine::SimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e, int8_t q,
-    int8_t c)
+    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
+    std::int8_t e, std::int8_t q, std::int8_t c)
         : AlignmentEngine(type, subtype, m, n, g, e, q, c),
         pimpl_(new Implementation()) {
 }
@@ -354,30 +355,30 @@ SimdAlignmentEngine::SimdAlignmentEngine(AlignmentType type,
 SimdAlignmentEngine::~SimdAlignmentEngine() {
 }
 
-void SimdAlignmentEngine::prealloc(uint32_t max_sequence_size,
-    uint32_t alphabet_size) {
+void SimdAlignmentEngine::prealloc(std::uint32_t max_sequence_size,
+    std::uint32_t alphabet_size) {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t longest_path = max_sequence_size * (alphabet_size + 1) + 1 +
-        InstructionSet<int16_t>::kNumVar;
+    std::uint32_t longest_path = max_sequence_size * (alphabet_size + 1) + 1 +
+        InstructionSet<std::int16_t>::kNumVar;
 
-    uint32_t max_penalty = std::max(std::max(abs(m_), abs(n_)),
+    std::uint32_t max_penalty = std::max(std::max(abs(m_), abs(n_)),
         std::max(abs(g_), abs(q_)));
 
-    if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
-        realloc((max_sequence_size / InstructionSet<int16_t>::kNumVar) + 1,
+    if (max_penalty * longest_path < std::numeric_limits<std::int16_t>::max()) {
+        realloc((max_sequence_size / InstructionSet<std::int16_t>::kNumVar) + 1,
             alphabet_size * max_sequence_size, alphabet_size);
     } else {
-        realloc((max_sequence_size / InstructionSet<int32_t>::kNumVar) + 1,
+        realloc((max_sequence_size / InstructionSet<std::int32_t>::kNumVar) + 1,
             alphabet_size * max_sequence_size, alphabet_size);
     }
 
 #endif
 }
 
-void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
-    uint32_t num_codes) {
+void SimdAlignmentEngine::realloc(std::uint32_t matrix_width,
+    std::uint32_t matrix_height, std::uint32_t num_codes) {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
@@ -435,17 +436,17 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
             pimpl_->M_storage = std::unique_ptr<__mxxxi[]>(storage);
         }
     }
-    if (pimpl_->masks_size < InstructionSet<int16_t>::kLogNumVar + 1) {
+    if (pimpl_->masks_size < InstructionSet<std::int16_t>::kLogNumVar + 1) {
         __mxxxi* storage = nullptr;
-        pimpl_->masks_size = InstructionSet<int16_t>::kLogNumVar + 1;
+        pimpl_->masks_size = InstructionSet<std::int16_t>::kLogNumVar + 1;
         pimpl_->masks = allocateAlignedMemory(&storage,
             pimpl_->masks_size, kRegisterSize / 8);
         pimpl_->masks_storage.reset();
         pimpl_->masks_storage = std::unique_ptr<__mxxxi[]>(storage);
     }
-    if (pimpl_->penalties_size < 2 * InstructionSet<int16_t>::kLogNumVar) {
+    if (pimpl_->penalties_size < 2 * InstructionSet<std::int16_t>::kLogNumVar) {
         __mxxxi* storage = nullptr;
-        pimpl_->penalties_size = 2 * InstructionSet<int16_t>::kLogNumVar;
+        pimpl_->penalties_size = 2 * InstructionSet<std::int16_t>::kLogNumVar;
         pimpl_->penalties = allocateAlignedMemory(&storage,
             pimpl_->penalties_size, kRegisterSize / 8);
         pimpl_->penalties_storage.reset();
@@ -457,21 +458,21 @@ void SimdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
 
 template<typename T>
 void SimdAlignmentEngine::initialize(const char* sequence,
-    const std::unique_ptr<Graph>& graph, uint32_t normal_matrix_width,
-    uint32_t matrix_width, uint32_t matrix_height) noexcept {
+    const std::unique_ptr<Graph>& graph, std::uint32_t normal_matrix_width,
+    std::uint32_t matrix_width, std::uint32_t matrix_height) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    int32_t padding_penatly = -1 * std::max(std::max(abs(m_), abs(n_)),
+    std::int32_t padding_penatly = -1 * std::max(std::max(abs(m_), abs(n_)),
         std::max(abs(g_), abs(q_)));
 
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         unpacked[T::kNumVar] = {};
 
-    for (uint32_t i = 0; i < graph->num_codes(); ++i) {
+    for (std::uint32_t i = 0; i < graph->num_codes(); ++i) {
         char c = graph->decoder(i);
-        for (uint32_t j = 0; j < matrix_width; ++j) {
-            for (uint32_t k = 0; k < T::kNumVar; ++k) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t k = 0; k < T::kNumVar; ++k) {
                 unpacked[k] = (j * T::kNumVar + k) < normal_matrix_width ?
                     (c == sequence[j * T::kNumVar + k] ? m_ : n_) :
                     padding_penatly;
@@ -483,7 +484,7 @@ void SimdAlignmentEngine::initialize(const char* sequence,
 
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
-    for (uint32_t i = 0; i < rank_to_node_id.size(); ++i) {
+    for (std::uint32_t i = 0; i < rank_to_node_id.size(); ++i) {
         pimpl_->node_id_to_rank[rank_to_node_id[i]] = i;
     }
 
@@ -496,23 +497,23 @@ void SimdAlignmentEngine::initialize(const char* sequence,
     // initialize secondary matrices
     switch (subtype_) {
         case AlignmentSubtype::kConvex:
-            for (uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t j = 0; j < matrix_width; ++j) {
                 pimpl_->O[j] = negative_infinities;
                 pimpl_->Q[j] = T::_mmxxx_set1_epi(q_ + j * T::kNumVar * c_);
 
                 __mxxxi c = T::_mmxxx_set1_epi(c_);
-                for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                for (std::uint32_t k = 1; k < T::kNumVar; ++k) {
                     c = _mmxxx_slli_si(c, T::kLSS);
                     pimpl_->Q[j] = T::_mmxxx_add_epi(pimpl_->Q[j], c);
                 }
             }
             pimpl_->first_column[2 * matrix_height] = 0;
-            for (uint32_t i = 1; i < matrix_height; ++i) {
+            for (std::uint32_t i = 1; i < matrix_height; ++i) {
                 const auto& edges =
                     graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                int32_t penalty = edges.empty() ? q_ - c_ : kNegativeInfinity;
+                std::int32_t penalty = edges.empty() ? q_ - c_ : kNegativeInfinity;
                 for (const auto& edge: edges) {
-                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                    std::uint32_t pred_i = pimpl_->node_id_to_rank[
                         edge->begin_node_id()] + 1;
                     penalty = std::max(penalty,
                         pimpl_->first_column[2 * matrix_height + pred_i]);
@@ -520,23 +521,23 @@ void SimdAlignmentEngine::initialize(const char* sequence,
                 pimpl_->first_column[2 * matrix_height + i] = penalty + c_;
             }
         case AlignmentSubtype::kAffine:
-            for (uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t j = 0; j < matrix_width; ++j) {
                 pimpl_->F[j] = negative_infinities;
                 pimpl_->E[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * e_);
 
                 __mxxxi e = T::_mmxxx_set1_epi(e_);
-                for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                for (std::uint32_t k = 1; k < T::kNumVar; ++k) {
                     e = _mmxxx_slli_si(e, T::kLSS);
                     pimpl_->E[j] = T::_mmxxx_add_epi(pimpl_->E[j], e);
                 }
             }
             pimpl_->first_column[matrix_height] = 0;
-            for (uint32_t i = 1; i < matrix_height; ++i) {
+            for (std::uint32_t i = 1; i < matrix_height; ++i) {
                 const auto& edges =
                     graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                int32_t penalty = edges.empty() ? g_ - e_ : kNegativeInfinity;
+                std::int32_t penalty = edges.empty() ? g_ - e_ : kNegativeInfinity;
                 for (const auto& edge: edges) {
-                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                    std::uint32_t pred_i = pimpl_->node_id_to_rank[
                         edge->begin_node_id()] + 1;
                     penalty = std::max(penalty,
                         pimpl_->first_column[matrix_height + pred_i]);
@@ -551,54 +552,54 @@ void SimdAlignmentEngine::initialize(const char* sequence,
     // initialize primary matrix
     switch (type_) {
         case AlignmentType::kSW:
-            for (uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t j = 0; j < matrix_width; ++j) {
                 pimpl_->H[j] = zeroes;
             }
-            for (uint32_t i = 0; i < matrix_height; ++i) {
+            for (std::uint32_t i = 0; i < matrix_height; ++i) {
                 pimpl_->first_column[i] = 0;
             }
             break;
         case AlignmentType::kNW:
             switch (subtype_) {
                 case AlignmentSubtype::kConvex:
-                    for (uint32_t i = 0; i < matrix_height; ++i) {
+                    for (std::uint32_t i = 0; i < matrix_height; ++i) {
                         pimpl_->first_column[i] = std::max(
                             pimpl_->first_column[matrix_height + i],
                             pimpl_->first_column[2 * matrix_height + i]);
                     }
-                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 0; j < matrix_width; ++j) {
                         pimpl_->H[j] = T::_mmxxx_max_epi(pimpl_->E[j],
                             pimpl_->Q[j]);
                     }
                     break;
                 case AlignmentSubtype::kAffine:
-                    for (uint32_t i = 0; i < matrix_height; ++i) {
+                    for (std::uint32_t i = 0; i < matrix_height; ++i) {
                         pimpl_->first_column[i] =
                             pimpl_->first_column[matrix_height + i];
                     }
-                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 0; j < matrix_width; ++j) {
                         pimpl_->H[j] = pimpl_->E[j];
                     }
                     break;
                 case AlignmentSubtype::kLinear:
                     pimpl_->first_column[0] = 0;
-                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                    for (std::uint32_t i = 1; i < matrix_height; ++i) {
                         const auto& edges =
                             graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                        int32_t penalty = edges.empty() ? 0 : kNegativeInfinity;
+                        std::int32_t penalty = edges.empty() ? 0 : kNegativeInfinity;
                         for (const auto& edge: edges) {
-                            uint32_t pred_i = pimpl_->node_id_to_rank[
+                            std::uint32_t pred_i = pimpl_->node_id_to_rank[
                                 edge->begin_node_id()] + 1;
                             penalty = std::max(penalty,
                                 pimpl_->first_column[pred_i]);
                         }
                         pimpl_->first_column[i] = penalty + g_;
                     }
-                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 0; j < matrix_width; ++j) {
                         pimpl_->H[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * g_);
                         __mxxxi g = T::_mmxxx_set1_epi(g_);
 
-                        for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                        for (std::uint32_t k = 1; k < T::kNumVar; ++k) {
                             g = _mmxxx_slli_si(g, T::kLSS);
                             pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], g);
                         }
@@ -610,22 +611,22 @@ void SimdAlignmentEngine::initialize(const char* sequence,
         case AlignmentType::kOV:
             switch (subtype_) {
                 case AlignmentSubtype::kConvex:
-                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 0; j < matrix_width; ++j) {
                         pimpl_->H[j] = T::_mmxxx_max_epi(pimpl_->E[j],
                             pimpl_->Q[j]);
                     }
                     break;
                 case AlignmentSubtype::kAffine:
-                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 0; j < matrix_width; ++j) {
                         pimpl_->H[j] = pimpl_->E[j];
                     }
                     break;
                 case AlignmentSubtype::kLinear:
-                    for (uint32_t j = 0; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 0; j < matrix_width; ++j) {
                         pimpl_->H[j] = T::_mmxxx_set1_epi(g_ + j * T::kNumVar * g_);
                         __mxxxi g = T::_mmxxx_set1_epi(g_);
 
-                        for (uint32_t k = 1; k < T::kNumVar; ++k) {
+                        for (std::uint32_t k = 1; k < T::kNumVar; ++k) {
                             g = _mmxxx_slli_si(g, T::kLSS);
                             pimpl_->H[j] = T::_mmxxx_add_epi(pimpl_->H[j], g);
                         }
@@ -634,7 +635,7 @@ void SimdAlignmentEngine::initialize(const char* sequence,
                 default:
                     break;
             }
-            for (uint32_t i = 0; i < matrix_height; ++i) {
+            for (std::uint32_t i = 0; i < matrix_height; ++i) {
                 pimpl_->first_column[i] = 0;
             }
             break;
@@ -646,7 +647,7 @@ void SimdAlignmentEngine::initialize(const char* sequence,
 }
 
 Alignment SimdAlignmentEngine::align(const char* sequence,
-    uint32_t sequence_size, const std::unique_ptr<Graph>& graph) {
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
     if (graph->nodes().empty() || sequence_size == 0) {
         return Alignment();
@@ -654,26 +655,26 @@ Alignment SimdAlignmentEngine::align(const char* sequence,
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t longest_path = graph->nodes().size() + 1 + sequence_size +
-        InstructionSet<int16_t>::kNumVar;
+    std::uint32_t longest_path = graph->nodes().size() + 1 + sequence_size +
+        InstructionSet<std::int16_t>::kNumVar;
 
-    uint32_t max_penalty = std::max(std::max(abs(m_), abs(n_)), abs(g_));
+    std::uint32_t max_penalty = std::max(std::max(abs(m_), abs(n_)), abs(g_));
 
-    if (max_penalty * longest_path < std::numeric_limits<int16_t>::max()) {
+    if (max_penalty * longest_path < std::numeric_limits<std::int16_t>::max()) {
         if (subtype_ == AlignmentSubtype::kLinear) {
-            return linear<InstructionSet<int16_t>>(sequence, sequence_size, graph);
+            return linear<InstructionSet<std::int16_t>>(sequence, sequence_size, graph);
         } else if (subtype_ == AlignmentSubtype::kAffine) {
-            return affine<InstructionSet<int16_t>>(sequence, sequence_size, graph);
+            return affine<InstructionSet<std::int16_t>>(sequence, sequence_size, graph);
         } else if (subtype_ == AlignmentSubtype::kConvex) {
-            return convex<InstructionSet<int16_t>>(sequence, sequence_size, graph);
+            return convex<InstructionSet<std::int16_t>>(sequence, sequence_size, graph);
         }
     } else {
         if (subtype_ == AlignmentSubtype::kLinear) {
-            return linear<InstructionSet<int32_t>>(sequence, sequence_size, graph);
+            return linear<InstructionSet<std::int32_t>>(sequence, sequence_size, graph);
         } else if (subtype_ == AlignmentSubtype::kAffine) {
-            return affine<InstructionSet<int32_t>>(sequence, sequence_size, graph);
+            return affine<InstructionSet<std::int32_t>>(sequence, sequence_size, graph);
         } else if (subtype_ == AlignmentSubtype::kConvex) {
-            return convex<InstructionSet<int32_t>>(sequence, sequence_size, graph);
+            return convex<InstructionSet<std::int32_t>>(sequence, sequence_size, graph);
         }
     }
 
@@ -687,15 +688,15 @@ Alignment SimdAlignmentEngine::align(const char* sequence,
 }
 
 template<typename T>
-Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+Alignment SimdAlignmentEngine::linear(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t normal_matrix_width = sequence_size;
-    uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
+    std::uint32_t normal_matrix_width = sequence_size;
+    std::uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
         0 : T::kNumVar - sequence_size % T::kNumVar)) / T::kNumVar;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
@@ -711,7 +712,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         unpacked[T::kNumVar] = {0};
 
-    for (uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
+    for (std::uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
         unpacked[i] = kNegativeInfinity;
         if ((i & (i + 1)) == 0) {
             pimpl_->masks[j++] =
@@ -722,26 +723,26 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(g_);
-    for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
+    for (std::uint32_t i = 1; i < T::kLogNumVar; ++i) {
         pimpl_->penalties[i] = T::_mmxxx_add_epi(pimpl_->penalties[i - 1],
             pimpl_->penalties[i - 1]);
     }
 
     typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-    uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
+    std::int32_t max_i = -1;
+    std::int32_t max_j = -1;
+    std::uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
     __mxxxi zeroes = T::_mmxxx_set1_epi(0);
     __mxxxi g = T::_mmxxx_set1_epi(g_);
 
     // alignment
-    for (uint32_t node_id: rank_to_node_id) {
+    for (std::uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         __mxxxi* char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
-        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
-        uint32_t pred_i = node->in_edges().empty() ? 0 :
+        std::uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        std::uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
         __mxxxi* H_row = &(pimpl_->H[i * matrix_width]);
@@ -750,7 +751,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         __mxxxi x = _mmxxx_srli_si(T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
             T::kRSS);
 
-        for (uint32_t j = 0; j < matrix_width; ++j) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
             // get diagonal
             __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
             H_row[j] = _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x);
@@ -762,7 +763,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         }
 
         // check other predecessors
-        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+        for (std::uint32_t p = 1; p < node->in_edges().size(); ++p) {
             pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
@@ -770,7 +771,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             x = _mmxxx_srli_si(T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
                 T::kRSS);
 
-            for (uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t j = 0; j < matrix_width; ++j) {
                 // get diagonal
                 __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
                 __mxxxi m = _mmxxx_or_si(_mmxxx_slli_si(H_pred_row[j], T::kLSS), x);
@@ -787,7 +788,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         x = _mmxxx_srli_si(T::_mmxxx_add_epi(T::_mmxxx_set1_epi(
             pimpl_->first_column[i]), g), T::kRSS);
 
-        for (uint32_t j = 0; j < matrix_width; ++j) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
 
             // add last element of previous vector into this one
             H_row[j] = T::_mmxxx_max_epi(H_row[j], _mmxxx_or_si(x,
@@ -804,7 +805,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         }
 
         if (type_ == AlignmentType::kSW) {
-            int32_t max_row_score = _mmxxx_max_value<T>(score);
+            std::int32_t max_row_score = _mmxxx_max_value<T>(score);
             if (max_score < max_row_score) {
                 max_score = max_row_score;
                 max_i = i;
@@ -812,7 +813,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
 
         } else if (type_ == AlignmentType::kOV) {
             if (node->out_edges().empty()) {
-                int32_t max_row_score = _mmxxx_max_value<T>(score);
+                std::int32_t max_row_score = _mmxxx_max_value<T>(score);
                 if (max_score < max_row_score) {
                     max_score = max_row_score;
                     max_i = i;
@@ -821,7 +822,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
 
         } else if (type_ == AlignmentType::kNW) {
             if (node->out_edges().empty()) {
-                int32_t max_row_score = _mmxxx_value_at<T>(
+                std::int32_t max_row_score = _mmxxx_value_at<T>(
                     H_row[matrix_width - 1], last_column_id);
                 if (max_score < max_row_score) {
                     max_score = max_row_score;
@@ -852,10 +853,10 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     }
 
     // backtrack
-    uint32_t max_num_predecessors = 1;
-    for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
+    std::uint32_t max_num_predecessors = 1;
+    for (std::uint32_t i = 0; i < (std::uint32_t) max_i; ++i) {
         max_num_predecessors = std::max(max_num_predecessors,
-            (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
+            (std::uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
     }
 
     typename T::type* backtrack_storage = nullptr;
@@ -866,14 +867,14 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     typename T::type* H_left_pred = H_diag_pred + T::kNumVar * max_num_predecessors;
     typename T::type* profile = H_left_pred + T::kNumVar;
 
-    std::vector<uint32_t> predecessors;
+    std::vector<std::uint32_t> predecessors;
 
-    int32_t i = max_i;
-    int32_t j = max_j;
-    int32_t prev_i = 0, prev_j = 0;
+    std::int32_t i = max_i;
+    std::int32_t j = max_j;
+    std::int32_t prev_i = 0, prev_j = 0;
 
-    uint32_t j_div = j / T::kNumVar;
-    uint32_t j_mod = j % T::kNumVar;
+    std::uint32_t j_div = j / T::kNumVar;
+    std::uint32_t j_mod = j % T::kNumVar;
 
     bool load_next_segment = true;
 
@@ -901,7 +902,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                     pimpl_->H[j_div]);
 
             } else {
-                uint32_t store_pos = 0;
+                std::uint32_t store_pos = 0;
                 for (const auto& edge: node->in_edges()) {
                     predecessors.emplace_back(
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1);
@@ -928,7 +929,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(H_left_pred),
                     pimpl_->H[i * matrix_width + j_div - 1]);
 
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     _mmxxx_store_si(
                         reinterpret_cast<__mxxxi*>(&H_diag_pred[p * T::kNumVar]),
                         pimpl_->H[predecessors[p] * matrix_width + (j_div - 1)]);
@@ -936,7 +937,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
             } else {
                 H_left_pred[T::kNumVar - 1] = pimpl_->first_column[i];
 
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     H_diag_pred[(p + 1) * T::kNumVar - 1] =
                         pimpl_->first_column[predecessors[p]];
                 }
@@ -947,7 +948,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         bool predecessor_found = false;
 
         if (i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+            for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((j_mod == 0 && H[j_mod] ==
                         H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
                     (j_mod != 0 && H[j_mod] ==
@@ -962,7 +963,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         }
 
         if (!predecessor_found && i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+            for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                 if (H[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_) {
                     prev_i = predecessors[p];
                     prev_j = j;
@@ -1011,7 +1012,7 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                 i = 0;
             } else {
                 for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i =
+                    std::uint32_t pred_i =
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
                     if (pimpl_->first_column[i] ==
                         pimpl_->first_column[pred_i] + g_) {
@@ -1034,15 +1035,15 @@ Alignment SimdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
 }
 
 template<typename T>
-Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+Alignment SimdAlignmentEngine::affine(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t normal_matrix_width = sequence_size;
-    uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
+    std::uint32_t normal_matrix_width = sequence_size;
+    std::uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
         0 : T::kNumVar - sequence_size % T::kNumVar)) / T::kNumVar;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
@@ -1056,9 +1057,9 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         std::numeric_limits<typename T::type>::min() + 1024;
 
     typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-    uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
+    std::int32_t max_i = -1;
+    std::int32_t max_j = -1;
+    std::uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
     __mxxxi zeroes = T::_mmxxx_set1_epi(0);
     __mxxxi g = T::_mmxxx_set1_epi(g_ - e_);
     __mxxxi e = T::_mmxxx_set1_epi(e_);
@@ -1066,7 +1067,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         unpacked[T::kNumVar] = {0};
 
-    for (uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
+    for (std::uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
         unpacked[i] = kNegativeInfinity;
         if ((i & (i + 1)) == 0) {
             pimpl_->masks[j++] =
@@ -1077,23 +1078,23 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         _mmxxx_slli_si(T::_mmxxx_set1_epi(kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(e_);
-    for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
+    for (std::uint32_t i = 1; i < T::kLogNumVar; ++i) {
         pimpl_->penalties[i] = T::_mmxxx_add_epi(pimpl_->penalties[i - 1],
             pimpl_->penalties[i - 1]);
     }
 
     // alignment
-    for (uint32_t node_id: rank_to_node_id) {
+    for (std::uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         __mxxxi* char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
-        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        std::uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
 
         __mxxxi* H_row = &(pimpl_->H[i * matrix_width]);
         __mxxxi* F_row = &(pimpl_->F[i * matrix_width]);
 
-        uint32_t pred_i = node->in_edges().empty() ? 0 :
+        std::uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
         __mxxxi* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
@@ -1102,7 +1103,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         __mxxxi x = _mmxxx_srli_si(T::_mmxxx_set1_epi(
             pimpl_->first_column[pred_i]), T::kRSS);
 
-        for (uint32_t j = 0; j < matrix_width; ++j) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
             // update F
             F_row[j] = T::_mmxxx_add_epi(T::_mmxxx_max_epi(T::_mmxxx_add_epi(
                 H_pred_row[j], g), F_pred_row[j]), e);
@@ -1114,7 +1115,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         }
 
         // check other predecessors
-        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+        for (std::uint32_t p = 1; p < node->in_edges().size(); ++p) {
             pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
@@ -1123,7 +1124,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             x = _mmxxx_srli_si(T::_mmxxx_set1_epi(
                 pimpl_->first_column[pred_i]), T::kRSS);
 
-            for (uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t j = 0; j < matrix_width; ++j) {
                 // update F
                 F_row[j] = T::_mmxxx_max_epi(F_row[j], T::_mmxxx_add_epi(
                     T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_pred_row[j], g),
@@ -1141,7 +1142,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         __mxxxi score = zeroes;
         x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
 
-        for (uint32_t j = 0; j < matrix_width; ++j) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
             H_row[j] = T::_mmxxx_max_epi(H_row[j], F_row[j]);
 
             E_row[j] = T::_mmxxx_add_epi(T::_mmxxx_add_epi(_mmxxx_or_si(
@@ -1159,7 +1160,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         }
 
         if (type_ == AlignmentType::kSW) {
-            int32_t max_row_score = _mmxxx_max_value<T>(score);
+            std::int32_t max_row_score = _mmxxx_max_value<T>(score);
             if (max_score < max_row_score) {
                 max_score = max_row_score;
                 max_i = i;
@@ -1167,7 +1168,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
         } else if (type_ == AlignmentType::kOV) {
             if (node->out_edges().empty()) {
-                int32_t max_row_score = _mmxxx_max_value<T>(score);
+                std::int32_t max_row_score = _mmxxx_max_value<T>(score);
                 if (max_score < max_row_score) {
                     max_score = max_row_score;
                     max_i = i;
@@ -1176,7 +1177,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
         } else if (type_ == AlignmentType::kNW) {
             if (node->out_edges().empty()) {
-                int32_t max_row_score = _mmxxx_value_at<T>(
+                std::int32_t max_row_score = _mmxxx_value_at<T>(
                     H_row[matrix_width - 1], last_column_id);
                 if (max_score < max_row_score) {
                     max_score = max_row_score;
@@ -1207,10 +1208,10 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     }
 
     // backtrack
-    uint32_t max_num_predecessors = 0;
-    for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
+    std::uint32_t max_num_predecessors = 0;
+    for (std::uint32_t i = 0; i < (std::uint32_t) max_i; ++i) {
         max_num_predecessors = std::max(max_num_predecessors,
-            (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
+            (std::uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
     }
 
     typename T::type* backtrack_storage = nullptr;
@@ -1225,14 +1226,14 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     typename T::type* E_left = E + T::kNumVar;
     typename T::type* profile = E_left + T::kNumVar;
 
-    std::vector<uint32_t> predecessors;
+    std::vector<std::uint32_t> predecessors;
 
-    int32_t i = max_i;
-    int32_t j = max_j;
-    int32_t prev_i = 0, prev_j = 0;
+    std::int32_t i = max_i;
+    std::int32_t j = max_j;
+    std::int32_t prev_i = 0, prev_j = 0;
 
-    uint32_t j_div = j / T::kNumVar;
-    uint32_t j_mod = j % T::kNumVar;
+    std::uint32_t j_div = j / T::kNumVar;
+    std::uint32_t j_mod = j % T::kNumVar;
 
     bool load_next_segment = true;
 
@@ -1264,7 +1265,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                     pimpl_->F[j_div]);
 
             } else {
-                uint32_t store_pos = 0;
+                std::uint32_t store_pos = 0;
                 for (const auto& edge: node->in_edges()) {
                     predecessors.emplace_back(
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1);
@@ -1291,7 +1292,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         if (j_mod == 0) {
             // border case
             if (j_div > 0) {
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     _mmxxx_store_si(
                         reinterpret_cast<__mxxxi*>(&H_diag_pred[p * T::kNumVar]),
                         pimpl_->H[predecessors[p] * matrix_width + (j_div - 1)]);
@@ -1301,7 +1302,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(E_left),
                     pimpl_->E[i * matrix_width + j_div - 1]);
             } else {
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     H_diag_pred[(p + 1) * T::kNumVar - 1] =
                         pimpl_->first_column[predecessors[p]];
                 }
@@ -1314,7 +1315,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         bool predecessor_found = false, extend_left = false, extend_up = false;
 
         if (i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+            for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((j_mod == 0 && H[j_mod] == H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
                     (j_mod != 0 && H[j_mod] == H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
                     prev_i = predecessors[p];
@@ -1326,7 +1327,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         }
 
         if (!predecessor_found && i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+            for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((extend_up = H[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_) ||
                                  H[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_) {
                     prev_i = predecessors[p];
@@ -1392,7 +1393,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
                 prev_i = 0;
                 predecessors.clear();
-                uint32_t store_pos = 0;
+                std::uint32_t store_pos = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
                     predecessors.emplace_back(
                         pimpl_->node_id_to_rank[it->begin_node_id()] + 1);
@@ -1406,7 +1407,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 }
 
                 bool stop = false;
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     if ((stop = F[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_) ||
                                 F[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_) {
                         prev_i = predecessors[p];
@@ -1441,7 +1442,7 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 i = 0;
             } else {
                 for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i =
+                    std::uint32_t pred_i =
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
                     if (pimpl_->first_column[i] ==
                         pimpl_->first_column[pred_i] + e_) {
@@ -1464,15 +1465,15 @@ Alignment SimdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 }
 
 template<typename T>
-Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+Alignment SimdAlignmentEngine::convex(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
 #if defined(__AVX2__) || defined(__SSE4_1__)
 
-    uint32_t normal_matrix_width = sequence_size;
-    uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
+    std::uint32_t normal_matrix_width = sequence_size;
+    std::uint32_t matrix_width = (sequence_size + (sequence_size % T::kNumVar == 0 ?
         0 : T::kNumVar - sequence_size % T::kNumVar)) / T::kNumVar;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
@@ -1486,9 +1487,9 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         std::numeric_limits<typename T::type>::min() + 1024;
 
     typename T::type max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-    uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
+    std::int32_t max_i = -1;
+    std::int32_t max_j = -1;
+    std::uint32_t last_column_id = (normal_matrix_width - 1) % T::kNumVar;
     __mxxxi zeroes = T::_mmxxx_set1_epi(0);
     __mxxxi g = T::_mmxxx_set1_epi(g_ - e_);
     __mxxxi e = T::_mmxxx_set1_epi(e_);
@@ -1498,7 +1499,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     __attribute__((aligned(kRegisterSize / 8))) typename T::type
         unpacked[T::kNumVar] = {0};
 
-    for (uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
+    for (std::uint32_t i = 0, j = 0; i < T::kNumVar && j < T::kLogNumVar; ++i) {
         unpacked[i] = kNegativeInfinity;
         if ((i & (i + 1)) == 0) {
             pimpl_->masks[j++] =
@@ -1509,29 +1510,29 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         _mmxxx_slli_si(T::_mmxxx_set1_epi(kNegativeInfinity), T::kLSS);
 
     pimpl_->penalties[0] = T::_mmxxx_set1_epi(e_);
-    for (uint32_t i = 1; i < T::kLogNumVar; ++i) {
+    for (std::uint32_t i = 1; i < T::kLogNumVar; ++i) {
         pimpl_->penalties[i] = T::_mmxxx_add_epi(pimpl_->penalties[i - 1],
             pimpl_->penalties[i - 1]);
     }
     pimpl_->penalties[T::kLogNumVar] = T::_mmxxx_set1_epi(c_);
-    for (uint32_t i = T::kLogNumVar + 1; i < 2 * T::kLogNumVar; ++i) {
+    for (std::uint32_t i = T::kLogNumVar + 1; i < 2 * T::kLogNumVar; ++i) {
         pimpl_->penalties[i] = T::_mmxxx_add_epi(pimpl_->penalties[i - 1],
             pimpl_->penalties[i - 1]);
     }
 
     // alignment
-    for (uint32_t node_id: rank_to_node_id) {
+    for (std::uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         __mxxxi* char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
-        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        std::uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
 
         __mxxxi* H_row = &(pimpl_->H[i * matrix_width]);
         __mxxxi* F_row = &(pimpl_->F[i * matrix_width]);
         __mxxxi* O_row = &(pimpl_->O[i * matrix_width]);
 
-        uint32_t pred_i = node->in_edges().empty() ? 0 :
+        std::uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
         __mxxxi* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
@@ -1541,7 +1542,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         __mxxxi x = _mmxxx_srli_si(T::_mmxxx_set1_epi(
             pimpl_->first_column[pred_i]), T::kRSS);
 
-        for (uint32_t j = 0; j < matrix_width; ++j) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
             // update F
             F_row[j] = T::_mmxxx_add_epi(T::_mmxxx_max_epi(T::_mmxxx_add_epi(
                 H_pred_row[j], g), F_pred_row[j]), e);
@@ -1557,7 +1558,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         }
 
         // check other predecessors
-        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+        for (std::uint32_t p = 1; p < node->in_edges().size(); ++p) {
             pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
@@ -1567,7 +1568,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
             x = _mmxxx_srli_si(T::_mmxxx_set1_epi(
                 pimpl_->first_column[pred_i]), T::kRSS);
 
-            for (uint32_t j = 0; j < matrix_width; ++j) {
+            for (std::uint32_t j = 0; j < matrix_width; ++j) {
                 // update F
                 F_row[j] = T::_mmxxx_max_epi(F_row[j], T::_mmxxx_add_epi(
                     T::_mmxxx_max_epi(T::_mmxxx_add_epi(H_pred_row[j],
@@ -1594,7 +1595,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
         __mxxxi score = zeroes;
 
-        for (uint32_t j = 0; j < matrix_width; ++j) {
+        for (std::uint32_t j = 0; j < matrix_width; ++j) {
             H_row[j] = T::_mmxxx_max_epi(H_row[j], T::_mmxxx_max_epi(F_row[j],
                 O_row[j]));
 
@@ -1624,7 +1625,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         }
 
         if (type_ == AlignmentType::kSW) {
-            int32_t max_row_score = _mmxxx_max_value<T>(score);
+            std::int32_t max_row_score = _mmxxx_max_value<T>(score);
             if (max_score < max_row_score) {
                 max_score = max_row_score;
                 max_i = i;
@@ -1632,7 +1633,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
         } else if (type_ == AlignmentType::kOV) {
             if (node->out_edges().empty()) {
-                int32_t max_row_score = _mmxxx_max_value<T>(score);
+                std::int32_t max_row_score = _mmxxx_max_value<T>(score);
                 if (max_score < max_row_score) {
                     max_score = max_row_score;
                     max_i = i;
@@ -1641,7 +1642,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
         } else if (type_ == AlignmentType::kNW) {
             if (node->out_edges().empty()) {
-                int32_t max_row_score = _mmxxx_value_at<T>(
+                std::int32_t max_row_score = _mmxxx_value_at<T>(
                     H_row[matrix_width - 1], last_column_id);
                 if (max_score < max_row_score) {
                     max_score = max_row_score;
@@ -1672,10 +1673,10 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     }
 
     // backtrack
-    uint32_t max_num_predecessors = 0;
-    for (uint32_t i = 0; i < (uint32_t) max_i; ++i) {
+    std::uint32_t max_num_predecessors = 0;
+    for (std::uint32_t i = 0; i < (std::uint32_t) max_i; ++i) {
         max_num_predecessors = std::max(max_num_predecessors,
-            (uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
+            (std::uint32_t) graph->nodes()[rank_to_node_id[i]]->in_edges().size());
     }
 
     typename T::type* backtrack_storage = nullptr;
@@ -1694,14 +1695,14 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     typename T::type* Q_left = Q + T::kNumVar;
     typename T::type* profile = Q_left + T::kNumVar;
 
-    std::vector<uint32_t> predecessors;
+    std::vector<std::uint32_t> predecessors;
 
-    int32_t i = max_i;
-    int32_t j = max_j;
-    int32_t prev_i = 0, prev_j = 0;
+    std::int32_t i = max_i;
+    std::int32_t j = max_j;
+    std::int32_t prev_i = 0, prev_j = 0;
 
-    uint32_t j_div = j / T::kNumVar;
-    uint32_t j_mod = j % T::kNumVar;
+    std::uint32_t j_div = j / T::kNumVar;
+    std::uint32_t j_mod = j % T::kNumVar;
 
     bool load_next_segment = true;
 
@@ -1737,7 +1738,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     pimpl_->O[j_div]);
 
             } else {
-                uint32_t store_pos = 0;
+                std::uint32_t store_pos = 0;
                 for (const auto& edge: node->in_edges()) {
                     predecessors.emplace_back(
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1);
@@ -1767,7 +1768,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         if (j_mod == 0) {
             // border case
             if (j_div > 0) {
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     _mmxxx_store_si(
                         reinterpret_cast<__mxxxi*>(&H_diag_pred[p * T::kNumVar]),
                         pimpl_->H[predecessors[p] * matrix_width + (j_div - 1)]);
@@ -1779,7 +1780,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 _mmxxx_store_si(reinterpret_cast<__mxxxi*>(Q_left),
                     pimpl_->Q[i * matrix_width + j_div - 1]);
             } else {
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     H_diag_pred[(p + 1) * T::kNumVar - 1] =
                         pimpl_->first_column[predecessors[p]];
                 }
@@ -1793,7 +1794,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         bool predecessor_found = false, extend_left = false, extend_up = false;
 
         if (i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+            for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((j_mod == 0 && H[j_mod] == H_diag_pred[(p + 1) * T::kNumVar - 1] + profile[j_mod]) ||
                     (j_mod != 0 && H[j_mod] == H_pred[p * T::kNumVar + j_mod - 1] + profile[j_mod])) {
                     prev_i = predecessors[p];
@@ -1805,7 +1806,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         }
 
         if (!predecessor_found && i != 0) {
-            for (uint32_t p = 0; p < predecessors.size(); ++p) {
+            for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                 if ((extend_up = H[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_) ||
                                  H[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_  ||
                     (extend_up = H[j_mod] == O_pred[p * T::kNumVar + j_mod] + c_) ||
@@ -1884,7 +1885,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     pimpl_->O[i * matrix_width + j_div]);
 
                 predecessors.clear();
-                uint32_t store_pos = 0;
+                std::uint32_t store_pos = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
                     predecessors.emplace_back(
                         pimpl_->node_id_to_rank[it->begin_node_id()] + 1);
@@ -1902,7 +1903,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
                 bool stop = true;
                 prev_i = 0;
-                for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                     if (F[j_mod] == F_pred[p * T::kNumVar + j_mod] + e_ ||
                         O[j_mod] == O_pred[p * T::kNumVar + j_mod] + c_) {
                         prev_i = predecessors[p];
@@ -1911,7 +1912,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                     }
                 }
                 if (stop == true) {
-                    for (uint32_t p = 0; p < predecessors.size(); ++p) {
+                    for (std::uint32_t p = 0; p < predecessors.size(); ++p) {
                         if (F[j_mod] == H_pred[p * T::kNumVar + j_mod] + g_ ||
                             O[j_mod] == H_pred[p * T::kNumVar + j_mod] + q_) {
                             prev_i = predecessors[p];
@@ -1947,7 +1948,7 @@ Alignment SimdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 i = 0;
             } else {
                 for (const auto& edge: node->in_edges()) {
-                    uint32_t pred_i =
+                    std::uint32_t pred_i =
                         pimpl_->node_id_to_rank[edge->begin_node_id()] + 1;
                     if (pimpl_->first_column[matrix_height + i]     == pimpl_->first_column[matrix_height + pred_i] + e_ ||
                         pimpl_->first_column[2 * matrix_height + i] == pimpl_->first_column[2 * matrix_height + pred_i] + c_ ) {

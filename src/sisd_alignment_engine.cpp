@@ -12,25 +12,26 @@
 
 namespace spoa {
 
-constexpr int32_t kNegativeInfinity = std::numeric_limits<int32_t>::min() + 1024;
+constexpr std::int32_t kNegativeInfinity =
+    std::numeric_limits<std::int32_t>::min() + 1024;
 
 std::unique_ptr<AlignmentEngine> createSisdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e, int8_t q,
-    int8_t c) {
+    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
+    std::int8_t e, std::int8_t q, std::int8_t c) {
 
     return std::unique_ptr<AlignmentEngine>(new SisdAlignmentEngine(type,
         subtype, m, n, g, e, q, c));
 }
 
 struct SisdAlignmentEngine::Implementation {
-    std::vector<uint32_t> node_id_to_rank;
-    std::vector<int32_t> sequence_profile;
-    std::vector<int32_t> M;
-    int32_t* H;
-    int32_t* F;
-    int32_t* E;
-    int32_t* O;
-    int32_t* Q;
+    std::vector<std::uint32_t> node_id_to_rank;
+    std::vector<std::int32_t> sequence_profile;
+    std::vector<std::int32_t> M;
+    std::int32_t* H;
+    std::int32_t* F;
+    std::int32_t* E;
+    std::int32_t* O;
+    std::int32_t* Q;
 
     Implementation()
             : node_id_to_rank(), sequence_profile(), M(), H(nullptr), F(nullptr),
@@ -39,8 +40,8 @@ struct SisdAlignmentEngine::Implementation {
 };
 
 SisdAlignmentEngine::SisdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e,
-    int8_t q, int8_t c)
+    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
+    std::int8_t e, std::int8_t q, std::int8_t c)
         : AlignmentEngine(type, subtype, m, n, g, e, q, c),
         pimpl_(new Implementation()) {
 }
@@ -48,15 +49,15 @@ SisdAlignmentEngine::SisdAlignmentEngine(AlignmentType type,
 SisdAlignmentEngine::~SisdAlignmentEngine() {
 }
 
-void SisdAlignmentEngine::prealloc(uint32_t max_sequence_size,
-    uint32_t alphabet_size) {
+void SisdAlignmentEngine::prealloc(std::uint32_t max_sequence_size,
+    std::uint32_t alphabet_size) {
 
     realloc(max_sequence_size, alphabet_size * max_sequence_size,
         alphabet_size);
 }
 
-void SisdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
-    uint32_t num_codes) {
+void SisdAlignmentEngine::realloc(std::uint32_t matrix_width,
+    std::uint32_t matrix_height, std::uint32_t num_codes) {
 
     if (pimpl_->node_id_to_rank.size() < matrix_height - 1) {
         pimpl_->node_id_to_rank.resize(matrix_height - 1, 0);
@@ -90,16 +91,16 @@ void SisdAlignmentEngine::realloc(uint32_t matrix_width, uint32_t matrix_height,
     }
 }
 
-void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+void SisdAlignmentEngine::initialize(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
-    uint32_t matrix_width = sequence_size + 1;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_width = sequence_size + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
 
-    for (uint32_t i = 0; i < graph->num_codes(); ++i) {
+    for (std::uint32_t i = 0; i < graph->num_codes(); ++i) {
         char c = graph->decoder(i);
         pimpl_->sequence_profile[i * matrix_width] = 0;
-        for (uint32_t j = 0; j < sequence_size; ++j) {
+        for (std::uint32_t j = 0; j < sequence_size; ++j) {
             pimpl_->sequence_profile[i * matrix_width + (j + 1)] =
                 (c == sequence[j] ? m_ : n_);
         }
@@ -107,7 +108,7 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
 
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
-    for (uint32_t i = 0; i < rank_to_node_id.size(); ++i) {
+    for (std::uint32_t i = 0; i < rank_to_node_id.size(); ++i) {
         pimpl_->node_id_to_rank[rank_to_node_id[i]] = i;
     }
 
@@ -116,16 +117,16 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
         case AlignmentSubtype::kConvex:
             pimpl_->O[0] = 0;
             pimpl_->Q[0] = 0;
-            for (uint32_t j = 1; j < matrix_width; ++j) {
+            for (std::uint32_t j = 1; j < matrix_width; ++j) {
                 pimpl_->O[j] = kNegativeInfinity;
                 pimpl_->Q[j] = q_ + (j - 1) * c_;
             }
-            for (uint32_t i = 1; i < matrix_height; ++i) {
+            for (std::uint32_t i = 1; i < matrix_height; ++i) {
                 const auto& edges =
                     graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                int32_t penalty = edges.empty() ? q_ - c_ : kNegativeInfinity;
+                std::int32_t penalty = edges.empty() ? q_ - c_ : kNegativeInfinity;
                 for (const auto& edge: edges) {
-                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                    std::uint32_t pred_i = pimpl_->node_id_to_rank[
                         edge->begin_node_id()] + 1;
                     penalty = std::max(penalty,
                         pimpl_->O[pred_i * matrix_width]);
@@ -136,16 +137,16 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
         case AlignmentSubtype::kAffine:
             pimpl_->F[0] = 0;
             pimpl_->E[0] = 0;
-            for (uint32_t j = 1; j < matrix_width; ++j) {
+            for (std::uint32_t j = 1; j < matrix_width; ++j) {
                 pimpl_->F[j] = kNegativeInfinity;
                 pimpl_->E[j] = g_ + (j - 1) * e_;
             }
-            for (uint32_t i = 1; i < matrix_height; ++i) {
+            for (std::uint32_t i = 1; i < matrix_height; ++i) {
                 const auto& edges =
                     graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                int32_t penalty = edges.empty() ? g_ - e_ : kNegativeInfinity;
+                std::int32_t penalty = edges.empty() ? g_ - e_ : kNegativeInfinity;
                 for (const auto& edge: edges) {
-                    uint32_t pred_i = pimpl_->node_id_to_rank[
+                    std::uint32_t pred_i = pimpl_->node_id_to_rank[
                         edge->begin_node_id()] + 1;
                     penalty = std::max(penalty,
                         pimpl_->F[pred_i * matrix_width]);
@@ -162,44 +163,44 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
     // initialize primary matrix
     switch (type_) {
         case AlignmentType::kSW:
-            for (uint32_t j = 1; j < matrix_width; ++j) {
+            for (std::uint32_t j = 1; j < matrix_width; ++j) {
                 pimpl_->H[j] = 0;
             }
-            for (uint32_t i = 1; i < matrix_height; ++i) {
+            for (std::uint32_t i = 1; i < matrix_height; ++i) {
                 pimpl_->H[i * matrix_width] = 0;
             }
             break;
         case AlignmentType::kNW:
             switch (subtype_) {
                 case AlignmentSubtype::kConvex:
-                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 1; j < matrix_width; ++j) {
                         pimpl_->H[j] = std::max(pimpl_->Q[j], pimpl_->E[j]);
                     }
-                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                    for (std::uint32_t i = 1; i < matrix_height; ++i) {
                         pimpl_->H[i * matrix_width] = std::max(
                             pimpl_->O[i * matrix_width],
                             pimpl_->F[i * matrix_width]);
                     }
                     break;
                 case AlignmentSubtype::kAffine:
-                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 1; j < matrix_width; ++j) {
                         pimpl_->H[j] = pimpl_->E[j];
                     }
-                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                    for (std::uint32_t i = 1; i < matrix_height; ++i) {
                         pimpl_->H[i * matrix_width] =
                             pimpl_->F[i * matrix_width];
                     }
                     break;
                 case AlignmentSubtype::kLinear:
-                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 1; j < matrix_width; ++j) {
                         pimpl_->H[j] = j * g_;
                     }
-                    for (uint32_t i = 1; i < matrix_height; ++i) {
+                    for (std::uint32_t i = 1; i < matrix_height; ++i) {
                         const auto& edges =
                             graph->nodes()[rank_to_node_id[i - 1]]->in_edges();
-                        int32_t penalty = edges.empty() ? 0 : kNegativeInfinity;
+                        std::int32_t penalty = edges.empty() ? 0 : kNegativeInfinity;
                         for (const auto& edge: edges) {
-                            uint32_t pred_i = pimpl_->node_id_to_rank[
+                            std::uint32_t pred_i = pimpl_->node_id_to_rank[
                                 edge->begin_node_id()] + 1;
                             penalty = std::max(penalty,
                                 pimpl_->H[pred_i * matrix_width]);
@@ -213,24 +214,24 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
         case AlignmentType::kOV:
             switch (subtype_) {
                 case AlignmentSubtype::kConvex:
-                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 1; j < matrix_width; ++j) {
                         pimpl_->H[j] = std::max(pimpl_->Q[j], pimpl_->E[j]);
                     }
                     break;
                 case AlignmentSubtype::kAffine:
-                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 1; j < matrix_width; ++j) {
                         pimpl_->H[j] = pimpl_->E[j];
                     }
                     break;
                 case AlignmentSubtype::kLinear:
-                    for (uint32_t j = 1; j < matrix_width; ++j) {
+                    for (std::uint32_t j = 1; j < matrix_width; ++j) {
                         pimpl_->H[j] = j * g_;
                     }
                     break;
                 default:
                     break;
             }
-            for (uint32_t i = 1; i < matrix_height; ++i) {
+            for (std::uint32_t i = 1; i < matrix_height; ++i) {
                 pimpl_->H[i * matrix_width] = 0;
             }
             break;
@@ -240,7 +241,7 @@ void SisdAlignmentEngine::initialize(const char* sequence, uint32_t sequence_siz
 }
 
 Alignment SisdAlignmentEngine::align(const char* sequence,
-    uint32_t sequence_size, const std::unique_ptr<Graph>& graph) {
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
     if (graph->nodes().empty() || sequence_size == 0) {
         return Alignment();
@@ -256,11 +257,11 @@ Alignment SisdAlignmentEngine::align(const char* sequence,
     return Alignment();
 }
 
-Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+Alignment SisdAlignmentEngine::linear(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
-    uint32_t matrix_width = sequence_size + 1;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_width = sequence_size + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
@@ -269,11 +270,11 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     // initialize
     initialize(sequence, sequence_size, graph);
 
-    int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-    auto update_max_score = [&max_score, &max_i, &max_j](int32_t* H_row,
-        uint32_t i, uint32_t j) -> void {
+    std::int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
+    std::int32_t max_i = -1;
+    std::int32_t max_j = -1;
+    auto update_max_score = [&max_score, &max_i, &max_j](std::int32_t* H_row,
+        std::uint32_t i, std::uint32_t j) -> void {
 
         if (max_score < H_row[j]) {
             max_score = H_row[j];
@@ -284,40 +285,40 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     };
 
     // alignment
-    for (uint32_t node_id: rank_to_node_id) {
+    for (std::uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         const auto& char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
-        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        std::uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
 
-        int32_t* H_row = &(pimpl_->H[i * matrix_width]);
+        std::int32_t* H_row = &(pimpl_->H[i * matrix_width]);
 
-        uint32_t pred_i = node->in_edges().empty() ? 0 :
+        std::uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-        int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+        std::int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
 
-        for (uint32_t j = 1; j < matrix_width; ++j) {
+        for (std::uint32_t j = 1; j < matrix_width; ++j) {
             // update H
             H_row[j] = std::max(H_pred_row[j - 1] + char_profile[j],
                 H_pred_row[j] + g_);
         }
 
         // check other predeccessors
-        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+        for (std::uint32_t p = 1; p < node->in_edges().size(); ++p) {
             pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
 
-            for (uint32_t j = 1; j < matrix_width; ++j) {
+            for (std::uint32_t j = 1; j < matrix_width; ++j) {
                 // update H
                 H_row[j] = std::max(H_pred_row[j - 1] + char_profile[j],
                     std::max(H_row[j], H_pred_row[j] + g_));
             }
         }
 
-        for (uint32_t j = 1; j < matrix_width; ++j) {
+        for (std::uint32_t j = 1; j < matrix_width; ++j) {
             // update H
             H_row[j] = std::max(H_row[j - 1] + g_, H_row[j]);
 
@@ -339,8 +340,8 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     // backtrack
     Alignment alignment;
 
-    uint32_t i = max_i;
-    uint32_t j = max_j;
+    std::uint32_t i = max_i;
+    std::uint32_t j = max_j;
 
     auto sw_condition = [this, &i, &j, &matrix_width]() {
         return (pimpl_->H[i * matrix_width + j] == 0) ? false : true;
@@ -352,8 +353,8 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         return (i == 0 || j == 0) ? false : true;
     };
 
-    uint32_t prev_i = 0;
-    uint32_t prev_j = 0;
+    std::uint32_t prev_i = 0;
+    std::uint32_t prev_j = 0;
 
     while ((type_ == AlignmentType::kSW && sw_condition()) ||
            (type_ == AlignmentType::kNW && nw_condition()) ||
@@ -364,10 +365,10 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
 
         if (i != 0 && j != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
-            int32_t match_cost =
+            std::int32_t match_cost =
                 pimpl_->sequence_profile[node->code() * matrix_width + j];
 
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
+            std::uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
@@ -376,8 +377,8 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                 predecessor_found = true;
             } else {
                 const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
-                    uint32_t pred_i =
+                for (std::uint32_t p = 1; p < edges.size(); ++p) {
+                    std::uint32_t pred_i =
                         pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
                     if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
@@ -393,7 +394,7 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
         if (!predecessor_found && i != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
+            std::uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if (H_ij == pimpl_->H[pred_i * matrix_width + j] + g_) {
@@ -402,8 +403,8 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
                 predecessor_found = true;
             } else {
                 const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
-                    uint32_t pred_i =
+                for (std::uint32_t p = 1; p < edges.size(); ++p) {
+                    std::uint32_t pred_i =
                         pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
                     if (H_ij == pimpl_->H[pred_i * matrix_width + j] + g_) {
@@ -433,11 +434,11 @@ Alignment SisdAlignmentEngine::linear(const char* sequence, uint32_t sequence_si
     return alignment;
 }
 
-Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+Alignment SisdAlignmentEngine::affine(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
-    uint32_t matrix_width = sequence_size + 1;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_width = sequence_size + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
@@ -446,11 +447,11 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     // initialize
     initialize(sequence, sequence_size, graph);
 
-    int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-    auto update_max_score = [&max_score, &max_i, &max_j](int32_t* H_row,
-        uint32_t i, uint32_t j) -> void {
+    std::int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
+    std::int32_t max_i = -1;
+    std::int32_t max_j = -1;
+    auto update_max_score = [&max_score, &max_i, &max_j](std::int32_t* H_row,
+        std::uint32_t i, std::uint32_t j) -> void {
 
         if (max_score < H_row[j]) {
             max_score = H_row[j];
@@ -461,23 +462,23 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     };
 
     // alignment
-    for (uint32_t node_id: rank_to_node_id) {
+    for (std::uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         const auto& char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
-        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        std::uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
 
-        int32_t* H_row = &(pimpl_->H[i * matrix_width]);
-        int32_t* F_row = &(pimpl_->F[i * matrix_width]);
+        std::int32_t* H_row = &(pimpl_->H[i * matrix_width]);
+        std::int32_t* F_row = &(pimpl_->F[i * matrix_width]);
 
-        uint32_t pred_i = node->in_edges().empty() ? 0 :
+        std::uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-        int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
-        int32_t* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
+        std::int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+        std::int32_t* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
 
-        for (uint32_t j = 1; j < matrix_width; ++j) {
+        for (std::uint32_t j = 1; j < matrix_width; ++j) {
             // update F
             F_row[j] = std::max(H_pred_row[j] + g_, F_pred_row[j] + e_);
             // update H
@@ -485,13 +486,13 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         }
 
         // check other predeccessors
-        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+        for (std::uint32_t p = 1; p < node->in_edges().size(); ++p) {
             pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
             F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
 
-            for (uint32_t j = 1; j < matrix_width; ++j) {
+            for (std::uint32_t j = 1; j < matrix_width; ++j) {
                 // update F
                 F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + g_,
                     F_pred_row[j] + e_));
@@ -500,9 +501,9 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
             }
         }
 
-        int32_t* E_row = &(pimpl_->E[i * matrix_width]);
+        std::int32_t* E_row = &(pimpl_->E[i * matrix_width]);
 
-        for (uint32_t j = 1; j < matrix_width; ++j) {
+        for (std::uint32_t j = 1; j < matrix_width; ++j) {
             // update E
             E_row[j] = std::max(H_row[j - 1] + g_, E_row[j - 1] + e_);
             // update H
@@ -526,8 +527,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     // backtrack
     Alignment alignment;
 
-    uint32_t i = max_i;
-    uint32_t j = max_j;
+    std::uint32_t i = max_i;
+    std::uint32_t j = max_j;
 
     auto sw_condition = [this, &i, &j, &matrix_width]() {
         return (pimpl_->H[i * matrix_width + j] == 0) ? false : true;
@@ -539,8 +540,8 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         return (i == 0 || j == 0) ? false : true;
     };
 
-    uint32_t prev_i = 0;
-    uint32_t prev_j = 0;
+    std::uint32_t prev_i = 0;
+    std::uint32_t prev_j = 0;
 
     while ((type_ == AlignmentType::kSW && sw_condition()) ||
            (type_ == AlignmentType::kNW && nw_condition()) ||
@@ -551,10 +552,10 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
 
         if (i != 0 && j != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
-            int32_t match_cost =
+            std::int32_t match_cost =
                 pimpl_->sequence_profile[node->code() * matrix_width + j];
 
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
+            std::uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
@@ -563,7 +564,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 predecessor_found = true;
             } else {
                 const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
+                for (std::uint32_t p = 1; p < edges.size(); ++p) {
                     pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
                     if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
@@ -579,7 +580,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
         if (!predecessor_found && i != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
+            std::uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
@@ -589,7 +590,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 predecessor_found = true;
             } else {
                 const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
+                for (std::uint32_t p = 1; p < edges.size(); ++p) {
                     pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
                     if ((extend_up = H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
@@ -632,7 +633,7 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
                 bool stop = false;
                 prev_i = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
-                    uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
+                    std::uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 
                     if ((stop = pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + g_) ||
                                 pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + e_) {
@@ -655,11 +656,11 @@ Alignment SisdAlignmentEngine::affine(const char* sequence, uint32_t sequence_si
     return alignment;
 }
 
-Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_size,
-    const std::unique_ptr<Graph>& graph) noexcept {
+Alignment SisdAlignmentEngine::convex(const char* sequence,
+    std::uint32_t sequence_size, const std::unique_ptr<Graph>& graph) noexcept {
 
-    uint32_t matrix_width = sequence_size + 1;
-    uint32_t matrix_height = graph->nodes().size() + 1;
+    std::uint32_t matrix_width = sequence_size + 1;
+    std::uint32_t matrix_height = graph->nodes().size() + 1;
     const auto& rank_to_node_id = graph->rank_to_node_id();
 
     // realloc
@@ -668,11 +669,11 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     // initialize
     initialize(sequence, sequence_size, graph);
 
-    int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-    int32_t max_i = -1;
-    int32_t max_j = -1;
-    auto update_max_score = [&max_score, &max_i, &max_j](int32_t* H_row,
-        uint32_t i, uint32_t j) -> void {
+    std::int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
+    std::int32_t max_i = -1;
+    std::int32_t max_j = -1;
+    auto update_max_score = [&max_score, &max_i, &max_j](std::int32_t* H_row,
+        std::uint32_t i, std::uint32_t j) -> void {
 
         if (max_score < H_row[j]) {
             max_score = H_row[j];
@@ -683,25 +684,25 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     };
 
     // alignment
-    for (uint32_t node_id: rank_to_node_id) {
+    for (std::uint32_t node_id: rank_to_node_id) {
         const auto& node = graph->nodes()[node_id];
         const auto& char_profile =
             &(pimpl_->sequence_profile[node->code() * matrix_width]);
 
-        uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
+        std::uint32_t i = pimpl_->node_id_to_rank[node_id] + 1;
 
-        int32_t* H_row = &(pimpl_->H[i * matrix_width]);
-        int32_t* F_row = &(pimpl_->F[i * matrix_width]);
-        int32_t* O_row = &(pimpl_->O[i * matrix_width]);
+        std::int32_t* H_row = &(pimpl_->H[i * matrix_width]);
+        std::int32_t* F_row = &(pimpl_->F[i * matrix_width]);
+        std::int32_t* O_row = &(pimpl_->O[i * matrix_width]);
 
-        uint32_t pred_i = node->in_edges().empty() ? 0 :
+        std::uint32_t pred_i = node->in_edges().empty() ? 0 :
             pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
-        int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
-        int32_t* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
-        int32_t* O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
+        std::int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
+        std::int32_t* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
+        std::int32_t* O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
 
-        for (uint32_t j = 1; j < matrix_width; ++j) {
+        for (std::uint32_t j = 1; j < matrix_width; ++j) {
             // update F
             F_row[j] = std::max(H_pred_row[j] + g_, F_pred_row[j] + e_);
             // update O
@@ -711,14 +712,14 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         }
 
         // check other predeccessors
-        for (uint32_t p = 1; p < node->in_edges().size(); ++p) {
+        for (std::uint32_t p = 1; p < node->in_edges().size(); ++p) {
             pred_i = pimpl_->node_id_to_rank[node->in_edges()[p]->begin_node_id()] + 1;
 
             H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
             F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
             O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
 
-            for (uint32_t j = 1; j < matrix_width; ++j) {
+            for (std::uint32_t j = 1; j < matrix_width; ++j) {
                 // update F
                 F_row[j] = std::max(F_row[j], std::max(H_pred_row[j] + g_,
                     F_pred_row[j] + e_));
@@ -730,10 +731,10 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
             }
         }
 
-        int32_t* E_row = &(pimpl_->E[i * matrix_width]);
-        int32_t* Q_row = &(pimpl_->Q[i * matrix_width]);
+        std::int32_t* E_row = &(pimpl_->E[i * matrix_width]);
+        std::int32_t* Q_row = &(pimpl_->Q[i * matrix_width]);
 
-        for (uint32_t j = 1; j < matrix_width; ++j) {
+        for (std::uint32_t j = 1; j < matrix_width; ++j) {
             // update E
             E_row[j] = std::max(H_row[j - 1] + g_, E_row[j - 1] + e_);
             // update Q
@@ -761,8 +762,8 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
     // backtrack
     Alignment alignment;
 
-    uint32_t i = max_i;
-    uint32_t j = max_j;
+    std::uint32_t i = max_i;
+    std::uint32_t j = max_j;
 
     auto sw_condition = [this, &i, &j, &matrix_width]() {
         return (pimpl_->H[i * matrix_width + j] == 0) ? false : true;
@@ -774,8 +775,8 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         return (i == 0 || j == 0) ? false : true;
     };
 
-    uint32_t prev_i = 0;
-    uint32_t prev_j = 0;
+    std::uint32_t prev_i = 0;
+    std::uint32_t prev_j = 0;
 
     while ((type_ == AlignmentType::kSW && sw_condition()) ||
            (type_ == AlignmentType::kNW && nw_condition()) ||
@@ -786,10 +787,10 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
 
         if (i != 0 && j != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
-            int32_t match_cost =
+            std::int32_t match_cost =
                 pimpl_->sequence_profile[node->code() * matrix_width + j];
 
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
+            std::uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
@@ -798,7 +799,7 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 predecessor_found = true;
             } else {
                 const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
+                for (std::uint32_t p = 1; p < edges.size(); ++p) {
                     pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
                     if (H_ij == pimpl_->H[pred_i * matrix_width + (j - 1)] + match_cost) {
@@ -814,7 +815,7 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
         if (!predecessor_found && i != 0) {
             const auto& node = graph->nodes()[rank_to_node_id[i - 1]];
 
-            uint32_t pred_i = node->in_edges().empty() ? 0 :
+            std::uint32_t pred_i = node->in_edges().empty() ? 0 :
                 pimpl_->node_id_to_rank[node->in_edges()[0]->begin_node_id()] + 1;
 
             if ((extend_up |= H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
@@ -826,7 +827,7 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 predecessor_found = true;
             } else {
                 const auto& edges = node->in_edges();
-                for (uint32_t p = 1; p < edges.size(); ++p) {
+                for (std::uint32_t p = 1; p < edges.size(); ++p) {
                     pred_i = pimpl_->node_id_to_rank[edges[p]->begin_node_id()] + 1;
 
                     if ((extend_up |= H_ij == pimpl_->F[pred_i * matrix_width + j] + e_) ||
@@ -873,7 +874,7 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 bool stop = true;
                 prev_i = 0;
                 for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
-                    uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
+                    std::uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 
                     if (pimpl_->F[i * matrix_width + j] == pimpl_->F[pred_i * matrix_width + j] + e_ ||
                         pimpl_->O[i * matrix_width + j] == pimpl_->O[pred_i * matrix_width + j] + c_) {
@@ -884,7 +885,7 @@ Alignment SisdAlignmentEngine::convex(const char* sequence, uint32_t sequence_si
                 }
                 if (stop == true) {
                     for (const auto& it: graph->nodes()[rank_to_node_id[i - 1]]->in_edges()) {
-                        uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
+                        std::uint32_t pred_i = pimpl_->node_id_to_rank[it->begin_node_id()] + 1;
 
                         if (pimpl_->F[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + g_ ||
                             pimpl_->O[i * matrix_width + j] == pimpl_->H[pred_i * matrix_width + j] + q_) {

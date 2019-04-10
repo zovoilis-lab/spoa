@@ -1,5 +1,6 @@
 #include <getopt.h>
 
+#include <cstdint>
 #include <string>
 #include <iostream>
 #include <exception>
@@ -24,15 +25,15 @@ void help();
 
 int main(int argc, char** argv) {
 
-    int8_t m = 5;
-    int8_t n = -4;
-    int8_t g = -8;
-    int8_t e = -6;
-    int8_t q = -10;
-    int8_t c = -4;
+    std::int8_t m = 5;
+    std::int8_t n = -4;
+    std::int8_t g = -8;
+    std::int8_t e = -6;
+    std::int8_t q = -10;
+    std::int8_t c = -4;
 
-    uint8_t algorithm = 0;
-    uint8_t result = 0;
+    std::uint8_t algorithm = 0;
+    std::uint8_t result = 0;
 
     std::string dot_path = "";
 
@@ -101,7 +102,7 @@ int main(int argc, char** argv) {
     std::vector<std::unique_ptr<spoa::Sequence>> sequences;
     sparser->parse(sequences, -1);
 
-    size_t max_sequence_size = 0;
+    std::size_t max_sequence_size = 0;
     for (const auto& it: sequences) {
         max_sequence_size = std::max(max_sequence_size, it->data().size());
     }

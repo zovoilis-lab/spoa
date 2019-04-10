@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,46 +19,50 @@ class Graph;
 
 class SimdAlignmentEngine;
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, int8_t m, int8_t n, int8_t g, int8_t e, int8_t q,
-    int8_t c);
+    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
+    std::int8_t e, std::int8_t q, std::int8_t c);
 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
     ~SimdAlignmentEngine();
 
-    void prealloc(uint32_t max_sequence_size, uint32_t alphabet_size) override;
+    void prealloc(std::uint32_t max_sequence_size,
+        std::uint32_t alphabet_size) override;
 
-    Alignment align(const char* sequence, uint32_t sequence_size,
-        const std::unique_ptr<Graph>& graph) override;
+    Alignment align(const char* sequence, std::uint32_t sequence_size,
+        const std::unique_ptr<Graph>& graph) noexcept override;
 
     friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
-        AlignmentType type, AlignmentSubtype subtype, int8_t m, int8_t n,
-        int8_t g, int8_t e, int8_t q, int8_t c);
+        AlignmentType type, AlignmentSubtype subtype, std::int8_t m,
+        std::int8_t n, std::int8_t g, std::int8_t e, std::int8_t q,
+        std::int8_t c);
+
 private:
     SimdAlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-        int8_t m, int8_t n, int8_t g, int8_t e, int8_t q, int8_t c);
+        std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
+        std::int8_t q, std::int8_t c);
     SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
     const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 
     template<typename T>
-    Alignment linear(const char* sequence, uint32_t sequence_size,
+    Alignment linear(const char* sequence, std::uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     template<typename T>
-    Alignment affine(const char* sequence, uint32_t sequence_size,
+    Alignment affine(const char* sequence, std::uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
     template<typename T>
-    Alignment convex(const char* sequence, uint32_t sequence_size,
+    Alignment convex(const char* sequence, std::uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept;
 
-    void realloc(uint32_t matrix_width, uint32_t matrix_height,
-        uint32_t num_codes);
+    void realloc(std::uint32_t matrix_width, std::uint32_t matrix_height,
+        std::uint32_t num_codes);
 
     template<typename T>
     void initialize(const char* sequence, const std::unique_ptr<Graph>& graph,
-        uint32_t normal_matrix_width, uint32_t matrix_width,
-        uint32_t matrix_height) noexcept;
+        std::uint32_t normal_matrix_width, std::uint32_t matrix_width,
+        std::uint32_t matrix_height) noexcept;
 
     struct Implementation;
     std::unique_ptr<Implementation> pimpl_;
