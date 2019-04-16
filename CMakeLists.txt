@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(spoa LANGUAGES CXX VERSION 2.0.0)
+project(spoa LANGUAGES CXX VERSION 3.0.0)
 
 include(GNUInstallDirs)
 
@@ -7,13 +7,18 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(spoa_build_executable "Build spoa standalone tool" OFF)
 option(spoa_build_tests "Build spoa unit tests" OFF)
+option(spoa_optimize_for_native "Buiold spoa with march=native" ON)
+
+if (spoa_optimize_for_native)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 
 # build SPOA as a static library by default
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
