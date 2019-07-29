@@ -161,7 +161,7 @@ On the other hand, if you are using `cmake` you can add spoa to your project by 
 
 ## Contact information
 
-For additional information, help and bug reports please send an email to: robert.vaser@fer.hr.
+For additional information, help and bug reports please send an email to: robert.vaser@fer.hr, mile.sikic@fer.hr.
 
 ## Acknowledgement
 
