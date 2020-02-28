@@ -726,6 +726,8 @@ void Graph::print_dot(const std::string& path) const {
 }
 
 void Graph::clear() {
+    num_codes_ = 0;
+    num_sequences_ = 0;
     std::fill(coder_.begin(), coder_.end(), -1);
     std::fill(decoder_.begin(), decoder_.end(), -1);
     nodes_.clear();
