@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 
     std::string dot_path = "";
 
-    char opt;
+    int opt;
     while ((opt = getopt_long(argc, argv, "m:n:g:e:q:c:l:r:d:h", options, nullptr)) != -1) {
         switch (opt) {
             case 'm': m = atoi(optarg); break;
