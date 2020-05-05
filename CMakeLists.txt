@@ -16,11 +16,25 @@ option(spoa_build_executable "Build spoa standalone tool" OFF)
 option(spoa_build_tests "Build spoa unit tests" OFF)
 option(spoa_optimize_for_native "Build spoa with -march=native" ON)
 option(spoa_optimize_for_portability "Build spoa with -msse4.1" OFF)
+option(spoa_use_simde "Use SIMDe library for porting vectorized code" OFF)
+option(spoa_use_simde_nonvec "Use SIMDe library for nonvectorized code" OFF)
+option(spoa_use_simde_openmp "Use SIMDe support for OpenMP SIMD" OFF)
 
 if (spoa_optimize_for_portability)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
 elseif (spoa_optimize_for_native)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
+
+if (spoa_use_simde OR spoa_use_simde_nonvec OR spoa_use_simde_openmp)
+    add_definitions(-DUSE_SIMDE -DSIMDE_ENABLE_NATIVE_ALIASES)
+    if (spoa_use_simde_nonvec)
+        add_definitions(-DSIMDE_NO_NATIVE)
+    endif()
+    if (spoa_use_simde_openmp)
+        add_definitions(-DSIMDE_ENABLE_OPENMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp-simd")
+    endif()
 endif()
 
 # build SPOA as a static library by default
@@ -34,7 +48,8 @@ add_library(spoa
 
 target_include_directories(spoa PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
+    $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/simde>)
 
 set_target_properties(spoa
     PROPERTIES

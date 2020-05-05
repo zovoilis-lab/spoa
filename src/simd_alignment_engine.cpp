@@ -9,7 +9,17 @@
 #include <limits>
 
 extern "C" {
+    #ifdef USE_SIMDE
+    #ifdef __AVX2__
+    #include <simde/x86/avx2.h>
+    #else
+    #include <simde/x86/sse4.1.h> // SSE4.1 is covered better
+    #define __SSE4_1__
+    #endif
+
+    #elif defined(__AVX2__) || defined(__SSE4_1__)
     #include <immintrin.h> // AVX2 and lower
+    #endif
 }
 
 #include "spoa/graph.hpp"
