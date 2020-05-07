@@ -10,7 +10,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const std::string version = "v3.0.2";
+static const std::string version = "v3.1.0";
 
 static struct option options[] = {
     {"algorithm", required_argument, nullptr, 'l'},
