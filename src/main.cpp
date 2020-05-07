@@ -10,7 +10,7 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const std::string version = "v3.1.1";
+static const std::string version = "v3.2.0";
 
 static struct option options[] = {
     {"algorithm", required_argument, nullptr, 'l'},
@@ -118,18 +118,16 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (result == 0 || result == 2) {
+    if (result == 0) {
         std::string consensus = graph->generate_consensus();
-        std::cout << "Consensus (" << consensus.size() << ")" << std::endl;
-        std::cout << consensus << std::endl;
-    }
-
-    if (result == 1 || result == 2) {
+        std::cout << ">Consensus LN:i:" << consensus.size() << std::endl
+                  << consensus << std::endl;
+    } else {
         std::vector<std::string> msa;
-        graph->generate_multiple_sequence_alignment(msa);
-        std::cout << "Multiple sequence alignment" << std::endl;
-        for (const auto& it: msa) {
-            std::cout << it << std::endl;
+        graph->generate_multiple_sequence_alignment(msa, result == 2);
+        for (std::uint32_t i = 0; i < msa.size(); ++i) {
+            std::cout << ">" << (i < sequences.size() ? sequences[i]->name() : "Consensus") << std::endl
+                      << msa[i] << std::endl;
         }
     }
 
