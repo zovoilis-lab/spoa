@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <stack>
 #include <fstream>
+#include <stdexcept>
 
 #include "spoa/graph.hpp"
 
