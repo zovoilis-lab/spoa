@@ -1,7 +1,7 @@
 /*!
- * @file simd_alignment_engine.cpp
+ * @file simd_alignment_engine_impl.hpp
  *
- * @brief SimdAlignmentEngine class source file
+ * @brief SimdAlignmentEngine class template implementation file
  */
 
 #include <iostream>

@@ -1,7 +1,7 @@
 /*!
  * @file simd_alignment_engine.hpp
  *
- * @brief SimdAlignmentEngine class header file
+ * @brief SimdAlignmentEngine class template definition file
  */
 
 #pragma once

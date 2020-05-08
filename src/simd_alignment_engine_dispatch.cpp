@@ -1,4 +1,10 @@
-  #include "simd_alignment_engine_impl.hpp"
+/*!
+ * @file simd_alignment_engine_dispatch.cpp
+ *
+ * @brief Instantiation of different SIMD engines
+ */
+
+ #include "simd_alignment_engine_impl.hpp"
 
  #if defined(__AVX2__)
  #define ARCH Arch::avx2
