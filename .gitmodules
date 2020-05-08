@@ -7,3 +7,6 @@
 [submodule "vendor/simde"]
 	path = vendor/simde
 	url = https://github.com/nemequ/simde.git
+[submodule "vendor/FeatureDetector"]
+	path = vendor/FeatureDetector
+	url = https://github.com/Mysticial/FeatureDetector.git

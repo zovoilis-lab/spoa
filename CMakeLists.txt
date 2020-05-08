@@ -19,6 +19,7 @@ option(spoa_optimize_for_portability "Build spoa with -msse4.1" OFF)
 option(spoa_use_simde "Use SIMDe library for porting vectorized code" OFF)
 option(spoa_use_simde_nonvec "Use SIMDe library for nonvectorized code" OFF)
 option(spoa_use_simde_openmp "Use SIMDe support for OpenMP SIMD" OFF)
+option(spoa_generate_dispatch "Use SIMDe to generate x86 dispatch" OFF)
 
 if (spoa_optimize_for_portability)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
@@ -26,7 +27,7 @@ elseif (spoa_optimize_for_native)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
-if (spoa_use_simde OR spoa_use_simde_nonvec OR spoa_use_simde_openmp)
+if (spoa_use_simde OR spoa_use_simde_nonvec OR spoa_use_simde_openmp OR spoa_generate_dispatch)
     add_definitions(-DUSE_SIMDE -DSIMDE_ENABLE_NATIVE_ALIASES)
     if (spoa_use_simde_nonvec)
         add_definitions(-DSIMDE_NO_NATIVE)
@@ -35,26 +36,66 @@ if (spoa_use_simde OR spoa_use_simde_nonvec OR spoa_use_simde_openmp)
         add_definitions(-DSIMDE_ENABLE_OPENMP)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp-simd")
     endif()
+    if (spoa_generate_dispatch)
+        add_definitions(-DGEN_DISPATCH)
+    endif()
 endif()
 
 # build SPOA as a static library by default
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
 
-add_library(spoa
-    src/alignment_engine.cpp
-    src/graph.cpp
-    src/simd_alignment_engine.cpp
-    src/sisd_alignment_engine.cpp)
-
-target_include_directories(spoa PUBLIC
+list(APPEND INCLUDES 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/simde>)
+
+add_library(spoa
+    src/alignment_engine.cpp
+    src/graph.cpp
+    src/sisd_alignment_engine.cpp)
+
+target_include_directories(spoa PUBLIC
+    ${INCLUDES})
 
 set_target_properties(spoa
     PROPERTIES
     VERSION ${spoa_VERSION}
     SOVERSION ${spoa_VERSION})
+
+# generating dispatcher that handles both dispatching and non-dispatching case
+
+if (NOT TARGET FeatureDetector)
+        add_subdirectory(vendor/FeatureDetector/src/x86 EXCLUDE_FROM_ALL)
+endif()
+
+add_library(spoa_dispatcher
+    src/dispatcher.cpp)
+
+target_include_directories(spoa_dispatcher PUBLIC
+    ${INCLUDES}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/FeatureDetector/src/x86>)
+
+# in dispatching case, generate different optimized versions
+
+if (spoa_generate_dispatch)
+
+list(APPEND Archs avx2 sse4.1 sse2)
+
+foreach(arch IN LISTS Archs)
+add_library(spoa_${arch}
+    src/simd_alignment_engine_dispatch.cpp)
+target_include_directories(spoa_${arch} PUBLIC
+    ${INCLUDES})
+set_target_properties(spoa_${arch}
+    PROPERTIES COMPILE_FLAGS "-m${arch}")
+
+endforeach()
+
+target_link_libraries(spoa_dispatcher FeatureDetector spoa_avx2 spoa_sse4.1 spoa_sse2 )
+
+endif()
+
+target_link_libraries(spoa spoa_dispatcher)
 
 install(TARGETS spoa DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/spoa DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
