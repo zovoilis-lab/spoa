@@ -4,13 +4,15 @@
  * @brief CPU dispatching mechanism that also covers non-dispatching case
  */
 
+#include "simd_alignment_engine_impl.hpp"
+
 #ifdef GEN_DISPATCH
 
-// FeatureDetector - can be substituted for google's cpu_features
-#include "cpu_x86.h"
+#include "cpuinfo_x86.h"
+
+static const cpu_features::X86Features features = cpu_features::GetX86Info().features;
 
 #endif
-#include "simd_alignment_engine_impl.hpp"
 
 
 namespace spoa{
@@ -30,16 +32,14 @@ std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
     std::int8_t e, std::int8_t q, std::int8_t c) {
 
 #ifdef GEN_DISPATCH
-        FeatureDetector::cpu_x86 cpu_features;
-        cpu_features.detect_host();
 
-    if (cpu_features.HW_AVX2)
+    if (features.avx2)
     {
         //std::cout<<"AVX2"<<std::endl;
         return createSimdAlignmentEngine<Arch::avx2>(type,
             subtype, m, n, g, e, q, c);
     }
-    else if (cpu_features.HW_SSE41){
+    else if (features.sse4_1){
 
         //std::cout<<"SSE4"<<std::endl;
         return createSimdAlignmentEngine<Arch::sse4_1>(type,

@@ -62,7 +62,7 @@ add_library(spoa
 
 target_include_directories(spoa PUBLIC
     ${INCLUDES}
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/FeatureDetector/src/x86>)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpu_features/include>)
 
 set_target_properties(spoa
     PROPERTIES
@@ -73,8 +73,8 @@ set_target_properties(spoa
 
 if (spoa_generate_dispatch)
 
-if (NOT TARGET FeatureDetector)
-        add_subdirectory(vendor/FeatureDetector/src/x86 EXCLUDE_FROM_ALL)
+if (NOT TARGET cpu_features)
+        add_subdirectory(vendor/cpu_features EXCLUDE_FROM_ALL)
 endif()
 
 list(APPEND Archs avx2 sse4.1 sse2)
@@ -90,7 +90,7 @@ set_target_properties(spoa_${arch}
 endforeach()
 
 target_link_libraries(spoa 
-    FeatureDetector 
+    cpu_features 
     $<TARGET_OBJECTS:spoa_avx2> 
     $<TARGET_OBJECTS:spoa_sse4.1> 
     $<TARGET_OBJECTS:spoa_sse2>)
