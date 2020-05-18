@@ -1,7 +1,7 @@
 /*!
  * @file simd_alignment_engine.hpp
  *
- * @brief SimdAlignmentEngine class header file
+ * @brief SimdAlignmentEngine class template definition file
  */
 
 #pragma once
@@ -12,16 +12,29 @@
 #include <vector>
 
 #include "spoa/alignment_engine.hpp"
+#include "spoa/architectures.hpp"
 
 namespace spoa {
 
 class Graph;
 
+template<Arch S> 
 class SimdAlignmentEngine;
+
 std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
     AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
     std::int8_t e, std::int8_t q, std::int8_t c);
 
+
+
+template<Arch S>
+std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
+    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
+    std::int8_t e, std::int8_t q, std::int8_t c);
+
+
+
+template<Arch S> 
 class SimdAlignmentEngine: public AlignmentEngine {
 public:
     ~SimdAlignmentEngine();
@@ -32,7 +45,7 @@ public:
     Alignment align(const char* sequence, std::uint32_t sequence_size,
         const std::unique_ptr<Graph>& graph) noexcept override;
 
-    friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(
+    friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine<S>(
         AlignmentType type, AlignmentSubtype subtype, std::int8_t m,
         std::int8_t n, std::int8_t g, std::int8_t e, std::int8_t q,
         std::int8_t c);
