@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(spoa LANGUAGES CXX VERSION 3.0.0)
+project(spoa LANGUAGES CXX VERSION 4.0.0)
 
 include(GNUInstallDirs)
 
@@ -47,7 +47,7 @@ endif()
 # build SPOA as a static library by default
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
 
-list(APPEND INCLUDES 
+list(APPEND INCLUDES
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/simde>)
@@ -89,10 +89,10 @@ set_target_properties(spoa_${arch}
 
 endforeach()
 
-target_link_libraries(spoa 
-    cpu_features 
-    $<TARGET_OBJECTS:spoa_avx2> 
-    $<TARGET_OBJECTS:spoa_sse4.1> 
+target_link_libraries(spoa
+    cpu_features
+    $<TARGET_OBJECTS:spoa_avx2>
+    $<TARGET_OBJECTS:spoa_sse4.1>
     $<TARGET_OBJECTS:spoa_sse2>)
 
 endif()
