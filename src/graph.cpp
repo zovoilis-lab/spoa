@@ -726,7 +726,9 @@ void Graph::print_dot(const std::string& path) const {
     out.close();
 }
 
-void Graph::print_gfa(std::ostream& out, const std::vector<std::string>& sequence_names) const {
+void Graph::print_gfa(std::ostream& out,
+                      const std::vector<std::string>& sequence_names,
+                      bool include_consensus) const {
 
     std::vector<std::int32_t> in_consensus(nodes_.size(), -1);
     std::int32_t rank = 0;
@@ -762,6 +764,14 @@ void Graph::print_gfa(std::ostream& out, const std::vector<std::string>& sequenc
             } else {
                 out << ",";
             }
+        }
+        out << "\t" << "*" << std::endl;
+    }
+
+    if (include_consensus) {
+        out << "P" << "\t" << "Consensus" << "\t";
+        for (const auto& id: consensus_) {
+            out << id+1 << "+";
         }
         out << "\t" << "*" << std::endl;
     }
