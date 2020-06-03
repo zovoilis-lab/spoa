@@ -726,6 +726,57 @@ void Graph::print_dot(const std::string& path) const {
     out.close();
 }
 
+void Graph::print_gfa(std::ostream& out,
+                      const std::vector<std::string>& sequence_names,
+                      bool include_consensus) const {
+
+    std::vector<std::int32_t> in_consensus(nodes_.size(), -1);
+    std::int32_t rank = 0;
+    for (const auto& id: consensus_) {
+        in_consensus[id] = rank++;
+    }
+
+    out << "H" << "\t" << "VN:Z:1.0" << std::endl;
+
+    for (std::uint32_t i = 0; i < nodes_.size(); ++i) {
+        out << "S" << "\t" << i+1 << "\t" << static_cast<char>(decoder_[nodes_[i]->code_]);
+        if (in_consensus[i] != -1) {
+            out << "\t" << "ic:Z:true";
+        }
+        out << std::endl;
+        for (const auto& edge: nodes_[i]->out_edges_) {
+            out << "L" << "\t" << i+1 << "\t" << "+" << "\t" << edge->end_node_id_+1 << "\t" << "+" << "\t" << "0M" << "\t"
+                << "ew:f:" << edge->total_weight_;
+            if (in_consensus[i] + 1 == in_consensus[edge->end_node_id_]) {
+                out << "\t" << "ic:Z:true";
+            }
+            out << std::endl;
+        }
+    }
+
+    for (std::uint32_t i = 0; i < num_sequences_; ++i) {
+        out << "P" << "\t" << sequence_names[i] << "\t";
+        std::uint32_t node_id = sequences_begin_nodes_ids_[i];
+        while (true) {
+            out << node_id+1 << "+";
+            if (!nodes_[node_id]->successor(node_id, i)) {
+                break;
+            } else {
+                out << ",";
+            }
+        }
+        out << "\t" << "*" << std::endl;
+    }
+
+    if (include_consensus) {
+        out << "P" << "\t" << "Consensus" << "\t";
+        for (const auto& id: consensus_) {
+            out << id+1 << "+";
+        }
+        out << "\t" << "*" << std::endl;
+    }
+}
+
 void Graph::clear() {
     num_codes_ = 0;
     num_sequences_ = 0;

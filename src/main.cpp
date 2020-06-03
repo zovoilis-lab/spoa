@@ -16,6 +16,7 @@ static struct option options[] = {
     {"algorithm", required_argument, nullptr, 'l'},
     {"result", required_argument, nullptr, 'r'},
     {"dot", required_argument, nullptr, 'd'},
+    {"gfa", required_argument, nullptr, 'd'},
     {"version", no_argument, nullptr, 'v'},
     {"help", no_argument, nullptr, 'h'},
     {nullptr, 0, nullptr, 0}
@@ -36,9 +37,11 @@ int main(int argc, char** argv) {
     std::uint8_t result = 0;
 
     std::string dot_path = "";
+    bool write_gfa = false;
+    bool write_gfa_with_consensus = false;
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "m:n:g:e:q:c:l:r:d:h", options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "m:n:g:e:q:c:l:r:d:GCh", options, nullptr)) != -1) {
         switch (opt) {
             case 'm': m = atoi(optarg); break;
             case 'n': n = atoi(optarg); break;
@@ -49,6 +52,8 @@ int main(int argc, char** argv) {
             case 'l': algorithm = atoi(optarg); break;
             case 'r': result = atoi(optarg); break;
             case 'd': dot_path = optarg; break;
+            case 'G': write_gfa = true; break;
+            case 'C': write_gfa = true; write_gfa_with_consensus = true; break;
             case 'v': std::cout << version << std::endl; return 0;
             case 'h': help(); return 0;
             default: return 1;
@@ -118,7 +123,17 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (result == 0) {
+    if (write_gfa) {
+        // force consensus genertion for graph annotation
+        std::string consensus = graph->generate_consensus();
+        // save sequence names for graph path labeling
+        std::vector<std::string> sequence_names;
+        for (auto& s : sequences) {
+            sequence_names.push_back(s->name());
+        }
+        // write the graph, with consensus as a path if requested
+        graph->print_gfa(std::cout, sequence_names, write_gfa_with_consensus);
+    } else if (result == 0) {
         std::string consensus = graph->generate_consensus();
         std::cout << ">Consensus LN:i:" << consensus.size() << std::endl
                   << consensus << std::endl;
@@ -177,6 +192,10 @@ void help() {
         "                0 - consensus\n"
         "                1 - multiple sequence alignment\n"
         "                2 - 0 & 1\n"
+        "        -G, --gfa\n"
+        "            write GFA on stdout\n"
+        "        -C, --gfa-with-consensus\n"
+        "            write GFA with consensus on stdout\n"
         "        -d, --dot <file>\n"
         "            output file for the final POA graph in DOT format\n"
         "        --version\n"
