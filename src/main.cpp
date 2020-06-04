@@ -10,13 +10,14 @@
 #include "spoa/spoa.hpp"
 #include "bioparser/bioparser.hpp"
 
-static const std::string version = "v3.3.1";
+static const std::string version = "v3.4.0";
 
 static struct option options[] = {
     {"algorithm", required_argument, nullptr, 'l'},
     {"result", required_argument, nullptr, 'r'},
     {"dot", required_argument, nullptr, 'd'},
-    {"gfa", required_argument, nullptr, 'd'},
+    {"gfa", required_argument, nullptr, 'G'},
+    {"gfa-with-consensus", no_argument, nullptr, 'C'},
     {"version", no_argument, nullptr, 'v'},
     {"help", no_argument, nullptr, 'h'},
     {nullptr, 0, nullptr, 0}

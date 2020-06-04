@@ -21,7 +21,6 @@ option(spoa_use_simde_nonvec "Use SIMDe library for nonvectorized code" OFF)
 option(spoa_use_simde_openmp "Use SIMDe support for OpenMP SIMD" OFF)
 option(spoa_generate_dispatch "Use SIMDe to generate x86 dispatch" OFF)
 
-
 if(NOT spoa_generate_dispatch) # optimization flags defeat the purpose of dispatching
     if (spoa_optimize_for_portability)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
@@ -80,20 +79,22 @@ endif()
 list(APPEND Archs avx2 sse4.1 sse2)
 
 foreach(arch IN LISTS Archs)
-add_library(spoa_${arch} OBJECT src/simd_alignment_engine_dispatch.cpp)
-target_include_directories(spoa_${arch} PUBLIC ${INCLUDES})
-set_target_properties(spoa_${arch} PROPERTIES COMPILE_FLAGS "-m${arch}")
-if (BUILD_SHARED_LIBS)
-set_property(TARGET spoa_${arch}
-    PROPERTY POSITION_INDEPENDENT_CODE ON)
-endif()
+  add_library(spoa_${arch} OBJECT src/simd_alignment_engine_dispatch.cpp)
+  target_include_directories(spoa_${arch} PUBLIC ${INCLUDES})
+  set_target_properties(spoa_${arch} PROPERTIES COMPILE_FLAGS "-m${arch}")
+  if (BUILD_SHARED_LIBS)
+    set_property(TARGET spoa_${arch}
+      PROPERTY POSITION_INDEPENDENT_CODE ON)
+  endif()
 endforeach()
 
+add_dependencies(spoa
+  spoa_avx2
+  spoa_sse4.1
+  spoa_sse2)
+
 target_link_libraries(spoa
-    cpu_features
-    spoa_avx2
-    spoa_sse4.1
-    spoa_sse2)
+    cpu_features)
 
 endif()
 

@@ -27,7 +27,18 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-a library named `libspoa.a` will appear in the `build/lib` directory. If you want the spoa executable, run the following two commands:
+a library named `libspoa.a` will appear in the `build/lib` directory.
+
+Various options can be enabled while running `cmake`:
+
+- `spoa_optimize_for_native`: builds with `-march=native`
+- `spoa_optimize_for_portability`: builds with `-msse4.1`
+- `spoa_use_simde`: builds with SIMDe for porting vectorized code
+- `spoa_use_simde_nonvec`: uses SIMDe library for nonvectorized code
+- `spoa_use_simde_openmp`: uses SIMDe support for OpenMP SIMD
+- `spoa_generate_dispatch`: uses SIMDe to generate x86 dispatch
+
+If you want the spoa executable, run the following two commands:
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release -Dspoa_build_executable=ON ..
@@ -85,6 +96,10 @@ spoa [options ...] <sequences>
                 0 - consensus
                 1 - multiple sequence alignment
                 2 - 0 & 1
+        -G, --gfa
+            write GFA on stdout
+        -C, --gfa-with-consensus
+            write GFA with consensus on stdout
         -d, --dot <file>
             output file for the final POA graph in DOT format
         --version
