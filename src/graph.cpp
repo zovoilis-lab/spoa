@@ -604,7 +604,7 @@ void Graph::PrintDot(const std::string& path) const {
   }
   std::ofstream os(path);
 
-  std::vector<bool> consensus_rank(nodes_.size(), -1);
+  std::vector<std::int32_t> consensus_rank(nodes_.size(), -1);
   std::int32_t rank = 0;
   for (const auto& it : consensus_) {
     consensus_rank[it->id] = rank++;

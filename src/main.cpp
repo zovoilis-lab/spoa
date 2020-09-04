@@ -277,10 +277,10 @@ int main(int argc, char** argv) {
       auto alignment_rev = alignment_engine->Align(it->data, graph, &score_rev);
       if (score >= score_rev) {
         it->ReverseAndComplement();
-        is_reversed.emplace_back(false);
+        is_reversed.push_back(false);
       } else {
         alignment = alignment_rev;
-        is_reversed.emplace_back(true);
+        is_reversed.push_back(true);
       }
     }
 
