@@ -1,83 +1,101 @@
-/*!
- * @file alignment_engine.cpp
- *
- * @brief AlignmentEngine class source file
- */
+// Copyright (c) 2020 Robert Vaser
 
-#include <limits>
+#include "spoa/alignment_engine.hpp"
+
 #include <algorithm>
 #include <exception>
+#include <limits>
 #include <stdexcept>
 
 #include "sisd_alignment_engine.hpp"
 #include "simd_alignment_engine.hpp"
-#include "spoa/alignment_engine.hpp"
 
 namespace spoa {
 
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    std::int8_t m, std::int8_t n, std::int8_t g) {
-
-    return createAlignmentEngine(type, m, n, g, g);
+std::unique_ptr<AlignmentEngine> AlignmentEngine::Create(
+    AlignmentType type,
+    std::int8_t m,
+    std::int8_t n,
+    std::int8_t g) {
+  return Create(type, m, n, g, g);
 }
 
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e) {
-
-    return createAlignmentEngine(type, m, n, g, e, g, e);
+std::unique_ptr<AlignmentEngine> AlignmentEngine::Create(
+    AlignmentType type,
+    std::int8_t m,
+    std::int8_t n,
+    std::int8_t g,
+    std::int8_t e) {
+  return Create(type, m, n, g, e, g, e);
 }
 
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
-    std::int8_t q, std::int8_t c) {
+std::unique_ptr<AlignmentEngine> AlignmentEngine::Create(
+    AlignmentType type,
+    std::int8_t m,
+    std::int8_t n,
+    std::int8_t g,
+    std::int8_t e,
+    std::int8_t q,
+    std::int8_t c) {
+  if (type != AlignmentType::kSW &&
+      type != AlignmentType::kNW &&
+      type != AlignmentType::kOV) {
+    throw std::invalid_argument(
+        "[spoa::AlignmentEngine::Create] error: invalid alignment type!");
+  }
+  if (g > 0 || q > 0) {
+    throw std::invalid_argument(
+        "[spoa::AlignmentEngine::Create] error: "
+        "gap opening penalty must be non-positive!");
+  }
+  if (e > 0 || c > 0) {
+    throw std::invalid_argument(
+        "[spoa::AlignmentEngine::Create] error: "
+        "gap extension penalty must be non-positive!");
+  }
 
-    if (type != AlignmentType::kSW &&
-        type != AlignmentType::kNW &&
-        type != AlignmentType::kOV) {
+  AlignmentSubtype subtype = g >= e ?
+      AlignmentSubtype::kLinear : (g <= q || e >= c ?
+      AlignmentSubtype::kAffine : AlignmentSubtype::kConvex);
 
-        throw std::invalid_argument("[spoa::createAlignmentEngine] error: "
-            "invalid alignment type!");
-    }
-    if (g > 0 || q > 0) {
-        throw std::invalid_argument("[spoa::createAlignmentEngine] error: "
-            "gap opening penalty must be non-positive!");
-    }
-    if (e > 0 || c > 0) {
-        throw std::invalid_argument("[spoa::createAlignmentEngine] error: "
-            "gap extension penalty must be non-positive!");
-    }
+  if (subtype == AlignmentSubtype::kLinear) {
+    e = g;
+  } else if (subtype == AlignmentSubtype::kAffine) {
+    q = g;
+    c = e;
+  }
 
-    AlignmentSubtype subtype = g >= e ?
-        AlignmentSubtype::kLinear : (g <= q || e >= c ?
-        AlignmentSubtype::kAffine : AlignmentSubtype::kConvex);
-
-    if (subtype == AlignmentSubtype::kLinear) {
-        e = g;
-    } else if (subtype == AlignmentSubtype::kAffine) {
-        q = g;
-        c = e;
-    }
-
-    auto alignment_engine = createSimdAlignmentEngine(type, subtype, m, n, g, e,
-        q, c);
-
-    if (alignment_engine == nullptr) {
-        return createSisdAlignmentEngine(type, subtype, m, n, g, e, q, c);
-    }
-
-    return alignment_engine;
+  auto dst = CreateSimdAlignmentEngine(type, subtype, m, n, g, e, q, c);
+  if (!dst) {
+    return SisdAlignmentEngine::Create(type, subtype, m, n, g, e, q, c);
+  }
+  return dst;
 }
 
-AlignmentEngine::AlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
-    std::int8_t q, std::int8_t c)
-        : type_(type), subtype_(subtype), m_(m), n_(n), g_(g), e_(e), q_(q), c_(c) {
+AlignmentEngine::AlignmentEngine(
+    AlignmentType type,
+    AlignmentSubtype subtype,
+    std::int8_t m,
+    std::int8_t n,
+    std::int8_t g,
+    std::int8_t e,
+    std::int8_t q,
+    std::int8_t c)
+    : type_(type),
+      subtype_(subtype),
+      m_(m),
+      n_(n),
+      g_(g),
+      e_(e),
+      q_(q),
+      c_(c) {
 }
 
-Alignment AlignmentEngine::align(const std::string& sequence,
-    const std::unique_ptr<Graph>& graph) {
-
-    return align(sequence.c_str(), sequence.size(), graph);
+Alignment AlignmentEngine::Align(
+    const std::string& sequence,
+    const Graph& graph,
+    std::int32_t* score) {
+  return Align(sequence.c_str(), sequence.size(), graph, score);
 }
 
-}
+}  // namespace spoa

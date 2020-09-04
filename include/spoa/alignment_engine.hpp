@@ -1,73 +1,94 @@
-/*!
- * @file alignment_engine.hpp
- *
- * @brief AlignmentEngine class header file
- */
+// Copyright (c) 2020 Robert Vaser
+
+#ifndef SPOA_ALIGNMENT_ENGINE_HPP_
+#define SPOA_ALIGNMENT_ENGINE_HPP_
 
 #pragma once
 
 #include <cstdint>
-#include <string>
 #include <memory>
-#include <vector>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace spoa {
 
 enum class AlignmentType {
-    kSW, // Smith Waterman
-    kNW, // Needleman Wunsch
-    kOV // Overlap
+  kSW,  // Smith Waterman
+  kNW,  // Needleman Wunsch
+  kOV   // Overlap
 };
 
 enum class AlignmentSubtype {
-    kLinear,
-    kAffine,
-    kConvex
+  kLinear,  // g * i
+  kAffine,  // g + (i - 1) * e
+  kConvex   // min(g1 + (i - 1) * e1, g2 + (i - 1) * e2)
 };
 
 class Graph;
 using Alignment = std::vector<std::pair<std::int32_t, std::int32_t>>;
 
-class AlignmentEngine;
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    std::int8_t m, std::int8_t n, std::int8_t g);
-
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e);
-
-std::unique_ptr<AlignmentEngine> createAlignmentEngine(AlignmentType type,
-    std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
-    std::int8_t q, std::int8_t c);
-
 class AlignmentEngine {
-public:
-    virtual ~AlignmentEngine() {}
+ public:
+  virtual ~AlignmentEngine() = default;
 
-    virtual void prealloc(std::uint32_t max_sequence_size,
-        std::uint32_t alphabet_size) = 0;
+  static std::unique_ptr<AlignmentEngine> Create(
+      AlignmentType type,
+      std::int8_t m,   // match
+      std::int8_t n,   // mismatch
+      std::int8_t g);  // gap
 
-    Alignment align(const std::string& sequence,
-        const std::unique_ptr<Graph>& graph);
+  static std::unique_ptr<AlignmentEngine> Create(
+      AlignmentType type,
+      std::int8_t m,
+      std::int8_t n,
+      std::int8_t g,   // gap open
+      std::int8_t e);  // gap extend
 
-    virtual Alignment align(const char* sequence, std::uint32_t sequence_size,
-        const std::unique_ptr<Graph>& graph) noexcept = 0;
+  static std::unique_ptr<AlignmentEngine> Create(
+      AlignmentType type,
+      std::int8_t m,
+      std::int8_t n,
+      std::int8_t g,
+      std::int8_t e,
+      std::int8_t q,   // gap open of second affine
+      std::int8_t c);  // gap extend of second affine
 
-protected:
-    AlignmentEngine(AlignmentType type, AlignmentSubtype subtype, std::int8_t m,
-        std::int8_t n, std::int8_t g, std::int8_t e, std::int8_t q,
-        std::int8_t c);
-    AlignmentEngine(const AlignmentEngine&) = delete;
-    const AlignmentEngine& operator=(const AlignmentEngine&) = delete;
+  virtual void Prealloc(
+      std::uint32_t max_sequence_len,
+      std::uint32_t alphabet_size) = 0;
 
-    AlignmentType type_;
-    AlignmentSubtype subtype_;
-    std::int8_t m_;
-    std::int8_t n_;
-    std::int8_t g_;
-    std::int8_t e_;
-    std::int8_t q_;
-    std::int8_t c_;
+  Alignment Align(
+      const std::string& sequence,
+      const Graph& graph,
+      std::int32_t* score = nullptr);
+
+  virtual Alignment Align(
+      const char* sequence, std::uint32_t sequence_len,
+      const Graph& graph,
+      std::int32_t* score = nullptr) noexcept = 0;
+
+ protected:
+  AlignmentEngine(
+      AlignmentType type,
+      AlignmentSubtype subtype,
+      std::int8_t m,
+      std::int8_t n,
+      std::int8_t g,
+      std::int8_t e,
+      std::int8_t q,
+      std::int8_t c);
+
+  AlignmentType type_;
+  AlignmentSubtype subtype_;
+  std::int8_t m_;
+  std::int8_t n_;
+  std::int8_t g_;
+  std::int8_t e_;
+  std::int8_t q_;
+  std::int8_t c_;
 };
 
-}
+}  // namespace spoa
+
+#endif  // SPOA_ALIGNMENT_ENGINE_HPP_

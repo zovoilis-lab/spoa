@@ -1,10 +1,7 @@
-/*!
- * @file simd_alignment_engine.hpp
- *
- * @brief SimdAlignmentEngine class template definition file
- */
+// Copyright (c) 2020 Robert Vaser
 
-#pragma once
+#ifndef SIMD_ALIGNMENT_ENGINE_HPP_
+#define SIMD_ALIGNMENT_ENGINE_HPP_
 
 #include <cstdint>
 #include <memory>
@@ -18,67 +15,102 @@ namespace spoa {
 
 class Graph;
 
-template<Arch S> 
-class SimdAlignmentEngine;
+std::unique_ptr<AlignmentEngine> CreateSimdAlignmentEngine(  // for dispatcher
+    AlignmentType type,
+    AlignmentSubtype subtype,
+    std::int8_t m,
+    std::int8_t n,
+    std::int8_t g,
+    std::int8_t e,
+    std::int8_t q,
+    std::int8_t c);
 
-std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
-    std::int8_t e, std::int8_t q, std::int8_t c);
-
-
-
-template<Arch S>
-std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine(AlignmentType type,
-    AlignmentSubtype subtype, std::int8_t m, std::int8_t n, std::int8_t g,
-    std::int8_t e, std::int8_t q, std::int8_t c);
-
-
-
-template<Arch S> 
+template<Architecture A>
 class SimdAlignmentEngine: public AlignmentEngine {
-public:
-    ~SimdAlignmentEngine();
+ public:
+  SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
+  SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
 
-    void prealloc(std::uint32_t max_sequence_size,
-        std::uint32_t alphabet_size) override;
+  SimdAlignmentEngine(SimdAlignmentEngine&&) = default;
+  SimdAlignmentEngine& operator=(SimdAlignmentEngine&&) = delete;
 
-    Alignment align(const char* sequence, std::uint32_t sequence_size,
-        const std::unique_ptr<Graph>& graph) noexcept override;
+  ~SimdAlignmentEngine() = default;
 
-    friend std::unique_ptr<AlignmentEngine> createSimdAlignmentEngine<S>(
-        AlignmentType type, AlignmentSubtype subtype, std::int8_t m,
-        std::int8_t n, std::int8_t g, std::int8_t e, std::int8_t q,
-        std::int8_t c);
+  static std::unique_ptr<AlignmentEngine> Create(
+      AlignmentType type,
+      AlignmentSubtype subtype,
+      std::int8_t m,
+      std::int8_t n,
+      std::int8_t g,
+      std::int8_t e,
+      std::int8_t q,
+      std::int8_t c);
 
-private:
-    SimdAlignmentEngine(AlignmentType type, AlignmentSubtype subtype,
-        std::int8_t m, std::int8_t n, std::int8_t g, std::int8_t e,
-        std::int8_t q, std::int8_t c);
-    SimdAlignmentEngine(const SimdAlignmentEngine&) = delete;
-    const SimdAlignmentEngine& operator=(const SimdAlignmentEngine&) = delete;
+  void Prealloc(
+      std::uint32_t max_sequence_len,
+      std::uint32_t alphabet_size) override;
 
-    template<typename T>
-    Alignment linear(const char* sequence, std::uint32_t sequence_size,
-        const std::unique_ptr<Graph>& graph) noexcept;
+  Alignment Align(
+      const char* sequence, std::uint32_t sequence_len,
+      const Graph& graph,
+      std::int32_t* score) noexcept override;
 
-    template<typename T>
-    Alignment affine(const char* sequence, std::uint32_t sequence_size,
-        const std::unique_ptr<Graph>& graph) noexcept;
+  friend std::unique_ptr<AlignmentEngine> CreateSimdAlignmentEngine(
+      AlignmentType type,
+      AlignmentSubtype subtype,
+      std::int8_t m,
+      std::int8_t n,
+      std::int8_t g,
+      std::int8_t e,
+      std::int8_t q,
+      std::int8_t c);
 
-    template<typename T>
-    Alignment convex(const char* sequence, std::uint32_t sequence_size,
-        const std::unique_ptr<Graph>& graph) noexcept;
+ private:
+  SimdAlignmentEngine(
+      AlignmentType type,
+      AlignmentSubtype subtype,
+      std::int8_t m,
+      std::int8_t n,
+      std::int8_t g,
+      std::int8_t e,
+      std::int8_t q,
+      std::int8_t c);
 
-    void realloc(std::uint32_t matrix_width, std::uint32_t matrix_height,
-        std::uint32_t num_codes);
+  template<typename T>
+  Alignment Linear(
+      const char* sequence, std::uint32_t sequence_len,
+      const Graph& graph,
+      std::int32_t* score) noexcept;
 
-    template<typename T>
-    void initialize(const char* sequence, const std::unique_ptr<Graph>& graph,
-        std::uint32_t normal_matrix_width, std::uint32_t matrix_width,
-        std::uint32_t matrix_height) noexcept;
+  template<typename T>
+  Alignment Affine(
+      const char* sequence, std::uint32_t sequence_len,
+      const Graph& graph,
+      std::int32_t* score) noexcept;
 
-    struct Implementation;
-    std::unique_ptr<Implementation> pimpl_;
+  template<typename T>
+  Alignment Convex(
+      const char* sequence, std::uint32_t sequence_len,
+      const Graph& graph,
+      std::int32_t* score) noexcept;
+
+  void Realloc(
+      std::uint32_t matrix_width,
+      std::uint32_t matrix_height,
+      std::uint32_t num_codes);
+
+  template<typename T>
+  void Initialize(
+      const char* sequence,
+      const Graph& graph,
+      std::uint32_t normal_matrix_width,
+      std::uint32_t matrix_width,
+      std::uint32_t matrix_height) noexcept;
+
+  struct Implementation;
+  std::unique_ptr<Implementation> pimpl_;
 };
 
-}
+}  // namespace spoa
+
+#endif  // SIMD_ALIGNMENT_ENGINE_HPP_

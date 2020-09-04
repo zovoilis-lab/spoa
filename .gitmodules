@@ -1,9 +1,6 @@
 [submodule "vendor/bioparser"]
 	path = vendor/bioparser
 	url = https://github.com/rvaser/bioparser
-[submodule "vendor/googletest"]
-	path = vendor/googletest
-	url = https://github.com/google/googletest
 [submodule "vendor/simde"]
 	path = vendor/simde
 	url = https://github.com/nemequ/simde.git
@@ -11,3 +8,6 @@
 	path = vendor/cpu_features
 	url = https://github.com/mbrcic/cpu_features.git
 	branch = patch-4
+[submodule "vendor/cereal"]
+	path = vendor/cereal
+	url = https://github.com/USCiLab/cereal
