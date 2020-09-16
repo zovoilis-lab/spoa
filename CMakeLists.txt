@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(spoa VERSION 4.0.0
+project(spoa VERSION 4.0.1
              LANGUAGES CXX
              DESCRIPTION "Spoa is a c++ library (and tool) for SIMD vectorized partial order alignment.")
 
@@ -132,6 +132,9 @@ endif ()
 option(spoa_build_tests "Build spoa unit tests" OFF)
 if (spoa_build_tests)
   find_package(GTest REQUIRED)
+  if (NOT TARGET biosoup)
+    add_subdirectory(vendor/bioparser/vendor/biosoup EXCLUDE_FROM_ALL)
+  endif ()
   if (NOT TARGET bioparser)
     add_subdirectory(vendor/bioparser EXCLUDE_FROM_ALL)
   endif ()
@@ -144,5 +147,5 @@ if (spoa_build_tests)
     biosoup
     GTest::Main)
   target_compile_definitions(${PROJECT_NAME}_test PRIVATE
-    SPOA_DATA_PATH="${PROJECT_SOURCE_DIR}/test/data/sample.fastq")
+    SPOA_DATA_PATH="${PROJECT_SOURCE_DIR}/test/data/sample.fastq.gz")
 endif ()

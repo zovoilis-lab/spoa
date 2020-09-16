@@ -17,7 +17,7 @@ namespace test {
 class SpoaTest: public ::testing::Test {
  public:
   void Setup(
-      spoa::AlignmentType type,
+      AlignmentType type,
       std::int8_t m,
       std::int8_t n,
       std::int8_t g,
@@ -29,9 +29,12 @@ class SpoaTest: public ::testing::Test {
     s = p->Parse(-1);
     EXPECT_EQ(55, s.size());
 
-    auto ae = spoa::AlignmentEngine::Create(type, m, n, g, e, q, c);
-    gr = spoa::Graph();
+    ae = AlignmentEngine::Create(type, m, n, g, e, q, c);
+    gr = Graph();
+    iq = quality;
+  }
 
+  void Align() {
     std::size_t ms = 0;
     for (const auto& it : s) {
       ms = std::max(ms, it->data.size());
@@ -40,7 +43,7 @@ class SpoaTest: public ::testing::Test {
 
     for (const auto& it : s) {
       auto a = ae->Align(it->data, gr);
-      if (quality) {
+      if (iq) {
         gr.AddAlignment(a, it->data, it->quality);
       } else {
         gr.AddAlignment(a, it->data);
@@ -61,13 +64,14 @@ class SpoaTest: public ::testing::Test {
   }
 
   std::vector<std::unique_ptr<biosoup::Sequence>> s;
-  spoa::Graph gr;
+  std::unique_ptr<AlignmentEngine> ae;
+  Graph gr;
+  bool iq;
 };
 
 TEST(SpoaAlignmentTest, TypeError) {
   try {
-    auto ae = spoa::AlignmentEngine::Create(
-        static_cast<spoa::AlignmentType>(4), 1, -1, -1);
+    auto ae = AlignmentEngine::Create(static_cast<AlignmentType>(4), 1, -1, -1);
   } catch(std::invalid_argument& exception) {
     EXPECT_STREQ(
         exception.what(),
@@ -76,24 +80,24 @@ TEST(SpoaAlignmentTest, TypeError) {
 }
 
 TEST(SpoaAlignmentTest, EmptyInput) {
-  auto ae = spoa::AlignmentEngine::Create(spoa::AlignmentType::kSW, 1, -1, -1);
-  spoa::Graph g{};
+  auto ae = AlignmentEngine::Create(AlignmentType::kSW, 1, -1, -1);
+  Graph g{};
   auto a = ae->Align("", g);
   EXPECT_TRUE(a.empty());
 }
 
 TEST_F(SpoaTest, Clear) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);
+  Setup(AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);
+  Align();
   auto c = gr.GenerateConsensus();
+
   gr.Clear();
-
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);
-
+  Align();
   EXPECT_EQ(c, gr.GenerateConsensus());
 }
 
 TEST_F(SpoaTest, Archive) {
-  Setup(spoa::AlignmentType::kNW, 2, -5, -2, -2, -2, -2, true);
+  Setup(AlignmentType::kNW, 2, -5, -2, -2, -2, -2, true);
 
   {
     std::ofstream os("spoa.test.cereal");
@@ -102,7 +106,7 @@ TEST_F(SpoaTest, Archive) {
   }
 
   auto c = gr.GenerateConsensus();
-  gr.Clear();
+  gr = {};
 
   {
     std::ifstream is("spoa.test.cereal");
@@ -114,7 +118,8 @@ TEST_F(SpoaTest, Archive) {
 }
 
 TEST_F(SpoaTest, Local) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);
+  Setup(AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);
+  Align();
 
   std::string c =
       "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGAC"
@@ -129,7 +134,8 @@ TEST_F(SpoaTest, Local) {
 }
 
 TEST_F(SpoaTest, LocalAffine) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -6, -8, -6, false);
+  Setup(AlignmentType::kSW, 5, -4, -8, -6, -8, -6, false);
+  Align();
 
   std::string c =
       "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGAC"
@@ -144,7 +150,8 @@ TEST_F(SpoaTest, LocalAffine) {
 }
 
 TEST_F(SpoaTest, LocalConvex) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -6, -10, -2, false);
+  Setup(AlignmentType::kSW, 5, -4, -8, -6, -10, -2, false);
+  Align();
 
   std::string c =
       "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGAC"
@@ -159,7 +166,8 @@ TEST_F(SpoaTest, LocalConvex) {
 }
 
 TEST_F(SpoaTest, LocalWithQualities) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -8, -8, -8, true);
+  Setup(AlignmentType::kSW, 5, -4, -8, -8, -8, -8, true);
+  Align();
 
   std::string c =
       "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGAC"
@@ -174,7 +182,8 @@ TEST_F(SpoaTest, LocalWithQualities) {
 }
 
 TEST_F(SpoaTest, LocalAffineWithQualities) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -6, -8, -6, true);
+  Setup(AlignmentType::kSW, 5, -4, -8, -6, -8, -6, true);
+  Align();
 
   std::string c =
       "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGAC"
@@ -189,7 +198,8 @@ TEST_F(SpoaTest, LocalAffineWithQualities) {
 }
 
 TEST_F(SpoaTest, LocalConvexWithQualities) {
-  Setup(spoa::AlignmentType::kSW, 5, -4, -8, -6, -10, -2, true);
+  Setup(AlignmentType::kSW, 5, -4, -8, -6, -10, -2, true);
+  Align();
 
   std::string c =
       "AATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGAC"
@@ -204,7 +214,8 @@ TEST_F(SpoaTest, LocalConvexWithQualities) {
 }
 
 TEST_F(SpoaTest, Global) {
-  Setup(spoa::AlignmentType::kNW, 5, -4, -8, -8, -8, -8, false);
+  Setup(AlignmentType::kNW, 5, -4, -8, -8, -8, -8, false);
+  Align();
 
   std::string c =
       "ATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGACA"
@@ -219,7 +230,8 @@ TEST_F(SpoaTest, Global) {
 }
 
 TEST_F(SpoaTest, GlobalAffine) {
-  Setup(spoa::AlignmentType::kNW, 5, -4, -8, -6, -8, -6, false);
+  Setup(AlignmentType::kNW, 5, -4, -8, -6, -8, -6, false);
+  Align();
 
   std::string c =
       "ATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGACA"
@@ -234,7 +246,8 @@ TEST_F(SpoaTest, GlobalAffine) {
 }
 
 TEST_F(SpoaTest, GlobalConvex) {
-  Setup(spoa::AlignmentType::kNW, 5, -4, -8, -6, -10, -2, false);
+  Setup(AlignmentType::kNW, 5, -4, -8, -6, -10, -2, false);
+  Align();
 
   std::string c =
       "ATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGACA"
@@ -249,7 +262,8 @@ TEST_F(SpoaTest, GlobalConvex) {
 }
 
 TEST_F(SpoaTest, GlobalWithQualities) {
-  Setup(spoa::AlignmentType::kNW, 5, -4, -8, -8, -8, -8, true);
+  Setup(AlignmentType::kNW, 5, -4, -8, -8, -8, -8, true);
+  Align();
 
   std::string c =
       "ATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGACA"
@@ -264,7 +278,8 @@ TEST_F(SpoaTest, GlobalWithQualities) {
 }
 
 TEST_F(SpoaTest, GlobalAffineWithQualities) {
-  Setup(spoa::AlignmentType::kNW, 5, -4, -8, -6, -8, -6, true);
+  Setup(AlignmentType::kNW, 5, -4, -8, -6, -8, -6, true);
+  Align();
 
   std::string c =
       "ATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGACA"
@@ -279,7 +294,8 @@ TEST_F(SpoaTest, GlobalAffineWithQualities) {
 }
 
 TEST_F(SpoaTest, GlobalConvexWithQualities) {
-  Setup(spoa::AlignmentType::kNW, 5, -4, -8, -6, -10, -2, true);
+  Setup(AlignmentType::kNW, 5, -4, -8, -6, -10, -2, true);
+  Align();
 
   std::string c =
       "ATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGACA"
@@ -294,7 +310,8 @@ TEST_F(SpoaTest, GlobalConvexWithQualities) {
 }
 
 TEST_F(SpoaTest, SemiGlobal) {
-  Setup(spoa::AlignmentType::kOV, 5, -4, -8, -8, -8, -8, false);
+  Setup(AlignmentType::kOV, 5, -4, -8, -8, -8, -8, false);
+  Align();
 
   std::string c =
       "ACATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGA"
@@ -309,7 +326,8 @@ TEST_F(SpoaTest, SemiGlobal) {
 }
 
 TEST_F(SpoaTest, SemiGlobalAffine) {
-  Setup(spoa::AlignmentType::kOV, 5, -4, -8, -6, -8, -6, false);
+  Setup(AlignmentType::kOV, 5, -4, -8, -6, -8, -6, false);
+  Align();
 
   std::string c =
       "GTATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGA"
@@ -324,7 +342,8 @@ TEST_F(SpoaTest, SemiGlobalAffine) {
 }
 
 TEST_F(SpoaTest, SemiGlobalConvex) {
-  Setup(spoa::AlignmentType::kOV, 5, -4, -8, -6, -10, -2, false);
+  Setup(AlignmentType::kOV, 5, -4, -8, -6, -10, -2, false);
+  Align();
 
   std::string c =
       "GTATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGA"
@@ -339,7 +358,8 @@ TEST_F(SpoaTest, SemiGlobalConvex) {
 }
 
 TEST_F(SpoaTest, SemiGlobalWithQualities) {
-  Setup(spoa::AlignmentType::kOV, 5, -4, -8, -8, -8, -8, true);
+  Setup(AlignmentType::kOV, 5, -4, -8, -8, -8, -8, true);
+  Align();
 
   std::string c =
       "ACATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGA"
@@ -354,7 +374,8 @@ TEST_F(SpoaTest, SemiGlobalWithQualities) {
 }
 
 TEST_F(SpoaTest, SemiGlobalAffineWithQualities) {
-  Setup(spoa::AlignmentType::kOV, 5, -4, -8, -6, -8, -6, true);
+  Setup(AlignmentType::kOV, 5, -4, -8, -6, -8, -6, true);
+  Align();
 
   std::string c =
       "ACATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGA"
@@ -369,7 +390,8 @@ TEST_F(SpoaTest, SemiGlobalAffineWithQualities) {
 }
 
 TEST_F(SpoaTest, SemiGlobalConvexWithQualities) {
-  Setup(spoa::AlignmentType::kOV, 5, -4, -8, -6, -10, -2, true);
+  Setup(AlignmentType::kOV, 5, -4, -8, -6, -10, -2, true);
+  Align();
 
   std::string c =
       "GTATGATGCGCTTTGTTGGCGCGGTGGCTTGATGCAGGGGCTAATCGACCTCTGGCAACCACTTTTCCATGA"
