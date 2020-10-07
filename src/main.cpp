@@ -285,7 +285,11 @@ int main(int argc, char** argv) {
     }
 
     try {
-      graph.AddAlignment(alignment, it->data, it->quality);
+      if (it->quality.empty()) {
+        graph.AddAlignment(alignment, it->data);
+      } else {
+        graph.AddAlignment(alignment, it->data, it->quality);
+      }
     } catch(std::invalid_argument& exception) {
       std::cerr << exception.what() << std::endl;
       return 1;
