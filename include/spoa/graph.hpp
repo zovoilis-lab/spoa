@@ -292,7 +292,8 @@ class Graph {
 
   std::vector<bool> ExtractSubgraph(const Node* begin, const Node* end) const;
 
-  std::vector<std::uint32_t> InitializeMultipleSequenceAlignment() const;
+  std::vector<std::uint32_t> InitializeMultipleSequenceAlignment(
+      std::uint32_t* row_size = nullptr) const;
 
   std::uint32_t num_codes_;
   std::vector<std::int32_t> coder_;

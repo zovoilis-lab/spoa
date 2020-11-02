@@ -55,7 +55,19 @@ class SpoaTest: public ::testing::Test {
     EXPECT_EQ(c, gr.GenerateConsensus());
 
     auto msa = gr.GenerateMultipleSequenceAlignment();
-    EXPECT_TRUE(msa.size() == s.size());
+    EXPECT_EQ(s.size(), msa.size());
+
+    std::size_t rs = msa.front().size();
+    std::vector<std::uint32_t> gc(rs, 0);
+    for (const auto& it : msa) {
+      EXPECT_EQ(rs, it.size());
+      for (std::size_t i = 0; i < rs; ++i) {
+        gc[i] += it[i] == '-' ? 1 : 0;
+      }
+    }
+    for (const auto& it : gc) {
+      EXPECT_GT(msa.size(), it);
+    }
 
     for (std::uint32_t i = 0; i < msa.size(); ++i) {
       msa[i].erase(std::remove(msa[i].begin(), msa[i].end(), '-'), msa[i].end());  // NOLINT

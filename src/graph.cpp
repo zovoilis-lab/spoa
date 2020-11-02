@@ -318,9 +318,11 @@ bool Graph::IsTopologicallySorted() const {
   return true;
 }
 
-std::vector<std::uint32_t> Graph::InitializeMultipleSequenceAlignment() const {
+std::vector<std::uint32_t> Graph::InitializeMultipleSequenceAlignment(
+    std::uint32_t* row_size) const {
   std::vector<std::uint32_t> dst(nodes_.size());
-  for (std::uint32_t i = 0, j = 0; i < rank_to_node_.size(); ++i, ++j) {
+  std::uint32_t j = 0;
+  for (std::uint32_t i = 0; i < rank_to_node_.size(); ++i, ++j) {
     auto it = rank_to_node_[i];
     dst[it->id] = j;
     for (const auto& jt : it->aligned_nodes) {
@@ -328,16 +330,20 @@ std::vector<std::uint32_t> Graph::InitializeMultipleSequenceAlignment() const {
       ++i;
     }
   }
+  if (row_size) {
+    *row_size = j;
+  }
   return dst;
 }
 
 std::vector<std::string> Graph::GenerateMultipleSequenceAlignment(
     bool include_consensus) {
-  auto node_id_to_column = InitializeMultipleSequenceAlignment();
+  std::uint32_t row_size = 0;
+  auto node_id_to_column = InitializeMultipleSequenceAlignment(&row_size);
 
   std::vector<std::string> dst;
   for (std::uint32_t i = 0; i < sequences_.size(); ++i) {
-    std::string row(node_id_to_column.size() + 1, '-');
+    std::string row(row_size, '-');
     auto it = sequences_[i];
     while (true) {
       row[node_id_to_column[it->id]] = decoder_[it->code];
@@ -349,7 +355,7 @@ std::vector<std::string> Graph::GenerateMultipleSequenceAlignment(
   }
   if (include_consensus) {
     TraverseHeaviestBundle();
-    std::string row(node_id_to_column.size() + 1, '-');
+    std::string row(row_size, '-');
     for (const auto& it : consensus_) {
       row[node_id_to_column[it->id]] = decoder_[it->code];
     }
