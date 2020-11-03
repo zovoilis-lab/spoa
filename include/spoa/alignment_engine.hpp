@@ -56,7 +56,7 @@ class AlignmentEngine {
 
   virtual void Prealloc(
       std::uint32_t max_sequence_len,
-      std::uint32_t alphabet_size) = 0;
+      std::uint8_t alphabet_size) = 0;
 
   Alignment Align(
       const std::string& sequence,
@@ -66,7 +66,7 @@ class AlignmentEngine {
   virtual Alignment Align(
       const char* sequence, std::uint32_t sequence_len,
       const Graph& graph,
-      std::int32_t* score = nullptr) noexcept = 0;
+      std::int32_t* score = nullptr) = 0;
 
  protected:
   AlignmentEngine(
@@ -78,6 +78,10 @@ class AlignmentEngine {
       std::int8_t e,
       std::int8_t q,
       std::int8_t c);
+
+  std::int64_t WorstCaseAlignmentScore(
+      std::int64_t sequence_len,
+      std::int64_t graph_len) const;
 
   AlignmentType type_;
   AlignmentSubtype subtype_;

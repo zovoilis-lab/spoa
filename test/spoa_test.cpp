@@ -98,6 +98,24 @@ TEST(SpoaAlignmentTest, EmptyInput) {
   EXPECT_TRUE(a.empty());
 }
 
+TEST(SpoaAlignmentTest, LargeInput) {
+  auto ae = AlignmentEngine::Create(AlignmentType::kSW, 1, -1, -1);
+  try {
+    ae->Prealloc(-1, 1);
+  } catch (std::invalid_argument& exception) {
+    EXPECT_EQ(
+        std::string(exception.what()).substr(11),
+        "AlignmentEngine::Prealloc] error: too large sequence!");
+  }
+  try {
+    ae->Prealloc((1ULL << 31) - 1, -1);
+  } catch (std::invalid_argument& exception) {
+    EXPECT_EQ(
+        std::string(exception.what()).substr(11),
+        "AlignmentEngine::Prealloc] error: insufficient memory!");
+  }
+}
+
 TEST_F(SpoaTest, Clear) {
   Setup(AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);
   Align();

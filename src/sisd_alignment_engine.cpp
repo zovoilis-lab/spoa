@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <stdexcept>
 
 #include "spoa/graph.hpp"
 
@@ -62,14 +63,26 @@ SisdAlignmentEngine::SisdAlignmentEngine(
 
 void SisdAlignmentEngine::Prealloc(
     std::uint32_t max_sequence_len,
-    std::uint32_t alphabet_size) {
-  Realloc(max_sequence_len, alphabet_size * max_sequence_len, alphabet_size);
+    std::uint8_t alphabet_size) {
+  if (max_sequence_len > std::numeric_limits<int32_t>::max()) {
+    throw std::invalid_argument(
+        "[spoa::SisdAlignmentEngine::Prealloc] error: too large sequence!");
+  }
+  try {
+    Realloc(
+        static_cast<std::uint64_t>(max_sequence_len) + 1,
+        static_cast<std::uint64_t>(max_sequence_len) * alphabet_size + alphabet_size,  // NOLINT
+        alphabet_size);
+  } catch (std::bad_alloc& ba) {
+    throw std::invalid_argument(
+        "[spoa::SisdAlignmentEngine::Prealloc] error: insufficient memory!");
+  }
 }
 
 void SisdAlignmentEngine::Realloc(
-    std::uint32_t matrix_width,
-    std::uint32_t matrix_height,
-    std::uint32_t num_codes) {
+    std::uint64_t matrix_width,
+    std::uint64_t matrix_height,
+    std::uint8_t num_codes) {
   if (pimpl_->node_id_to_rank.size() < matrix_height - 1) {
     pimpl_->node_id_to_rank.resize(matrix_height - 1, 0);
   }
@@ -243,35 +256,49 @@ void SisdAlignmentEngine::Initialize(
 Alignment SisdAlignmentEngine::Align(
     const char* sequence, std::uint32_t sequence_len,
     const Graph& graph,
-    std::int32_t* score) noexcept {
+    std::int32_t* score) {
+  if (sequence_len > std::numeric_limits<int32_t>::max()) {
+    throw std::invalid_argument(
+        "[spoa::SisdAlignmentEngine::Align] error: too large sequence!");
+  }
+
   if (graph.nodes().empty() || sequence_len == 0) {
     return Alignment();
   }
 
+  if (WorstCaseAlignmentScore(sequence_len, graph.nodes().size()) < kNegativeInfinity) {  // NOLINT
+    throw std::invalid_argument(
+        "[spoa::SisdAlignmentEngine::Align] error: possible overflow!");
+  }
+
+  try {
+    Realloc(sequence_len + 1, graph.nodes().size() + 1, graph.num_codes());
+  } catch (std::bad_alloc& ba) {
+    throw std::invalid_argument(
+        "[spoa::SisdAlignmentEngine::Align] error: insufficient memory!");
+  }
+  Initialize(sequence, sequence_len, graph);
+
   if (subtype_ == AlignmentSubtype::kLinear) {
-    return Linear(sequence, sequence_len, graph, score);
+    return Linear(sequence_len, graph, score);
   } else if (subtype_ == AlignmentSubtype::kAffine) {
-    return Affine(sequence, sequence_len, graph, score);
+    return Affine(sequence_len, graph, score);
   } else if (subtype_ == AlignmentSubtype::kConvex) {
-    return Convex(sequence, sequence_len, graph, score);
+    return Convex(sequence_len, graph, score);
   }
   return Alignment();
 }
 
 Alignment SisdAlignmentEngine::Linear(
-    const char* sequence, std::uint32_t sequence_len,
+    std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
-  std::uint32_t matrix_width = sequence_len + 1;
-  std::uint32_t matrix_height = graph.nodes().size() + 1;
+  std::uint64_t matrix_width = sequence_len + 1;
   const auto& rank_to_node = graph.rank_to_node();
 
-  Realloc(matrix_width, matrix_height, graph.num_codes());
-  Initialize(sequence, sequence_len, graph);
-
   std::int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-  std::int32_t max_i = -1;
-  std::int32_t max_j = -1;
+  std::uint32_t max_i = 0;
+  std::uint32_t max_j = 0;
   auto update_max_score = [&max_score, &max_i, &max_j] (
       std::int32_t* H_row,
       std::uint32_t i,
@@ -297,7 +324,7 @@ Alignment SisdAlignmentEngine::Linear(
     std::int32_t* H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
 
     // update H
-    for (std::uint32_t j = 1; j < matrix_width; ++j) {
+    for (std::uint64_t j = 1; j < matrix_width; ++j) {
       H_row[j] = std::max(
           H_pred_row[j - 1] + char_profile[j],
           H_pred_row[j] + g_);
@@ -308,7 +335,7 @@ Alignment SisdAlignmentEngine::Linear(
 
       H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
 
-      for (std::uint32_t j = 1; j < matrix_width; ++j) {
+      for (std::uint64_t j = 1; j < matrix_width; ++j) {
         H_row[j] = std::max(
             H_pred_row[j - 1] + char_profile[j],
             std::max(
@@ -317,7 +344,7 @@ Alignment SisdAlignmentEngine::Linear(
       }
     }
 
-    for (std::uint32_t j = 1; j < matrix_width; ++j) {
+    for (std::uint64_t j = 1; j < matrix_width; ++j) {
       H_row[j] = std::max(H_row[j - 1] + g_, H_row[j]);
 
       if (type_ == AlignmentType::kSW) {
@@ -332,6 +359,9 @@ Alignment SisdAlignmentEngine::Linear(
     }
   }
 
+  if (max_i == 0 && max_j == 0) {
+    return Alignment();
+  }
   if (score) {
     *score = max_score;
   }
@@ -430,19 +460,15 @@ Alignment SisdAlignmentEngine::Linear(
 }
 
 Alignment SisdAlignmentEngine::Affine(
-    const char* sequence, std::uint32_t sequence_len,
+    std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
-  std::uint32_t matrix_width = sequence_len + 1;
-  std::uint32_t matrix_height = graph.nodes().size() + 1;
+  std::uint64_t matrix_width = sequence_len + 1;
   const auto& rank_to_node = graph.rank_to_node();
 
-  Realloc(matrix_width, matrix_height, graph.num_codes());
-  Initialize(sequence, sequence_len, graph);
-
   std::int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-  std::int32_t max_i = -1;
-  std::int32_t max_j = -1;
+  std::uint32_t max_i = 0;
+  std::uint32_t max_j = 0;
   auto update_max_score = [&max_score, &max_i, &max_j] (
       std::int32_t* H_row,
       std::uint32_t i,
@@ -471,7 +497,7 @@ Alignment SisdAlignmentEngine::Affine(
     std::int32_t* F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
 
     // update F and H
-    for (std::uint32_t j = 1; j < matrix_width; ++j) {
+    for (std::uint64_t j = 1; j < matrix_width; ++j) {
       F_row[j] = std::max(
           H_pred_row[j] + g_,
           F_pred_row[j] + e_);
@@ -484,7 +510,7 @@ Alignment SisdAlignmentEngine::Affine(
       H_pred_row = &(pimpl_->H[pred_i * matrix_width]);
       F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
 
-      for (std::uint32_t j = 1; j < matrix_width; ++j) {
+      for (std::uint64_t j = 1; j < matrix_width; ++j) {
         F_row[j] = std::max(
             F_row[j],
             std::max(
@@ -498,7 +524,7 @@ Alignment SisdAlignmentEngine::Affine(
 
     // update E and H
     std::int32_t* E_row = &(pimpl_->E[i * matrix_width]);
-    for (std::uint32_t j = 1; j < matrix_width; ++j) {
+    for (std::uint64_t j = 1; j < matrix_width; ++j) {
       E_row[j] = std::max(H_row[j - 1] + g_, E_row[j - 1] + e_);
       H_row[j] = std::max(H_row[j], std::max(F_row[j], E_row[j]));
 
@@ -514,6 +540,9 @@ Alignment SisdAlignmentEngine::Affine(
     }
   }
 
+  if (max_i == 0 && max_j == 0) {
+    return Alignment();
+  }
   if (score) {
     *score = max_score;
   }
@@ -647,19 +676,15 @@ Alignment SisdAlignmentEngine::Affine(
 }
 
 Alignment SisdAlignmentEngine::Convex(
-    const char* sequence, std::uint32_t sequence_len,
+    std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
-  std::uint32_t matrix_width = sequence_len + 1;
-  std::uint32_t matrix_height = graph.nodes().size() + 1;
+  std::uint64_t matrix_width = sequence_len + 1;
   const auto& rank_to_node = graph.rank_to_node();
 
-  Realloc(matrix_width, matrix_height, graph.num_codes());
-  Initialize(sequence, sequence_len, graph);
-
   std::int32_t max_score = type_ == AlignmentType::kSW ? 0 : kNegativeInfinity;
-  std::int32_t max_i = -1;
-  std::int32_t max_j = -1;
+  std::uint32_t max_i = 0;
+  std::uint32_t max_j = 0;
   auto update_max_score = [&max_score, &max_i, &max_j] (
       std::int32_t* H_row,
       std::uint32_t i,
@@ -691,7 +716,7 @@ Alignment SisdAlignmentEngine::Convex(
     std::int32_t* O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
 
     // update F, O and H
-    for (std::uint32_t j = 1; j < matrix_width; ++j) {
+    for (std::uint64_t j = 1; j < matrix_width; ++j) {
       F_row[j] = std::max(H_pred_row[j] + g_, F_pred_row[j] + e_);
       O_row[j] = std::max(H_pred_row[j] + q_, O_pred_row[j] + c_);
       H_row[j] = H_pred_row[j - 1] + char_profile[j];
@@ -704,7 +729,7 @@ Alignment SisdAlignmentEngine::Convex(
       F_pred_row = &(pimpl_->F[pred_i * matrix_width]);
       O_pred_row = &(pimpl_->O[pred_i * matrix_width]);
 
-      for (std::uint32_t j = 1; j < matrix_width; ++j) {
+      for (std::uint64_t j = 1; j < matrix_width; ++j) {
         F_row[j] = std::max(
             F_row[j],
             std::max(
@@ -722,7 +747,7 @@ Alignment SisdAlignmentEngine::Convex(
     // update E, Q and H
     std::int32_t* E_row = &(pimpl_->E[i * matrix_width]);
     std::int32_t* Q_row = &(pimpl_->Q[i * matrix_width]);
-    for (std::uint32_t j = 1; j < matrix_width; ++j) {
+    for (std::uint64_t j = 1; j < matrix_width; ++j) {
       E_row[j] = std::max(H_row[j - 1] + g_, E_row[j - 1] + e_);
       Q_row[j] = std::max(H_row[j - 1] + q_, Q_row[j - 1] + c_);
       H_row[j] = std::max(
@@ -743,6 +768,9 @@ Alignment SisdAlignmentEngine::Convex(
     }
   }
 
+  if (max_i == 0 && max_j == 0) {
+    return Alignment();
+  }
   if (score) {
     *score = max_score;
   }

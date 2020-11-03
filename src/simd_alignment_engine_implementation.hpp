@@ -6,9 +6,11 @@
 #include "simd_alignment_engine.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 extern "C" {
@@ -311,12 +313,12 @@ struct SimdAlignmentEngine<A>::Implementation {
   std::vector<std::uint32_t> node_id_to_rank;
 
   std::unique_ptr<__mxxxi[]> sequence_profile_storage;
-  std::uint32_t sequence_profile_size;
+  std::uint64_t sequence_profile_size;
   __mxxxi* sequence_profile;
 
   std::vector<std::int32_t> first_column;
   std::unique_ptr<__mxxxi[]> M_storage;
-  std::uint32_t M_size;
+  std::uint64_t M_size;
   __mxxxi* H;
   __mxxxi* F;
   __mxxxi* E;
@@ -371,34 +373,50 @@ SimdAlignmentEngine<A>::SimdAlignmentEngine(
 template<Architecture A>
 void SimdAlignmentEngine<A>::Prealloc(
     std::uint32_t max_sequence_len,
-    std::uint32_t alphabet_size) {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-  std::uint32_t longest_path = max_sequence_len * (alphabet_size + 1) + 1 +
-      InstructionSet<A, std::int16_t>::kNumVar;
-
-  std::uint32_t max_penalty = std::max(
-      std::max(abs(m_), abs(n_)),
-      std::max(abs(g_), abs(q_)));
-
-  if (max_penalty * longest_path < std::numeric_limits<std::int16_t>::max()) {
-    Realloc(
-        (max_sequence_len / InstructionSet<A, std::int16_t>::kNumVar) + 1,
-        alphabet_size * max_sequence_len,
-        alphabet_size);
-  } else {
-    Realloc(
-        (max_sequence_len / InstructionSet<A, std::int32_t>::kNumVar) + 1,
-        alphabet_size * max_sequence_len,
-        alphabet_size);
+    std::uint8_t alphabet_size) {
+  if (max_sequence_len > std::numeric_limits<int32_t>::max()) {
+    throw std::invalid_argument(
+        "[spoa::SimdAlignmentEngine::Prealloc] error: too large sequence!");
   }
+
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+
+  std::int64_t worst_case_score = WorstCaseAlignmentScore(
+      static_cast<std::int64_t>(max_sequence_len) + 8,
+      static_cast<std::int64_t>(max_sequence_len) * alphabet_size);
+
+  if (worst_case_score < std::numeric_limits<std::int32_t>::min() + 1024) {
+    return;
+  } else if (worst_case_score < std::numeric_limits<std::int16_t>::min() + 1024) {  // NOLINT
+    try {
+      Realloc(
+          (max_sequence_len / InstructionSet<A, std::int32_t>::kNumVar) + 1,
+          static_cast<std::uint64_t>(max_sequence_len) * alphabet_size,
+          alphabet_size);
+    } catch (std::bad_alloc& ba) {
+      throw std::invalid_argument(
+          "[spoa::SimdAlignmentEngine::Prealloc] error: insufficient memory!");
+    }
+  } else {
+    try {
+      Realloc(
+          (max_sequence_len / InstructionSet<A, std::int16_t>::kNumVar) + 1,
+          static_cast<std::uint64_t>(max_sequence_len) * alphabet_size,
+          alphabet_size);
+    } catch (std::bad_alloc& ba) {
+      throw std::invalid_argument(
+          "[spoa::SimdAlignmentEngine::Prealloc] error: insufficient memory!");
+    }
+  }
+
 #endif
 }
 
 template<Architecture A>
 void SimdAlignmentEngine<A>::Realloc(
-    std::uint32_t matrix_width,
-    std::uint32_t matrix_height,
-    std::uint32_t num_codes) {
+    std::uint64_t matrix_width,
+    std::uint64_t matrix_height,
+    std::uint8_t num_codes) {
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
   if (pimpl_->node_id_to_rank.size() < matrix_height - 1) {
     pimpl_->node_id_to_rank.resize(matrix_height - 1, 0);
@@ -489,9 +507,9 @@ template<Architecture A> template<typename T>
 void SimdAlignmentEngine<A>::Initialize(
     const char* sequence,
     const Graph& graph,
-    std::uint32_t normal_matrix_width,
-    std::uint32_t matrix_width,
-    std::uint32_t matrix_height) noexcept {
+    std::uint64_t normal_matrix_width,
+    std::uint64_t matrix_width,
+    std::uint64_t matrix_height) noexcept {
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
   std::int32_t padding_penatly = -1 * std::max(
       std::max(abs(m_), abs(n_)),
@@ -666,53 +684,89 @@ template<Architecture A>
 Alignment SimdAlignmentEngine<A>::Align(
     const char* sequence, std::uint32_t sequence_len,
     const Graph& graph,
-    std::int32_t* score) noexcept {
+    std::int32_t* score) {
+  if (sequence_len > std::numeric_limits<int32_t>::max()) {
+    throw std::invalid_argument(
+        "[spoa::SimdAlignmentEngine::Align] error: too large sequence!");
+  }
+
   if (graph.nodes().empty() || sequence_len == 0) {
     return Alignment();
   }
 
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-  std::uint32_t longest_path = graph.nodes().size() + 1 + sequence_len +
-      InstructionSet<A, std::int16_t>::kNumVar;
 
-  std::uint32_t max_penalty = std::max(std::max(abs(m_), abs(n_)), abs(g_));
+  std::int64_t worst_case_score = WorstCaseAlignmentScore(
+      sequence_len + 8,
+      graph.nodes().size());
 
-  if (max_penalty * longest_path < std::numeric_limits<std::int16_t>::max()) {
+  if (worst_case_score < std::numeric_limits<std::int32_t>::min() + 1024) {
+    throw std::invalid_argument(
+        "[spoa::SimdAlignmentEngine::Align] error: possible overflow!");
+  } else if (worst_case_score < std::numeric_limits<std::int16_t>::min() + 1024) {  // NOLINT
+    try {
+      Realloc(
+          std::ceil(static_cast<double>(sequence_len) / InstructionSet<A, std::int32_t>::kNumVar),  // NOLINT
+          graph.nodes().size() + 1,
+          graph.num_codes());
+    } catch (std::bad_alloc& ba) {
+      throw std::invalid_argument(
+          "[spoa::SimdAlignmentEngine::Align] error: insufficient memory!");
+    }
+    Initialize<InstructionSet<A, std::int32_t>>(
+        sequence,
+        graph,
+        sequence_len,
+        std::ceil(static_cast<double>(sequence_len) / InstructionSet<A, std::int32_t>::kNumVar),  // NOLINT
+        graph.nodes().size() + 1);
+
     if (subtype_ == AlignmentSubtype::kLinear) {
-      return Linear<InstructionSet<A, std::int16_t>>(sequence, sequence_len, graph, score);  // NOLINT
+      return Linear<InstructionSet<A, std::int32_t>>(sequence_len, graph, score);  // NOLINT
     } else if (subtype_ == AlignmentSubtype::kAffine) {
-      return Affine<InstructionSet<A, std::int16_t>>(sequence, sequence_len, graph, score);  // NOLINT
+      return Affine<InstructionSet<A, std::int32_t>>(sequence_len, graph, score);  // NOLINT
     } else if (subtype_ == AlignmentSubtype::kConvex) {
-      return Convex<InstructionSet<A, std::int16_t>>(sequence, sequence_len, graph, score);  // NOLINT
+      return Convex<InstructionSet<A, std::int32_t>>(sequence_len, graph, score);  // NOLINT
     }
   } else {
+    try {
+      Realloc(
+          std::ceil(static_cast<double>(sequence_len) / InstructionSet<A, std::int16_t>::kNumVar),  // NOLINT
+          graph.nodes().size() + 1,
+          graph.num_codes());
+    } catch (std::bad_alloc& ba) {
+      throw std::invalid_argument(
+          "[spoa::SimdAlignmentEngine::Align] error: insufficient memory!");
+    }
+    Initialize<InstructionSet<A, std::int16_t>>(
+        sequence,
+        graph,
+        sequence_len,
+        std::ceil(static_cast<double>(sequence_len) / InstructionSet<A, std::int16_t>::kNumVar),  // NOLINT
+        graph.nodes().size() + 1);
+
     if (subtype_ == AlignmentSubtype::kLinear) {
-      return Linear<InstructionSet<A, std::int32_t>>(sequence, sequence_len, graph, score);  // NOLINT
+      return Linear<InstructionSet<A, std::int16_t>>(sequence_len, graph, score);  // NOLINT
     } else if (subtype_ == AlignmentSubtype::kAffine) {
-      return Affine<InstructionSet<A, std::int32_t>>(sequence, sequence_len, graph, score);  // NOLINT
+      return Affine<InstructionSet<A, std::int16_t>>(sequence_len, graph, score);  // NOLINT
     } else if (subtype_ == AlignmentSubtype::kConvex) {
-      return Convex<InstructionSet<A, std::int32_t>>(sequence, sequence_len, graph, score);  // NOLINT
+      return Convex<InstructionSet<A, std::int16_t>>(sequence_len, graph, score);  // NOLINT
     }
   }
+
 #endif
   return Alignment();
 }
 
 template<Architecture A> template <typename T>
 Alignment SimdAlignmentEngine<A>::Linear(
-    const char* sequence, std::uint32_t sequence_len,
+    std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-  std::uint32_t normal_matrix_width = sequence_len;
-  std::uint32_t matrix_width =
-      (sequence_len + (sequence_len % T::kNumVar == 0 ?
-      0 : T::kNumVar - sequence_len % T::kNumVar)) / T::kNumVar;
-  std::uint32_t matrix_height = graph.nodes().size() + 1;
+  std::uint64_t normal_matrix_width = sequence_len;
+  std::uint64_t matrix_width =
+      std::ceil(static_cast<double>(sequence_len) / T::kNumVar);
   const auto& rank_to_node = graph.rank_to_node();
-
-  Realloc(matrix_width, matrix_height, graph.num_codes());
-  Initialize<T>(sequence, graph, normal_matrix_width, matrix_width, matrix_height);  // NOLINT
 
   typename T::type kNegativeInfinity =
       std::numeric_limits<typename T::type>::min() + 1024;
@@ -759,7 +813,7 @@ Alignment SimdAlignmentEngine<A>::Linear(
         T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
         T::kRSS);
 
-    for (std::uint32_t j = 0; j < matrix_width; ++j) {
+    for (std::uint64_t j = 0; j < matrix_width; ++j) {
       // get diagonal
       __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
       H_row[j] = _mmxxx_or_si(
@@ -782,7 +836,7 @@ Alignment SimdAlignmentEngine<A>::Linear(
           T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
           T::kRSS);
 
-      for (std::uint32_t j = 0; j < matrix_width; ++j) {
+      for (std::uint64_t j = 0; j < matrix_width; ++j) {
         // get diagonal
         __mxxxi t1 = _mmxxx_srli_si(H_pred_row[j], T::kRSS);
         __mxxxi m = _mmxxx_or_si(
@@ -806,7 +860,7 @@ Alignment SimdAlignmentEngine<A>::Linear(
             g),
         T::kRSS);
 
-    for (std::uint32_t j = 0; j < matrix_width; ++j) {
+    for (std::uint64_t j = 0; j < matrix_width; ++j) {
       // add last element of previous vector into this one
       H_row[j] = T::_mmxxx_max_epi(
           H_row[j],
@@ -851,12 +905,11 @@ Alignment SimdAlignmentEngine<A>::Linear(
     }
   }
 
+  if (max_i == -1 && max_j == -1) {
+    return Alignment();
+  }
   if (score) {
     *score = max_score;
-  }
-
-  if (max_i == -1 && max_j == -1) {  // no alignment found
-    return Alignment();
   }
 
   if (type_ == AlignmentType::kSW) {
@@ -1057,19 +1110,14 @@ Alignment SimdAlignmentEngine<A>::Linear(
 
 template<Architecture A> template <typename T>
 Alignment SimdAlignmentEngine<A>::Affine(
-    const char* sequence, std::uint32_t sequence_len,
+    std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-  std::uint32_t normal_matrix_width = sequence_len;
-  std::uint32_t matrix_width =
-      (sequence_len + (sequence_len % T::kNumVar == 0 ?
-      0 : T::kNumVar - sequence_len % T::kNumVar)) / T::kNumVar;
-  std::uint32_t matrix_height = graph.nodes().size() + 1;
+  std::uint64_t normal_matrix_width = sequence_len;
+  std::uint64_t matrix_width =
+      std::ceil(static_cast<double>(sequence_len) / T::kNumVar);
   const auto& rank_to_node = graph.rank_to_node();
-
-  Realloc(matrix_width, matrix_height, graph.num_codes());
-  Initialize<T>(sequence, graph, normal_matrix_width, matrix_width, matrix_height);  // NOLINT
 
   typename T::type kNegativeInfinity =
       std::numeric_limits<typename T::type>::min() + 1024;
@@ -1121,7 +1169,7 @@ Alignment SimdAlignmentEngine<A>::Affine(
         T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
         T::kRSS);
 
-    for (std::uint32_t j = 0; j < matrix_width; ++j) {
+    for (std::uint64_t j = 0; j < matrix_width; ++j) {
       // update F
       F_row[j] = T::_mmxxx_add_epi(
           T::_mmxxx_max_epi(
@@ -1148,7 +1196,7 @@ Alignment SimdAlignmentEngine<A>::Affine(
           T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
           T::kRSS);
 
-      for (std::uint32_t j = 0; j < matrix_width; ++j) {
+      for (std::uint64_t j = 0; j < matrix_width; ++j) {
         // update F
         F_row[j] = T::_mmxxx_max_epi(
             F_row[j],
@@ -1174,7 +1222,7 @@ Alignment SimdAlignmentEngine<A>::Affine(
     __mxxxi score = zeroes;
     x = T::_mmxxx_set1_epi(pimpl_->first_column[i]);
 
-    for (std::uint32_t j = 0; j < matrix_width; ++j) {
+    for (std::uint64_t j = 0; j < matrix_width; ++j) {
       H_row[j] = T::_mmxxx_max_epi(H_row[j], F_row[j]);
 
       E_row[j] = T::_mmxxx_add_epi(
@@ -1225,12 +1273,11 @@ Alignment SimdAlignmentEngine<A>::Affine(
     }
   }
 
+  if (max_i == -1 && max_j == -1) {
+    return Alignment();
+  }
   if (score) {
     *score = max_score;
-  }
-
-  if (max_i == -1 && max_j == -1) {  // no alignment found
-    return Alignment();
   }
 
   if (type_ == AlignmentType::kSW) {
@@ -1510,19 +1557,15 @@ Alignment SimdAlignmentEngine<A>::Affine(
 
 template<Architecture A> template <typename T>
 Alignment SimdAlignmentEngine<A>::Convex(
-    const char* sequence, std::uint32_t sequence_len,
+    std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-  std::uint32_t normal_matrix_width = sequence_len;
-  std::uint32_t matrix_width =
-      (sequence_len + (sequence_len % T::kNumVar == 0 ?
-      0 : T::kNumVar - sequence_len % T::kNumVar)) / T::kNumVar;
-  std::uint32_t matrix_height = graph.nodes().size() + 1;
+  std::uint64_t normal_matrix_width = sequence_len;
+  std::uint64_t matrix_width =
+      std::ceil(static_cast<double>(sequence_len) / T::kNumVar);
+  std::uint64_t matrix_height = graph.nodes().size() + 1;
   const auto& rank_to_node = graph.rank_to_node();
-
-  Realloc(matrix_width, matrix_height, graph.num_codes());
-  Initialize<T>(sequence, graph, normal_matrix_width, matrix_width, matrix_height);  // NOLINT
 
   typename T::type kNegativeInfinity =
       std::numeric_limits<typename T::type>::min() + 1024;
@@ -1584,7 +1627,7 @@ Alignment SimdAlignmentEngine<A>::Convex(
         T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
         T::kRSS);
 
-    for (std::uint32_t j = 0; j < matrix_width; ++j) {
+    for (std::uint64_t j = 0; j < matrix_width; ++j) {
       // update F
       F_row[j] = T::_mmxxx_add_epi(
           T::_mmxxx_max_epi(
@@ -1619,7 +1662,7 @@ Alignment SimdAlignmentEngine<A>::Convex(
           T::_mmxxx_set1_epi(pimpl_->first_column[pred_i]),
           T::kRSS);
 
-      for (std::uint32_t j = 0; j < matrix_width; ++j) {
+      for (std::uint64_t j = 0; j < matrix_width; ++j) {
         // update F
         F_row[j] = T::_mmxxx_max_epi(
             F_row[j],
@@ -1659,7 +1702,7 @@ Alignment SimdAlignmentEngine<A>::Convex(
 
     __mxxxi score = zeroes;
 
-    for (std::uint32_t j = 0; j < matrix_width; ++j) {
+    for (std::uint64_t j = 0; j < matrix_width; ++j) {
       H_row[j] = T::_mmxxx_max_epi(
           H_row[j],
           T::_mmxxx_max_epi(F_row[j], O_row[j]));
@@ -1729,12 +1772,11 @@ Alignment SimdAlignmentEngine<A>::Convex(
     }
   }
 
+  if (max_i == -1 && max_j == -1) {
+    return Alignment();
+  }
   if (score) {
     *score = max_score;
-  }
-
-  if (max_i == -1 && max_j == -1) {  // no alignment found
-    return Alignment();
   }
 
   if (type_ == AlignmentType::kSW) {

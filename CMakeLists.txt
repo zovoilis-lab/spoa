@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(spoa VERSION 4.0.4
+project(spoa VERSION 4.0.5
              LANGUAGES CXX
              DESCRIPTION "Spoa is a c++ library (and tool) for SIMD vectorized partial order alignment.")
 
@@ -61,7 +61,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME}
   cereal)
 if (BUILD_SHARED_LIBS)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION = "6.0.0")
+  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION = "7.0.0")
 endif ()
 
 if (spoa_generate_dispatch)
@@ -77,6 +77,8 @@ if (spoa_generate_dispatch)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/simde>
       $<INSTALL_INTERFACE:include>)
+    target_link_libraries(${PROJECT_NAME}_${arch}
+      cereal)
     set_target_properties(${PROJECT_NAME}_${arch} PROPERTIES
       COMPILE_FLAGS "-m${arch}")
     if (BUILD_SHARED_LIBS)

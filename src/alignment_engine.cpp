@@ -98,4 +98,15 @@ Alignment AlignmentEngine::Align(
   return Align(sequence.c_str(), sequence.size(), graph, score);
 }
 
+std::int64_t AlignmentEngine::WorstCaseAlignmentScore(
+    std::int64_t i,
+    std::int64_t j) const {
+  auto gap_score = [&] (std::int64_t len) -> std::int64_t {
+    return len == 0 ? 0 : std::min(g_ + (len - 1) * e_, q_ + (len - 1) * c_);
+  };
+  return std::min(
+      -1 * (m_ * std::min(i, j) + gap_score(std::abs(i - j))),
+      gap_score(i) + gap_score(j));
+}
+
 }  // namespace spoa

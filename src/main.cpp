@@ -31,7 +31,6 @@ std::unique_ptr<bioparser::Parser<biosoup::Sequence>> CreateParser(
         str.compare(str.size() - suff.size(), suff.size(), suff) == 0;
   };
 
-
   if (is_suffix(path, ".fasta") || is_suffix(path, ".fasta.gz") ||
       is_suffix(path, ".fna")   || is_suffix(path, ".fna.gz") ||
       is_suffix(path, ".faa")   || is_suffix(path, ".faa.gz") ||
@@ -263,18 +262,35 @@ int main(int argc, char** argv) {
   for (const auto& it : sequences) {
     max_sequence_len = std::max(max_sequence_len, it->data.size());
   }
-  alignment_engine->Prealloc(max_sequence_len, 4);
+  try {
+    alignment_engine->Prealloc(max_sequence_len, 4);
+  } catch (std::invalid_argument& exception) {
+    std::cerr << exception.what() << std::endl;
+    return 1;
+  }
 
   spoa::Graph graph{};
   std::vector<bool> is_reversed;
   for (const auto& it : sequences) {
     std::int32_t score = 0;
-    auto alignment = alignment_engine->Align(it->data, graph, &score);
+    spoa::Alignment alignment;
+    try {
+      alignment = alignment_engine->Align(it->data, graph, &score);
+    } catch (std::invalid_argument& exception) {
+      std::cerr << exception.what() << std::endl;
+      return 1;
+    }
 
     if (is_strand_ambiguous) {
       it->ReverseAndComplement();
       std::int32_t score_rev = 0;
-      auto alignment_rev = alignment_engine->Align(it->data, graph, &score_rev);
+      spoa::Alignment alignment_rev;
+      try {
+        alignment_rev = alignment_engine->Align(it->data, graph, &score_rev);
+      } catch (std::invalid_argument& exception) {
+        std::cerr << exception.what() << std::endl;
+        return 1;
+      }
       if (score >= score_rev) {
         it->ReverseAndComplement();
         is_reversed.push_back(false);

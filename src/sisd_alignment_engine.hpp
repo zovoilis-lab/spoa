@@ -34,12 +34,12 @@ class SisdAlignmentEngine: public AlignmentEngine {
 
   void Prealloc(
       std::uint32_t max_sequence_len,
-      std::uint32_t alphabet_size) override;
+      std::uint8_t alphabet_size) override;
 
   Alignment Align(
       const char* sequence, std::uint32_t sequence_len,
       const Graph& graph,
-      std::int32_t* score) noexcept override;
+      std::int32_t* score) override;
 
  private:
   SisdAlignmentEngine(
@@ -53,24 +53,24 @@ class SisdAlignmentEngine: public AlignmentEngine {
       std::int8_t c);
 
   Alignment Linear(
-      const char* sequence, std::uint32_t sequence_len,
+      std::uint32_t sequence_len,
       const Graph& graph,
       std::int32_t* score) noexcept;
 
   Alignment Affine(
-      const char* sequence, std::uint32_t sequence_len,
+      std::uint32_t sequence_len,
       const Graph& graph,
       std::int32_t* score) noexcept;
 
   Alignment Convex(
-      const char* sequence, std::uint32_t sequence_len,
+      std::uint32_t sequence_len,
       const Graph& graph,
       std::int32_t* score) noexcept;
 
   void Realloc(
-      std::uint32_t matrix_width,
-      std::uint32_t matrix_height,
-      std::uint32_t num_codes);
+      std::uint64_t matrix_width,
+      std::uint64_t matrix_height,
+      std::uint8_t num_codes);
 
   void Initialize(
       const char* sequence, std::uint32_t sequence_len,

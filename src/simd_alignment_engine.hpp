@@ -48,12 +48,12 @@ class SimdAlignmentEngine: public AlignmentEngine {
 
   void Prealloc(
       std::uint32_t max_sequence_len,
-      std::uint32_t alphabet_size) override;
+      std::uint8_t alphabet_size) override;
 
   Alignment Align(
       const char* sequence, std::uint32_t sequence_len,
       const Graph& graph,
-      std::int32_t* score) noexcept override;
+      std::int32_t* score) override;
 
   friend std::unique_ptr<AlignmentEngine> CreateSimdAlignmentEngine(
       AlignmentType type,
@@ -78,34 +78,34 @@ class SimdAlignmentEngine: public AlignmentEngine {
 
   template<typename T>
   Alignment Linear(
-      const char* sequence, std::uint32_t sequence_len,
+      std::uint32_t sequence_len,
       const Graph& graph,
       std::int32_t* score) noexcept;
 
   template<typename T>
   Alignment Affine(
-      const char* sequence, std::uint32_t sequence_len,
+      std::uint32_t sequence_len,
       const Graph& graph,
       std::int32_t* score) noexcept;
 
   template<typename T>
   Alignment Convex(
-      const char* sequence, std::uint32_t sequence_len,
+      std::uint32_t sequence_len,
       const Graph& graph,
       std::int32_t* score) noexcept;
 
   void Realloc(
-      std::uint32_t matrix_width,
-      std::uint32_t matrix_height,
-      std::uint32_t num_codes);
+      std::uint64_t matrix_width,
+      std::uint64_t matrix_height,
+      std::uint8_t num_codes);
 
   template<typename T>
   void Initialize(
       const char* sequence,
       const Graph& graph,
-      std::uint32_t normal_matrix_width,
-      std::uint32_t matrix_width,
-      std::uint32_t matrix_height) noexcept;
+      std::uint64_t normal_matrix_width,
+      std::uint64_t matrix_width,
+      std::uint64_t matrix_height) noexcept;
 
   struct Implementation;
   std::unique_ptr<Implementation> pimpl_;
