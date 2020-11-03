@@ -49,8 +49,8 @@ inline void* align(
 template<Architecture A, typename T>
 T* AllocateAlignedMemory(
     T** storage,
-    std::uint32_t size,
-    std::uint32_t alignment) {
+    std::size_t size,
+    std::size_t alignment) {
   *storage = new T[size + alignment - 1];
   void* ptr = static_cast<void*>(*storage);
   std::size_t storage_size = (size + alignment - 1) * sizeof(T);
