@@ -61,7 +61,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME}
   cereal)
 if (BUILD_SHARED_LIBS)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION = "7.0.0")
+  set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION "7.0.0")
 endif ()
 
 if (spoa_generate_dispatch)
