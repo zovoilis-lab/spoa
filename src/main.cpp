@@ -95,7 +95,7 @@ void Help() {
       "        0 - local (Smith-Waterman)\n"
       "        1 - global (Needleman-Wunsch)\n"
       "        2 - semi-global\n"
-      "    -r, --result <int>\n"
+      "    -r, --result <int> (option can be used multiple times)\n"
       "      default: 0\n"
       "      result mode:\n"
       "        0 - consensus (FASTA)\n"
@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
   std::int8_t c = -4;
 
   std::uint8_t algorithm = 0;
-  std::uint8_t result = 0;
+  std::vector<std::uint8_t> results = { 0 };
   std::string dot_path{};
   bool is_strand_ambiguous = false;
 
@@ -226,13 +226,16 @@ int main(int argc, char** argv) {
       case 'q': q = atoi(optarg); break;
       case 'c': c = atoi(optarg); break;
       case 'l': algorithm = atoi(optarg); break;
-      case 'r': result = atoi(optarg); break;
+      case 'r': results.emplace_back(atoi(optarg)); break;
       case 'd': dot_path = optarg; break;
       case 's': is_strand_ambiguous = true; break;
       case 'v': std::cout << spoa_version << std::endl; return 0;
       case 'h': Help(); return 0;
       default: return 1;
     }
+  }
+  if (results.size() > 1) {
+    results.erase(results.begin());
   }
 
   if (optind >= argc) {
@@ -312,35 +315,37 @@ int main(int argc, char** argv) {
     }
   }
 
-  switch (result) {
-    case 0: {
-      auto consensus = graph.GenerateConsensus();
-      std::cout << ">Consensus LN:i:" << consensus.size() << std::endl
-                << consensus << std::endl;
-      break;
-    }
-    case 1:
-    case 2: {
-      auto msa = graph.GenerateMultipleSequenceAlignment(result == 2);
-      for (std::uint32_t i = 0; i < msa.size(); ++i) {
-        std::string name = i < sequences.size() ? sequences[i]->name : "Consensus";  // NOLINT
-        std::cout << ">" << name << std::endl
-                  << msa[i] << std::endl;
+  for (const auto& it : results) {
+    switch (it) {
+      case 0: {
+        auto consensus = graph.GenerateConsensus();
+        std::cout << ">Consensus LN:i:" << consensus.size() << std::endl
+                  << consensus << std::endl;
+        break;
       }
-      break;
-    }
-    case 3:
-    case 4: {
-      std::vector<std::string> headers;
-      for (const auto& it : sequences) {
-        headers.emplace_back(it->name);
+      case 1:
+      case 2: {
+        auto msa = graph.GenerateMultipleSequenceAlignment(it == 2);
+        for (std::uint32_t i = 0; i < msa.size(); ++i) {
+          std::string name = i < sequences.size() ? sequences[i]->name : "Consensus";  // NOLINT
+          std::cout << ">" << name << std::endl
+                    << msa[i] << std::endl;
+        }
+        break;
       }
-      graph.GenerateConsensus();
-      PrintGfa(graph, headers, is_reversed, result == 4);
-      break;
+      case 3:
+      case 4: {
+        std::vector<std::string> headers;
+        for (const auto& it : sequences) {
+          headers.emplace_back(it->name);
+        }
+        graph.GenerateConsensus();
+        PrintGfa(graph, headers, is_reversed, it == 4);
+        break;
+      }
+      default:
+        break;
     }
-    default:
-      break;
   }
 
   graph.PrintDot(dot_path);

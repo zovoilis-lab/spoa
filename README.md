@@ -53,7 +53,7 @@ usage: spoa [options ...] <sequences>
         0 - local (Smith-Waterman)
         1 - global (Needleman-Wunsch)
         2 - semi-global
-    -r, --result <int>
+    -r, --result <int> (option can be used multiple times)
       default: 0
       result mode:
         0 - consensus (FASTA)
