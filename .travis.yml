@@ -76,7 +76,7 @@ before_install:
 
 install:
   - mkdir build && cd build
-  - cmake -Dspoa_build_executable=ON -Dspoa_build_tests=ON -DCMAKE_BUILD_TYPE=Release .. && make
+  - cmake -Dspoa_build_executable=ON -Dspoa_build_tests=ON -DCMAKE_BUILD_TYPE=Release -Dspoa_use_simde=ON .. && make
 
 script:
   - ./bin/spoa --version
