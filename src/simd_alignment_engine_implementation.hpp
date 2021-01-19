@@ -303,6 +303,14 @@ std::unique_ptr<AlignmentEngine> SimdAlignmentEngine<A>::Create(
   return std::unique_ptr<AlignmentEngine>(
       new SimdAlignmentEngine<A>(type, subtype, m, n, g, e, q, c));
 #else
+  (void) type;
+  (void) subtype;
+  (void) m;
+  (void) n;
+  (void) g;
+  (void) e;
+  (void) q;
+  (void) c;
   return nullptr;
 #endif
 }
@@ -380,7 +388,6 @@ void SimdAlignmentEngine<A>::Prealloc(
   }
 
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-
   std::int64_t worst_case_score = WorstCaseAlignmentScore(
       static_cast<std::int64_t>(max_sequence_len) + 8,
       static_cast<std::int64_t>(max_sequence_len) * alphabet_size);
@@ -408,7 +415,8 @@ void SimdAlignmentEngine<A>::Prealloc(
           "[spoa::SimdAlignmentEngine::Prealloc] error: insufficient memory!");
     }
   }
-
+#else
+  (void) alphabet_size;
 #endif
 }
 
@@ -500,6 +508,10 @@ void SimdAlignmentEngine<A>::Realloc(
     pimpl_->penalties_storage.reset();
     pimpl_->penalties_storage = std::unique_ptr<__mxxxi[]>(storage);
   }
+#else
+  (void) matrix_width;
+  (void) matrix_height;
+  (void) num_codes;
 #endif
 }
 
@@ -563,6 +575,7 @@ void SimdAlignmentEngine<A>::Initialize(
         }
         pimpl_->first_column[2 * matrix_height + i] = penalty + c_;
       }
+      // fall through
     case AlignmentSubtype::kAffine:
       for (std::uint32_t j = 0; j < matrix_width; ++j) {
         pimpl_->F[j] = negative_infinities;
@@ -584,9 +597,11 @@ void SimdAlignmentEngine<A>::Initialize(
         }
         pimpl_->first_column[matrix_height + i] = penalty + e_;
       }
+      // fall through
     case AlignmentSubtype::kLinear:
-      default:
-        break;
+      break;
+    default:
+      break;
   }
 
   // initialize primary matrix
@@ -677,6 +692,12 @@ void SimdAlignmentEngine<A>::Initialize(
     default:
       break;
   }
+#else
+  (void) sequence;
+  (void) graph;
+  (void) normal_matrix_width;
+  (void) matrix_width;
+  (void) matrix_height;
 #endif
 }
 
@@ -695,7 +716,6 @@ Alignment SimdAlignmentEngine<A>::Align(
   }
 
 #if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
-
   std::int64_t worst_case_score = WorstCaseAlignmentScore(
       sequence_len + 8,
       graph.nodes().size());
@@ -752,7 +772,9 @@ Alignment SimdAlignmentEngine<A>::Align(
       return Convex<InstructionSet<A, std::int16_t>>(sequence_len, graph, score);  // NOLINT
     }
   }
-
+#else
+  (void) sequence;
+  (void) score;
 #endif
   return Alignment();
 }
@@ -1104,6 +1126,9 @@ Alignment SimdAlignmentEngine<A>::Linear(
   std::reverse(alignment.begin(), alignment.end());
   return alignment;
 #else
+  (void) sequence_len;
+  (void) graph;
+  (void) score;
   return Alignment();
 #endif
 }
@@ -1551,6 +1576,9 @@ Alignment SimdAlignmentEngine<A>::Affine(
   std::reverse(alignment.begin(), alignment.end());
   return alignment;
 #else
+(void) sequence_len;
+(void) graph;
+(void) score;
   return Alignment();
 #endif
 }
@@ -2095,6 +2123,9 @@ Alignment SimdAlignmentEngine<A>::Convex(
   std::reverse(alignment.begin(), alignment.end());
   return alignment;
 #else
+(void) sequence_len;
+(void) graph;
+(void) score;
   return Alignment();
 #endif
 }

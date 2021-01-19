@@ -16,6 +16,30 @@ matrix:
       env:
         - SET_COMPILER="export CC=gcc-4.8 && export CXX=g++-4.8"
 
+    - name: "GCC 5.0 (Linux)"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5.0
+            - cmake
+      env:
+        - SET_COMPILER="export CC=gcc-5.0 && export CXX=g++-5.0"
+
+    - name: "GCC 6.1 (Linux)"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6.1
+            - cmake
+      env:
+        - SET_COMPILER="export CC=gcc-6.1 && export CXX=g++-6.1"
+
     - name: "Clang 3.5 (Linux)"  # Clang 3.5.0 & CMake 3.9.2
       os: linux
       addons:
