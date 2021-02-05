@@ -1,11 +1,10 @@
-dist: trusty
-
 language: cpp
 
 matrix:
   include:
     - name: "GCC 4.8 (Linux)"  # GCC 4.8.5 & CMake 3.9.2
       os: linux
+      dist: trusty
       addons:
         apt:
           sources:
@@ -16,44 +15,21 @@ matrix:
       env:
         - SET_COMPILER="export CC=gcc-4.8 && export CXX=g++-4.8"
 
-    - name: "GCC 5 (Linux)"
+    - name: "GCC 5.4 (Linux)"
       os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-            - cmake
-      env:
-        - SET_COMPILER="export CC=gcc-5 && export CXX=g++-5"
+      dist: xenial
 
-    - name: "GCC 6 (Linux)"
+    - name: "GCC 7.5 (Linux)"
       os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - cmake
-      env:
-        - SET_COMPILER="export CC=gcc-6 && export CXX=g++-6"
+      dist: bionic
 
-    - name: "GCC 9 (Linux)"
+    - name: "GCC 9.3 (Linux)"
       os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-9
-            - cmake
-      env:
-        - SET_COMPILER="export CC=gcc-9 && export CXX=g++-9"
+      dist: focal
 
     - name: "Clang 3.5 (Linux)"  # Clang 3.5.0 & CMake 3.9.2
       os: linux
+      dist: trusty
       addons:
         apt:
           sources:
@@ -76,7 +52,7 @@ before_install:
 
 install:
   - mkdir build && cd build
-  - cmake -Dspoa_build_executable=ON -Dspoa_build_tests=ON -DCMAKE_BUILD_TYPE=Release -Dspoa_use_simde=ON .. && make
+  - cmake -Dspoa_build_executable=ON -Dspoa_build_tests=ON -DCMAKE_BUILD_TYPE=Release .. && make
 
 script:
   - ./bin/spoa --version
