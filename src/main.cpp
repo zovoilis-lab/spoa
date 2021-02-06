@@ -12,8 +12,6 @@ std::atomic<std::uint32_t> biosoup::Sequence::num_objects{0};
 
 namespace {
 
-const char* spoa_version = SPOA_VERSION;
-
 static struct option options[] = {
   {"algorithm", required_argument, nullptr, 'l'},
   {"result", required_argument, nullptr, 'r'},
@@ -229,7 +227,7 @@ int main(int argc, char** argv) {
       case 'r': results.emplace_back(atoi(optarg)); break;
       case 'd': dot_path = optarg; break;
       case 's': is_strand_ambiguous = true; break;
-      case 'v': std::cout << spoa_version << std::endl; return 0;
+      case 'v': std::cout << VERSION << std::endl; return 0;
       case 'h': Help(); return 0;
       default: return 1;
     }

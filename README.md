@@ -11,13 +11,11 @@ Spoa (SIMD POA) is a c++ implementation of the partial order alignment (POA) alg
 To build spoa run the following commands:
 
 ```bash
-git clone --recursive https://github.com/rvaser/spoa.git spoa
-cd spoa && mkdir build && cd build
-cmake -Dspoa_build_executable=ON -DCMAKE_BUILD_TYPE=Release .. && make
-./bin/spoa
+git clone https://github.com/rvaser/spoa && cd spoa && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release .. && make
 ```
 
-which will display the following usage:
+which will create spoa library, executable and unit tests. Running the executable will display the following usage:
 
 ```bash
 usage: spoa [options ...] <sequences>
@@ -76,28 +74,47 @@ usage: spoa [options ...] <sequences>
     convex otherwise (default)
 ```
 
-Various options can be enabled while running cmake:
+Running `make install` will install the library and the executable. If you choose to build with cereal or want to generate the dispatcher, cereal and cpu_features (see Dependencies) need to be installed beforehand, respectively. Once the library is installed, with or without additional options, a package will be copied to your system that can be searched and linked with:
 
-- `spoa_optimize_for_native`: builds with `-march=native`
-- `spoa_optimize_for_portability`: builds with `-msse4.1`
-- `spoa_use_simde`: builds with SIMDe for porting vectorized code
-- `spoa_use_simde_nonvec`: uses SIMDe library for nonvectorized code
-- `spoa_use_simde_openmp`: uses SIMDe support for OpenMP SIMD
-- `spoa_generate_dispatch`: uses SIMDe to generate x86 dispatch
+```cmake
+find_package(spoa)
+target_link_libraries(<target> spoa::spoa)
+```
 
-If you would like to add spoa as a library to your project via CMake, add the following:
+On the other hand, you can include spoa as a submodule and add it to your project with the following:
 
 ```cmake
 if (NOT TARGET spoa)
   add_subdirectory(<path_to_submodules>/spoa EXCLUDE_FROM_ALL)
 endif ()
-target_link_libraries(<your exe> spoa)
+target_link_libraries(<target> spoa::spoa)
 ```
 
+#### Build options
+
+- `spoa_install`: generate library install target
+- `spoa_build_exe`: build executable
+- `spoa_build_tests`: build unit tests
+- `spoa_optimize_for_native`: build with `-march=native`
+- `spoa_optimize_for_portability`: build with `-msse4.1`
+- `spoa_use_cereal`: use cereal library
+- `spoa_use_simde`: build with SIMDe for porting vectorized code
+- `spoa_use_simde_nonvec`: use SIMDe library for nonvectorized code
+- `spoa_use_simde_openmp`: use SIMDe support for OpenMP SIMD
+- `spoa_generate_dispatch`: use SIMDe to generate x86 dispatch
+
 #### Dependencies
-- gcc 4.8+ or clang 3.5+
-- cmake 3.9+
-- zlib (executable only)
+- gcc 4.8+ | clang 3.5+
+- cmake 3.12+
+- (spoa_exe)(spoa_test) zlib 1.2.8+
+
+###### Hidden
+- (optional) USCiLab/cereal 1.3.0
+- (optional) simd-everywhere/simde 0.7.0
+- (optional) google/cpu_features 0.6.0
+- (spoa_exe)(spoa_test) rvaser/bioparser 3.0.13
+- (spoa_exe)(spoa_test) rvaser/biosoup 0.10.0
+- (spoa_test) google/googletest 1.10.0
 
 ## Examples
 
@@ -141,19 +158,6 @@ int main(int argc, char** argv) {
   return 0;
 }
 ```
-## Unit tests
-
-To build and run spoa unit tests run the following commands:
-
-```bash
-git clone --recursive https://github.com/rvaser/spoa.git spoa
-cd spoa && mkdir build && cd build
-cmake -Dspoa_build_tests=ON -DCMAKE_BUILD_TYPE=Release .. && make
-./bin/spoa_test
-```
-
-#### Dependencies
-- gtest
 
 ## Acknowledgement
 

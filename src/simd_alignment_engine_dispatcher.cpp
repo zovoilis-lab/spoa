@@ -2,7 +2,7 @@
 
 #include "simd_alignment_engine_implementation.hpp"
 
-#ifdef GENERATE_DISPATCH
+#ifdef SPOA_GENERATE_DISPATCH
 
 #include "cpuinfo_x86.h"  // NOLINT
 
@@ -13,7 +13,7 @@ static const cpu_features::X86Features features =
 
 namespace spoa {
 
-#ifndef GENERATE_DISPATCH
+#ifndef SPOA_GENERATE_DISPATCH
 
 template class SimdAlignmentEngine<Architecture::kAutomatic>;
 
@@ -28,7 +28,7 @@ std::unique_ptr<AlignmentEngine> CreateSimdAlignmentEngine(
     std::int8_t e,
     std::int8_t q,
     std::int8_t c) {
-#ifdef GENERATE_DISPATCH
+#ifdef SPOA_GENERATE_DISPATCH
   if (features.avx2) {
     return SimdAlignmentEngine<Architecture::kAVX2>::Create(
         type, subtype, m, n, g, e, q, c);

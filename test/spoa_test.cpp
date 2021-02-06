@@ -4,7 +4,9 @@
 
 #include "bioparser/fastq_parser.hpp"
 #include "biosoup/sequence.hpp"
+#ifdef SPOA_USE_CEREAL
 #include "cereal/archives/binary.hpp"
+#endif
 #include "gtest/gtest.h"
 
 #include "spoa/spoa.hpp"
@@ -25,7 +27,7 @@ class SpoaTest: public ::testing::Test {
       std::int8_t q,
       std::int8_t c,
       bool quality) {
-    auto p = bioparser::Parser<biosoup::Sequence>::Create<bioparser::FastqParser>(SPOA_DATA_PATH);  // NOLINT
+    auto p = bioparser::Parser<biosoup::Sequence>::Create<bioparser::FastqParser>(TEST_DATA);  // NOLINT
     s = p->Parse(-1);
     EXPECT_EQ(55, s.size());
 
@@ -126,6 +128,7 @@ TEST_F(SpoaTest, Clear) {
   EXPECT_EQ(c, gr.GenerateConsensus());
 }
 
+#ifdef SPOA_USE_CEREAL
 TEST_F(SpoaTest, Archive) {
   Setup(AlignmentType::kNW, 2, -5, -2, -2, -2, -2, true);
 
@@ -146,6 +149,7 @@ TEST_F(SpoaTest, Archive) {
 
   EXPECT_EQ(c, gr.GenerateConsensus());
 }
+#endif
 
 TEST_F(SpoaTest, Local) {
   Setup(AlignmentType::kSW, 5, -4, -8, -8, -8, -8, false);

@@ -11,10 +11,12 @@
 #include <utility>
 #include <vector>
 
+#ifdef SPOA_USE_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/vector.hpp"
 #include "cereal/types/utility.hpp"
+#endif
 
 namespace spoa {
 
@@ -56,6 +58,7 @@ class Graph {
     std::vector<Node*> aligned_nodes;
 
    private:
+#ifdef SPOA_USE_CEREAL
     Node() = default;
 
     template<class Archive>
@@ -64,6 +67,7 @@ class Graph {
     }
 
     friend cereal::access;
+#endif
   };
   struct Edge {
    public:
@@ -83,6 +87,7 @@ class Graph {
     std::int64_t weight;
 
    private:
+#ifdef SPOA_USE_CEREAL
     Edge() = default;
 
     template<class Archive>
@@ -91,6 +96,7 @@ class Graph {
     }
 
     friend cereal::access;
+#endif
   };
 
   const std::vector<std::unique_ptr<Node>>& nodes() const {
@@ -178,6 +184,7 @@ class Graph {
 
   void Clear();
 
+#ifdef SPOA_USE_CEREAL
   template<class Archive>
   void save(Archive& archive) const {  // NOLINT
     std::vector<std::uint32_t> sequences;
@@ -267,6 +274,7 @@ class Graph {
       consensus_.emplace_back(nodes_[it].get());
     }
   }
+#endif
 
  private:
   Node* AddNode(std::uint32_t code);

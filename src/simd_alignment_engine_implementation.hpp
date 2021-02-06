@@ -14,11 +14,11 @@
 #include <vector>
 
 extern "C" {
-#ifdef USE_SIMDE
-  #ifdef __AVX2__
-    #include <simde/x86/avx2.h>
+#ifdef SPOA_USE_SIMDE
+  #if defined(__AVX2__)
+    #include "simde/x86/avx2.h"
   #else
-    #include <simde/x86/sse4.1.h>  // SSE4.1 is covered better
+    #include "simde/x86/sse4.1.h"  // SSE4.1 is covered better
   #endif
 #elif defined(__AVX2__) || defined(__SSE4_1__)
   #include <immintrin.h>  // AVX2 and lower
@@ -149,7 +149,7 @@ struct InstructionSet<A, std::int32_t> {
     }
 };
 
-#elif defined(__SSE4_1__) || defined(USE_SIMDE)
+#elif defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
 
 constexpr std::uint32_t kRegisterSize = 128;
 using __mxxxi = __m128i;
@@ -237,7 +237,7 @@ struct InstructionSet<A, std::int32_t> {
 
 #endif
 
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
 
 template<Architecture A, typename T>
 void _mmxxx_print(const __mxxxi& a) {
@@ -299,7 +299,7 @@ std::unique_ptr<AlignmentEngine> SimdAlignmentEngine<A>::Create(
     std::int8_t e,
     std::int8_t q,
     std::int8_t c) {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   return std::unique_ptr<AlignmentEngine>(
       new SimdAlignmentEngine<A>(type, subtype, m, n, g, e, q, c));
 #else
@@ -309,7 +309,7 @@ std::unique_ptr<AlignmentEngine> SimdAlignmentEngine<A>::Create(
 
 template<Architecture A>
 struct SimdAlignmentEngine<A>::Implementation {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   std::vector<std::uint32_t> node_id_to_rank;
 
   std::unique_ptr<__mxxxi[]> sequence_profile_storage;
@@ -379,7 +379,7 @@ void SimdAlignmentEngine<A>::Prealloc(
         "[spoa::SimdAlignmentEngine::Prealloc] error: too large sequence!");
   }
 
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
 
   std::int64_t worst_case_score = WorstCaseAlignmentScore(
       static_cast<std::int64_t>(max_sequence_len) + 8,
@@ -417,7 +417,7 @@ void SimdAlignmentEngine<A>::Realloc(
     std::uint64_t matrix_width,
     std::uint64_t matrix_height,
     std::uint8_t num_codes) {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   if (pimpl_->node_id_to_rank.size() < matrix_height - 1) {
     pimpl_->node_id_to_rank.resize(matrix_height - 1, 0);
   }
@@ -510,7 +510,7 @@ void SimdAlignmentEngine<A>::Initialize(
     std::uint64_t normal_matrix_width,
     std::uint64_t matrix_width,
     std::uint64_t matrix_height) noexcept {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   std::int32_t padding_penatly = -1 * std::max(
       std::max(abs(m_), abs(n_)),
       std::max(abs(g_), abs(q_)));
@@ -563,6 +563,7 @@ void SimdAlignmentEngine<A>::Initialize(
         }
         pimpl_->first_column[2 * matrix_height + i] = penalty + c_;
       }
+      // fall through
     case AlignmentSubtype::kAffine:
       for (std::uint32_t j = 0; j < matrix_width; ++j) {
         pimpl_->F[j] = negative_infinities;
@@ -584,9 +585,11 @@ void SimdAlignmentEngine<A>::Initialize(
         }
         pimpl_->first_column[matrix_height + i] = penalty + e_;
       }
+      // fall through
     case AlignmentSubtype::kLinear:
-      default:
-        break;
+      break;
+    default:
+      break;
   }
 
   // initialize primary matrix
@@ -694,7 +697,7 @@ Alignment SimdAlignmentEngine<A>::Align(
     return Alignment();
   }
 
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
 
   std::int64_t worst_case_score = WorstCaseAlignmentScore(
       sequence_len + 8,
@@ -762,7 +765,7 @@ Alignment SimdAlignmentEngine<A>::Linear(
     std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   std::uint64_t normal_matrix_width = sequence_len;
   std::uint64_t matrix_width =
       std::ceil(static_cast<double>(sequence_len) / T::kNumVar);
@@ -1113,7 +1116,7 @@ Alignment SimdAlignmentEngine<A>::Affine(
     std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   std::uint64_t normal_matrix_width = sequence_len;
   std::uint64_t matrix_width =
       std::ceil(static_cast<double>(sequence_len) / T::kNumVar);
@@ -1560,7 +1563,7 @@ Alignment SimdAlignmentEngine<A>::Convex(
     std::uint32_t sequence_len,
     const Graph& graph,
     std::int32_t* score) noexcept {
-#if defined(__AVX2__) || defined(__SSE4_1__) || defined(USE_SIMDE)
+#if defined(__AVX2__) || defined(__SSE4_1__) || defined(SPOA_USE_SIMDE)
   std::uint64_t normal_matrix_width = sequence_len;
   std::uint64_t matrix_width =
       std::ceil(static_cast<double>(sequence_len) / T::kNumVar);

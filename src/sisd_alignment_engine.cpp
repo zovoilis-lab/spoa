@@ -154,6 +154,7 @@ void SisdAlignmentEngine::Initialize(
         pimpl_->O[i * matrix_width] = penalty + c_;
         pimpl_->Q[i * matrix_width] = kNegativeInfinity;
       }
+      // fall through
     case AlignmentSubtype::kAffine:
       pimpl_->F[0] = 0;
       pimpl_->E[0] = 0;
@@ -171,8 +172,10 @@ void SisdAlignmentEngine::Initialize(
         pimpl_->F[i * matrix_width] = penalty + e_;
         pimpl_->E[i * matrix_width] = kNegativeInfinity;
       }
+      // fall through
     case AlignmentSubtype::kLinear:
       pimpl_->H[0] = 0;
+      break;
     default:
       break;
   }
