@@ -303,6 +303,14 @@ std::unique_ptr<AlignmentEngine> SimdAlignmentEngine<A>::Create(
   return std::unique_ptr<AlignmentEngine>(
       new SimdAlignmentEngine<A>(type, subtype, m, n, g, e, q, c));
 #else
+  (void) type;
+  (void) subtype;
+  (void) m;
+  (void) n;
+  (void) g;
+  (void) e;
+  (void) q;
+  (void) c;
   return nullptr;
 #endif
 }
@@ -410,6 +418,7 @@ void SimdAlignmentEngine<A>::Prealloc(
   }
 
 #endif
+  (void) alphabet_size;
 }
 
 template<Architecture A>
@@ -501,6 +510,9 @@ void SimdAlignmentEngine<A>::Realloc(
     pimpl_->penalties_storage = std::unique_ptr<__mxxxi[]>(storage);
   }
 #endif
+  (void) matrix_width;
+  (void) matrix_height;
+  (void) num_codes;
 }
 
 template<Architecture A> template<typename T>
@@ -681,6 +693,11 @@ void SimdAlignmentEngine<A>::Initialize(
       break;
   }
 #endif
+  (void) sequence;
+  (void) graph;
+  (void) normal_matrix_width;
+  (void) matrix_width;
+  (void) matrix_height;
 }
 
 template<Architecture A>
@@ -757,6 +774,8 @@ Alignment SimdAlignmentEngine<A>::Align(
   }
 
 #endif
+  (void) sequence;
+  (void) score;
   return Alignment();
 }
 
@@ -1107,6 +1126,9 @@ Alignment SimdAlignmentEngine<A>::Linear(
   std::reverse(alignment.begin(), alignment.end());
   return alignment;
 #else
+  (void) sequence_len;
+  (void) graph;
+  (void) score;
   return Alignment();
 #endif
 }
@@ -1554,6 +1576,9 @@ Alignment SimdAlignmentEngine<A>::Affine(
   std::reverse(alignment.begin(), alignment.end());
   return alignment;
 #else
+  (void) sequence_len;
+  (void) graph;
+  (void) score;
   return Alignment();
 #endif
 }
@@ -2098,6 +2123,9 @@ Alignment SimdAlignmentEngine<A>::Convex(
   std::reverse(alignment.begin(), alignment.end());
   return alignment;
 #else
+  (void) sequence_len;
+  (void) graph;
+  (void) score;
   return Alignment();
 #endif
 }
