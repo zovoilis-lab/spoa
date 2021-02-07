@@ -186,6 +186,7 @@ add_library(spoa
   src/graph.cpp
   src/simd_alignment_engine_dispatcher.cpp
   src/sisd_alignment_engine.cpp)
+add_library(spoa::spoa ALIAS spoa)
 
 target_include_directories(spoa PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
