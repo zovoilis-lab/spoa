@@ -35,14 +35,14 @@ usage: spoa [options ...] <sequences>
       default: -8
       gap opening penalty (must be non-positive)
     -e <int>
-      default: -6
+      default: -8
       gap extension penalty (must be non-positive)
     -q <int>
-      default: -10
+      default: -8
       gap opening penalty of the second affine function
       (must be non-positive)
     -c <int>
-      default: -4
+      default: -8
       gap extension penalty of the second affine function
       (must be non-positive)
     -l, --algorithm <int>
@@ -52,7 +52,7 @@ usage: spoa [options ...] <sequences>
         1 - global (Needleman-Wunsch)
         2 - semi-global
     -r, --result <int> (option can be used multiple times)
-      default: 0
+      default: 1
       result mode:
         0 - consensus (FASTA)
         1 - multiple sequence alignment (FASTA)
@@ -63,6 +63,9 @@ usage: spoa [options ...] <sequences>
       output file for the partial order graph in DOT format
     -s, --strand-ambiguous
       for each sequence pick the strand with the better alignment
+    -t, --threads <int>
+      default: 1
+      number of threads
     --version
       prints the version number
     -h, --help

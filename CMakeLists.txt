@@ -161,6 +161,29 @@ if (spoa_build_exe OR spoa_build_tests)
   endif ()
 endif ()
 
+if (spoa_build_exe)
+  find_package(ram 2.0.0 QUIET)
+  if (NOT ram_FOUND)
+    if (racon_install)
+      message(FATAL_ERROR "Missing package ram!")
+    endif ()
+
+    FetchContent_Declare(
+      ram
+      GIT_REPOSITORY https://github.com/lbcb-sci/ram
+      GIT_TAG 7597511)
+
+    FetchContent_GetProperties(ram)
+    if (NOT ram_POPULATED)
+      FetchContent_Populate(ram)
+      add_subdirectory(
+        ${ram_SOURCE_DIR}
+        ${ram_BINARY_DIR}
+        EXCLUDE_FROM_ALL)
+    endif ()
+  endif ()
+endif ()
+
 if (spoa_build_tests)
   find_package(GTest 1.10.0 QUIET)
   if (NOT GTest_FOUND)
@@ -265,7 +288,8 @@ if (spoa_build_exe)
   target_link_libraries(spoa_exe
     spoa
     bioparser::bioparser
-    biosoup::biosoup)
+    biosoup::biosoup
+    ram::ram)
 
   target_compile_definitions(spoa_exe PRIVATE VERSION="${PROJECT_VERSION}")
   set_property(TARGET spoa_exe PROPERTY OUTPUT_NAME spoa)
