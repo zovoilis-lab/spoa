@@ -45,7 +45,7 @@ if (NOT spoa_generate_dispatch)
   if (spoa_optimize_for_portability)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
   elseif (spoa_optimize_for_native)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native")
   endif ()
 endif ()
 if (spoa_use_simde OR
